@@ -9,5 +9,7 @@ public interface ContributionPeriodRepository extends JpaRepository<Contribution
 
     List<ContributionPeriod> findByContributionDefinitionId(UUID contributionDefinitionId);
 
+    List<ContributionPeriod> findBySessionId(UUID sessionId);
+
     boolean existsByContributionDefinitionIdAndSessionId(UUID contributionDefinitionId, UUID sessionId);
 }

@@ -10,4 +10,6 @@ public interface MemberRepository extends JpaRepository<Member, UUID> {
     Optional<Member> findByUserId(UUID userId);
 
     boolean existsByUserId(UUID userId);
+
+    long countByActiveTrue();
 }

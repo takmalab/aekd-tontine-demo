@@ -13,4 +13,8 @@ public interface AppliedSanctionRepository extends JpaRepository<AppliedSanction
 
     boolean existsBySanctionRuleIdAndMemberIdAndContributionPeriodIdAndStatus(
             UUID sanctionRuleId, UUID memberId, UUID contributionPeriodId, AppliedSanctionStatus status);
+
+    long countByStatus(AppliedSanctionStatus status);
+
+    long countByMemberIdAndStatus(UUID memberId, AppliedSanctionStatus status);
 }

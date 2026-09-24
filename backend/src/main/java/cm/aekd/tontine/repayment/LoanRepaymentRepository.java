@@ -14,4 +14,7 @@ public interface LoanRepaymentRepository extends JpaRepository<LoanRepayment, UU
 
     @Query("SELECT COALESCE(SUM(r.amount), 0) FROM LoanRepayment r WHERE r.loan.id = :loanId")
     BigDecimal sumAmountByLoanId(@Param("loanId") UUID loanId);
+
+    @Query("SELECT COALESCE(SUM(r.amount), 0) FROM LoanRepayment r WHERE r.loan.member.id = :memberId")
+    BigDecimal sumAmountByLoanMemberId(@Param("memberId") UUID memberId);
 }

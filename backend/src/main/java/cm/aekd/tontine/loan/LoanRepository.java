@@ -12,4 +12,8 @@ public interface LoanRepository extends JpaRepository<Loan, UUID> {
     List<Loan> findByStatus(LoanStatus status);
 
     long countByMemberIdAndStatusIn(UUID memberId, List<LoanStatus> statuses);
+
+    long countByStatus(LoanStatus status);
+
+    long countByStatusIn(List<LoanStatus> statuses);
 }

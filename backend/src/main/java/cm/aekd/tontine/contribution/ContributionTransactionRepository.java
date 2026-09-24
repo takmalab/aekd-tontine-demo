@@ -20,6 +20,9 @@ public interface ContributionTransactionRepository extends JpaRepository<Contrib
     boolean existsByMemberIdAndContributionPeriodIdAndStatus(UUID memberId, UUID contributionPeriodId,
                                                                ContributionTransactionStatus status);
 
+    List<ContributionTransaction> findByContributionPeriodIdAndStatus(UUID contributionPeriodId,
+                                                                        ContributionTransactionStatus status);
+
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM ContributionTransaction t "
             + "WHERE t.status = :status AND t.contributionPeriod.contributionDefinition.fundDestination = :fundDestination")
     BigDecimal sumAmountByStatusAndFundDestination(@Param("status") ContributionTransactionStatus status,
