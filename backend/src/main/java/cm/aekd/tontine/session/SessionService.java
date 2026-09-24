@@ -1,5 +1,7 @@
 package cm.aekd.tontine.session;
 
+import cm.aekd.tontine.audit.AuditAction;
+import cm.aekd.tontine.audit.AuditLogService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -11,9 +13,11 @@ import java.util.UUID;
 public class SessionService {
 
     private final SessionRepository sessionRepository;
+    private final AuditLogService auditLogService;
 
-    public SessionService(SessionRepository sessionRepository) {
+    public SessionService(SessionRepository sessionRepository, AuditLogService auditLogService) {
         this.sessionRepository = sessionRepository;
+        this.auditLogService = auditLogService;
     }
 
     public SessionResponse create(SessionRequest request) {
@@ -23,7 +27,12 @@ public class SessionService {
         }
 
         Session session = new Session(request.label(), request.startDate(), request.endDate());
-        return SessionResponse.from(sessionRepository.save(session));
+        session = sessionRepository.save(session);
+
+        auditLogService.record(AuditAction.SESSION_CREATED, "Session", session.getId(),
+                "Création de la séance \"" + session.getLabel() + "\"");
+
+        return SessionResponse.from(session);
     }
 
     public List<SessionResponse> findAll() {

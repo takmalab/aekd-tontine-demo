@@ -1,7 +1,10 @@
 package cm.aekd.tontine.contribution;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -13,4 +16,19 @@ public interface ContributionTransactionRepository extends JpaRepository<Contrib
 
     boolean existsByMemberIdAndContributionPeriodIdAndStatusIn(UUID memberId, UUID contributionPeriodId,
                                                                  List<ContributionTransactionStatus> statuses);
+
+    boolean existsByMemberIdAndContributionPeriodIdAndStatus(UUID memberId, UUID contributionPeriodId,
+                                                               ContributionTransactionStatus status);
+
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM ContributionTransaction t "
+            + "WHERE t.status = :status AND t.contributionPeriod.contributionDefinition.fundDestination = :fundDestination")
+    BigDecimal sumAmountByStatusAndFundDestination(@Param("status") ContributionTransactionStatus status,
+                                                    @Param("fundDestination") FundDestination fundDestination);
+
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM ContributionTransaction t "
+            + "WHERE t.status = :status AND t.contributionPeriod.contributionDefinition.fundDestination = :fundDestination "
+            + "AND t.member.id = :memberId")
+    BigDecimal sumAmountByStatusAndFundDestinationAndMember(@Param("status") ContributionTransactionStatus status,
+                                                             @Param("fundDestination") FundDestination fundDestination,
+                                                             @Param("memberId") UUID memberId);
 }

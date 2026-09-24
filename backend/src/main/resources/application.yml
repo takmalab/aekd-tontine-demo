@@ -16,6 +16,11 @@ spring:
     enabled: true
     locations: classpath:db/migration
 
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
 server:
   port: 8080
 
@@ -25,3 +30,7 @@ app:
     # APP_JWT_SECRET pour tout environnement partage/production.
     secret: ${APP_JWT_SECRET:dev-only-secret-please-change-me-aekd-tontine-mvp}
     expiration-minutes: ${APP_JWT_EXPIRATION_MINUTES:60}
+  storage:
+    local:
+      # Chemin de stockage local des justificatifs (MVP, CLAUDE.md §16).
+      root: ${APP_STORAGE_ROOT:./storage}

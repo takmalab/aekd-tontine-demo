@@ -1,5 +1,7 @@
 package cm.aekd.tontine.contribution;
 
+import cm.aekd.tontine.audit.AuditAction;
+import cm.aekd.tontine.audit.AuditLogService;
 import cm.aekd.tontine.common.CurrentUserProvider;
 import cm.aekd.tontine.member.Member;
 import cm.aekd.tontine.member.MemberRepository;
@@ -31,6 +33,7 @@ public class ContributionDefinitionService {
     private final MemberRepository memberRepository;
     private final SessionRepository sessionRepository;
     private final CurrentUserProvider currentUserProvider;
+    private final AuditLogService auditLogService;
 
     public ContributionDefinitionService(ContributionDefinitionRepository definitionRepository,
                                           ContributionParticipantRepository participantRepository,
@@ -38,7 +41,8 @@ public class ContributionDefinitionService {
                                           ContributionPeriodRepository periodRepository,
                                           MemberRepository memberRepository,
                                           SessionRepository sessionRepository,
-                                          CurrentUserProvider currentUserProvider) {
+                                          CurrentUserProvider currentUserProvider,
+                                          AuditLogService auditLogService) {
         this.definitionRepository = definitionRepository;
         this.participantRepository = participantRepository;
         this.beneficiaryRepository = beneficiaryRepository;
@@ -46,6 +50,7 @@ public class ContributionDefinitionService {
         this.memberRepository = memberRepository;
         this.sessionRepository = sessionRepository;
         this.currentUserProvider = currentUserProvider;
+        this.auditLogService = auditLogService;
     }
 
     public ContributionDefinitionResponse create(ContributionDefinitionRequest request) {
@@ -59,7 +64,12 @@ public class ContributionDefinitionService {
                 request.name(), request.description(), request.amount(), request.amountMode(),
                 request.frequency(), request.mandatory(), request.visibility(), request.fundDestination()
         );
-        return ContributionDefinitionResponse.from(definitionRepository.save(definition));
+        definition = definitionRepository.save(definition);
+
+        auditLogService.record(AuditAction.CONTRIBUTION_CREATED, "ContributionDefinition", definition.getId(),
+                "Création de la cotisation \"" + definition.getName() + "\"");
+
+        return ContributionDefinitionResponse.from(definition);
     }
 
     public List<ContributionDefinitionResponse> findAll() {
@@ -79,7 +89,12 @@ public class ContributionDefinitionService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cette cotisation est déjà active");
         }
         definition.setStatus(ContributionStatus.ACTIVE);
-        return ContributionDefinitionResponse.from(definitionRepository.save(definition));
+        definition = definitionRepository.save(definition);
+
+        auditLogService.record(AuditAction.CONTRIBUTION_ACTIVATED, "ContributionDefinition", definition.getId(),
+                "Activation de la cotisation \"" + definition.getName() + "\"");
+
+        return ContributionDefinitionResponse.from(definition);
     }
 
     public ParticipantResponse addParticipant(UUID definitionId, MemberRefRequest request) {

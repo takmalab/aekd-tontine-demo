@@ -2,6 +2,9 @@
 backend/target/
 !backend/.mvn/wrapper/maven-wrapper.jar
 
+# Fichiers uploadés (justificatifs, etc.) - stockage local de dev
+backend/storage/
+
 # Frontend (Angular / Node)
 frontend/node_modules/
 frontend/dist/

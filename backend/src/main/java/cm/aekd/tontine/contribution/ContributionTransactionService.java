@@ -1,5 +1,7 @@
 package cm.aekd.tontine.contribution;
 
+import cm.aekd.tontine.audit.AuditAction;
+import cm.aekd.tontine.audit.AuditLogService;
 import cm.aekd.tontine.common.CurrentUserProvider;
 import cm.aekd.tontine.user.User;
 import cm.aekd.tontine.user.UserRepository;
@@ -26,13 +28,16 @@ public class ContributionTransactionService {
     private final ContributionTransactionRepository transactionRepository;
     private final UserRepository userRepository;
     private final CurrentUserProvider currentUserProvider;
+    private final AuditLogService auditLogService;
 
     public ContributionTransactionService(ContributionTransactionRepository transactionRepository,
                                            UserRepository userRepository,
-                                           CurrentUserProvider currentUserProvider) {
+                                           CurrentUserProvider currentUserProvider,
+                                           AuditLogService auditLogService) {
         this.transactionRepository = transactionRepository;
         this.userRepository = userRepository;
         this.currentUserProvider = currentUserProvider;
+        this.auditLogService = auditLogService;
     }
 
     public List<ContributionTransactionResponse> findPending() {
@@ -79,7 +84,15 @@ public class ContributionTransactionService {
         transaction.setStatus(newStatus);
         transaction.setValidatedBy(validator);
         transaction.setValidatedAt(Instant.now());
+        transaction = transactionRepository.save(transaction);
 
-        return ContributionTransactionResponse.from(transactionRepository.save(transaction));
+        AuditAction action = newStatus == ContributionTransactionStatus.VALIDATED
+                ? AuditAction.PAYMENT_VALIDATED : AuditAction.PAYMENT_REJECTED;
+        auditLogService.record(action, "ContributionTransaction", transaction.getId(),
+                (newStatus == ContributionTransactionStatus.VALIDATED ? "Validation" : "Rejet")
+                        + " du paiement de " + transaction.getAmount() + " de "
+                        + transaction.getMember().getFullName());
+
+        return ContributionTransactionResponse.from(transaction);
     }
 }

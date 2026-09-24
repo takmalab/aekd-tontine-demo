@@ -1,5 +1,7 @@
 package cm.aekd.tontine.contribution;
 
+import cm.aekd.tontine.audit.AuditAction;
+import cm.aekd.tontine.audit.AuditLogService;
 import cm.aekd.tontine.common.CurrentUserProvider;
 import cm.aekd.tontine.member.Member;
 import cm.aekd.tontine.member.MemberRepository;
@@ -31,19 +33,22 @@ public class ManualPaymentService implements PaymentService {
     private final ContributionTransactionRepository transactionRepository;
     private final MemberRepository memberRepository;
     private final CurrentUserProvider currentUserProvider;
+    private final AuditLogService auditLogService;
 
     public ManualPaymentService(ContributionDefinitionRepository definitionRepository,
                                  ContributionPeriodRepository periodRepository,
                                  ContributionParticipantRepository participantRepository,
                                  ContributionTransactionRepository transactionRepository,
                                  MemberRepository memberRepository,
-                                 CurrentUserProvider currentUserProvider) {
+                                 CurrentUserProvider currentUserProvider,
+                                 AuditLogService auditLogService) {
         this.definitionRepository = definitionRepository;
         this.periodRepository = periodRepository;
         this.participantRepository = participantRepository;
         this.transactionRepository = transactionRepository;
         this.memberRepository = memberRepository;
         this.currentUserProvider = currentUserProvider;
+        this.auditLogService = auditLogService;
     }
 
     @Override
@@ -81,8 +86,13 @@ public class ManualPaymentService implements PaymentService {
         ContributionTransaction transaction = new ContributionTransaction(
                 member, period, amount, request.operator(), request.transactionReference(),
                 request.paymentDate(), request.observation());
+        transaction = transactionRepository.save(transaction);
 
-        return ContributionTransactionResponse.from(transactionRepository.save(transaction));
+        auditLogService.record(AuditAction.PAYMENT_DECLARED, "ContributionTransaction", transaction.getId(),
+                "Déclaration d'un paiement de " + amount + " pour \"" + definition.getName() + "\" par "
+                        + member.getFullName());
+
+        return ContributionTransactionResponse.from(transaction);
     }
 
     private BigDecimal resolveAmount(ContributionDefinition definition, BigDecimal requestedAmount) {
