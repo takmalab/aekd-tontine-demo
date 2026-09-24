@@ -3,6 +3,7 @@ package cm.aekd.tontine.security;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -20,12 +21,14 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  * - Toute autre requête nécessite une authentification.
  *
  * Les règles d'autorisation fines par rôle (ADMIN / TRESORIER / MEMBRE,
- * détaillées en CLAUDE.md §6) seront ajoutées au niveau des contrôleurs
- * une fois ceux-ci créés (étape 13), pour rester alignées avec les
- * permissions réelles de chaque endpoint plutôt que d'anticiper des règles.
+ * détaillées en CLAUDE.md §6) sont ajoutées au niveau des contrôleurs via
+ * {@code @PreAuthorize} (voir par ex. SessionController), au fur et à
+ * mesure de leur création, pour rester alignées avec les permissions
+ * réelles de chaque endpoint plutôt que d'anticiper des règles.
  */
 @Configuration
 @EnableConfigurationProperties(JwtProperties.class)
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
