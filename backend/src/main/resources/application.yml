@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: tontine-backend
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/aekd_tontine
+    username: aekd
+    password: aekd_dev_password
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+server:
+  port: 8080
+
+app:
+  jwt:
+    # Valeur de developpement uniquement, a definir via la variable d'environnement
+    # APP_JWT_SECRET pour tout environnement partage/production.
+    secret: ${APP_JWT_SECRET:dev-only-secret-please-change-me-aekd-tontine-mvp}
+    expiration-minutes: ${APP_JWT_EXPIRATION_MINUTES:60}

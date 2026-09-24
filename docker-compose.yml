@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: aekd-tontine-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: aekd_tontine
+      POSTGRES_USER: aekd
+      POSTGRES_PASSWORD: aekd_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - aekd_tontine_pgdata:/var/lib/postgresql/data
+
+volumes:
+  aekd_tontine_pgdata:
