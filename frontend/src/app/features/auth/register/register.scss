@@ -1,0 +1,53 @@
+.register-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--mat-sys-surface-container-low, #f2f2f7);
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.register-card {
+  width: 100%;
+  max-width: 420px;
+}
+
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+
+  &__field {
+    width: 100%;
+  }
+
+  &__error {
+    color: var(--mat-sys-error, #b3261e);
+    font-size: 13px;
+    margin: 4px 0 12px;
+  }
+
+  &__success {
+    color: #1e7b34;
+    font-size: 13px;
+    margin: 0 0 12px;
+  }
+
+  &__submit {
+    margin-top: 8px;
+    height: 42px;
+  }
+}
+
+.register-footer {
+  padding: 12px 16px 16px;
+  text-align: center;
+
+  a {
+    font-size: 13px;
+    color: var(--mat-sys-primary, #1b3a57);
+    text-decoration: none;
+  }
+}

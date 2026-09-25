@@ -1,0 +1,34 @@
+<div class="dashboard">
+  @if (loading()) {
+    <div class="dashboard__loading">
+      <mat-spinner diameter="40" />
+    </div>
+  } @else {
+    <h1 class="dashboard__title">{{ isStaff ? 'Tableau de bord' : 'Mon tableau de bord' }}</h1>
+
+    @if (currentSession(); as session) {
+      <p class="dashboard__session">
+        Séance en cours : <strong>{{ session.label }}</strong>
+        ({{ session.startDate }} → {{ session.endDate }})
+      </p>
+    } @else {
+      <p class="dashboard__session dashboard__session--empty">Aucune séance en cours actuellement.</p>
+    }
+
+    <div class="dashboard__grid">
+      @for (tile of tiles(); track tile.label) {
+        <mat-card
+          class="stat-card"
+          [class.stat-card--warn]="tile.tone === 'warn'"
+          [class.stat-card--ok]="tile.tone === 'ok'"
+        >
+          <mat-card-content>
+            <mat-icon class="stat-card__icon">{{ tile.icon }}</mat-icon>
+            <div class="stat-card__value">{{ tile.value }}</div>
+            <div class="stat-card__label">{{ tile.label }}</div>
+          </mat-card-content>
+        </mat-card>
+      }
+    </div>
+  }
+</div>
