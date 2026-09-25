@@ -3,6 +3,7 @@ package cm.aekd.tontine.auth;
 import cm.aekd.tontine.security.JwtService;
 import cm.aekd.tontine.user.User;
 import cm.aekd.tontine.user.UserRepository;
+import cm.aekd.tontine.user.UserStatus;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -25,7 +26,7 @@ public class AuthService {
 
     public LoginResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.email())
-                .filter(User::isEnabled)
+                .filter(candidate -> candidate.getStatus() == UserStatus.ACTIVE)
                 .filter(candidate -> passwordEncoder.matches(request.password(), candidate.getPasswordHash()))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Email ou mot de passe incorrect"));
 

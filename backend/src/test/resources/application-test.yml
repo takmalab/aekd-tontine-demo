@@ -1,3 +1,11 @@
+spring:
+  datasource:
+    # Base dediee aux tests, distincte de la base de dev/demo : les tests
+    # supposent un etat vierge (aucune seance, aucune politique de pret...)
+    # et ne doivent jamais voir les donnees de demonstration seedees dans
+    # aekd_tontine.
+    url: jdbc:postgresql://localhost:5432/aekd_tontine_test
+
 app:
   storage:
     local:
