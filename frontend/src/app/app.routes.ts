@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
+import { roleGuard } from './core/guards/role.guard';
 
 export const routes: Routes = [
   {
@@ -28,6 +29,22 @@ export const routes: Routes = [
         path: 'sessions/:id',
         loadComponent: () =>
           import('./features/sessions/session-detail/session-detail').then((m) => m.SessionDetail),
+      },
+      {
+        path: 'contributions',
+        loadComponent: () =>
+          import('./features/contributions/contributions-list/contributions-list').then(
+            (m) => m.ContributionsList,
+          ),
+      },
+      {
+        path: 'contributions/new',
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN', 'TRESORIER'] },
+        loadComponent: () =>
+          import('./features/contributions/contribution-wizard/contribution-wizard').then(
+            (m) => m.ContributionWizard,
+          ),
       },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],

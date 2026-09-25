@@ -1,0 +1,454 @@
+<section class="wizard">
+  <a routerLink="/contributions" class="back">
+    <mat-icon>arrow_back</mat-icon>
+    Cotisations
+  </a>
+
+  <header class="wizard__header">
+    <h1 class="wizard__title">Nouvelle cotisation</h1>
+    <p class="wizard__subtitle">
+      Configurez la cotisation étape par étape. Elle est enregistrée en brouillon, puis activée après relecture.
+    </p>
+  </header>
+
+  <div class="wizard__layout">
+    <!-- Liste des étapes (tablette / ordinateur) -->
+    <ol class="steps" aria-label="Étapes">
+      @for (step of steps; track step.title; let i = $index) {
+        <li
+          class="steps__item"
+          [class.steps__item--done]="i < currentIndex()"
+          [class.steps__item--current]="i === currentIndex()"
+          [attr.aria-current]="i === currentIndex() ? 'step' : null"
+        >
+          <span class="steps__bullet">
+            @if (i < currentIndex()) {
+              <mat-icon>check</mat-icon>
+            } @else {
+              {{ i + 1 }}
+            }
+          </span>
+          <span class="steps__label">{{ step.title }}</span>
+        </li>
+      }
+    </ol>
+
+    <div class="card">
+      <!-- Progression -->
+      <div class="progress">
+        <span class="progress__icon"><mat-icon>{{ steps[currentIndex()].icon }}</mat-icon></span>
+        <div class="progress__text">
+          <span class="progress__count">Étape {{ currentIndex() + 1 }} sur {{ steps.length }}</span>
+          <h2 class="progress__title">{{ steps[currentIndex()].title }}</h2>
+        </div>
+      </div>
+      <div class="progress__bar" role="progressbar" [attr.aria-valuenow]="currentIndex() + 1" aria-valuemin="1" [attr.aria-valuemax]="steps.length">
+        <span [style.width.%]="progress()"></span>
+      </div>
+
+      @if (referenceError()) {
+        <p class="notice notice--error" role="alert">
+          <mat-icon>error_outline</mat-icon>
+          <span>Impossible de charger les membres et les séances.</span>
+          <button mat-button type="button" (click)="loadReferenceData()">Réessayer</button>
+        </p>
+      }
+
+      <mat-stepper #stepper linear class="stepper" (selectionChange)="onStepChange($event.selectedIndex)">
+        <!-- 1. Informations générales -->
+        <mat-step [stepControl]="infoForm" [editable]="!created()">
+          <form [formGroup]="infoForm" (ngSubmit)="next(infoForm)" class="step">
+            <mat-form-field appearance="outline" class="full">
+              <mat-label>Nom de la cotisation</mat-label>
+              <input matInput formControlName="name" placeholder="Ex. : Cotisation 50 000 FCFA" />
+              @if (infoForm.controls.name.hasError('required')) {
+                <mat-error>Le nom est requis</mat-error>
+              }
+              @if (infoForm.controls.name.hasError('maxlength')) {
+                <mat-error>150 caractères maximum</mat-error>
+              }
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="full">
+              <mat-label>Description (facultative)</mat-label>
+              <textarea matInput formControlName="description" rows="3"></textarea>
+              @if (infoForm.controls.description.hasError('maxlength')) {
+                <mat-error>1000 caractères maximum</mat-error>
+              }
+            </mat-form-field>
+            <div class="actions">
+              <span></span>
+              <button mat-flat-button type="submit">Suivant <mat-icon iconPositionEnd>arrow_forward</mat-icon></button>
+            </div>
+          </form>
+        </mat-step>
+
+        <!-- 2. Montant et fréquence -->
+        <mat-step [stepControl]="amountForm" [editable]="!created()">
+          <form [formGroup]="amountForm" (ngSubmit)="next(amountForm)" class="step">
+            <p class="step__hint">Type de montant</p>
+            <div class="choices">
+              <label class="choice" [class.choice--selected]="isFixed()">
+                <input type="radio" formControlName="amountMode" value="FIXED" />
+                <mat-icon>pin</mat-icon>
+                <span class="choice__title">Montant fixe</span>
+                <span class="choice__text">Le même montant pour chaque participant.</span>
+              </label>
+              <label class="choice" [class.choice--selected]="!isFixed()">
+                <input type="radio" formControlName="amountMode" value="VOLUNTARY" />
+                <mat-icon>tune</mat-icon>
+                <span class="choice__title">Montant libre</span>
+                <span class="choice__text">Le membre saisit le montant qu'il verse.</span>
+              </label>
+            </div>
+
+            @if (isFixed()) {
+              <mat-form-field appearance="outline" class="full">
+                <mat-label>Montant</mat-label>
+                <input matInput type="number" inputmode="numeric" min="1" step="1" formControlName="amount" />
+                <span matTextSuffix>FCFA</span>
+                @if (amountForm.controls.amount.hasError('required')) {
+                  <mat-error>Le montant est requis pour un montant fixe</mat-error>
+                } @else if (amountForm.controls.amount.hasError('min') || amountForm.controls.amount.hasError('pattern')) {
+                  <mat-error>Montant entier strictement positif</mat-error>
+                }
+              </mat-form-field>
+            }
+
+            <div class="readonly-field">
+              <mat-icon>autorenew</mat-icon>
+              <div>
+                <span class="readonly-field__label">Fréquence</span>
+                <span class="readonly-field__value">Mensuelle (par séance)</span>
+              </div>
+            </div>
+
+            <div class="actions">
+              <button mat-button type="button" matStepperPrevious><mat-icon>arrow_back</mat-icon> Précédent</button>
+              <button mat-flat-button type="submit">Suivant <mat-icon iconPositionEnd>arrow_forward</mat-icon></button>
+            </div>
+          </form>
+        </mat-step>
+
+        <!-- 3. Obligatoire ou facultative -->
+        <mat-step [stepControl]="natureForm" [editable]="!created()">
+          <form [formGroup]="natureForm" (ngSubmit)="next(natureForm)" class="step">
+            <div class="choices">
+              <label class="choice" [class.choice--selected]="natureForm.controls.mandatory.value === true">
+                <input type="radio" formControlName="mandatory" [value]="true" />
+                <mat-icon>task_alt</mat-icon>
+                <span class="choice__title">Obligatoire</span>
+                <span class="choice__text">Due par chaque participant ; un non-paiement après l'échéance est signalé en retard.</span>
+              </label>
+              <label class="choice" [class.choice--selected]="natureForm.controls.mandatory.value === false">
+                <input type="radio" formControlName="mandatory" [value]="false" />
+                <mat-icon>volunteer_activism</mat-icon>
+                <span class="choice__title">Facultative</span>
+                <span class="choice__text">Versée librement ; jamais comptée comme un retard.</span>
+              </label>
+            </div>
+            @if (natureForm.controls.mandatory.invalid && natureForm.controls.mandatory.touched) {
+              <p class="field-error">Choisissez une option.</p>
+            }
+            <div class="actions">
+              <button mat-button type="button" matStepperPrevious><mat-icon>arrow_back</mat-icon> Précédent</button>
+              <button mat-flat-button type="submit">Suivant <mat-icon iconPositionEnd>arrow_forward</mat-icon></button>
+            </div>
+          </form>
+        </mat-step>
+
+        <!-- 4. Visibilité -->
+        <mat-step [stepControl]="visibilityForm" [editable]="!created()">
+          <form [formGroup]="visibilityForm" (ngSubmit)="next(visibilityForm)" class="step">
+            <div class="choices">
+              <label class="choice" [class.choice--selected]="visibilityForm.controls.visibility.value === 'PUBLIC'">
+                <input type="radio" formControlName="visibility" value="PUBLIC" />
+                <mat-icon>public</mat-icon>
+                <span class="choice__title">Publique</span>
+                <span class="choice__text">Tous les membres voient son existence (sans en être forcément participants).</span>
+              </label>
+              <label class="choice" [class.choice--selected]="visibilityForm.controls.visibility.value === 'PRIVATE'">
+                <input type="radio" formControlName="visibility" value="PRIVATE" />
+                <mat-icon>lock</mat-icon>
+                <span class="choice__title">Privée</span>
+                <span class="choice__text">Visible uniquement par l'administration et les participants sélectionnés.</span>
+              </label>
+            </div>
+            @if (visibilityForm.controls.visibility.invalid && visibilityForm.controls.visibility.touched) {
+              <p class="field-error">Choisissez une option.</p>
+            }
+            <div class="actions">
+              <button mat-button type="button" matStepperPrevious><mat-icon>arrow_back</mat-icon> Précédent</button>
+              <button mat-flat-button type="submit">Suivant <mat-icon iconPositionEnd>arrow_forward</mat-icon></button>
+            </div>
+          </form>
+        </mat-step>
+
+        <!-- 5. Participants -->
+        <mat-step [stepControl]="participantsForm" [editable]="!created()">
+          <form [formGroup]="participantsForm" (ngSubmit)="next(participantsForm)" class="step">
+            <p class="step__hint">
+              Seuls les participants pourront déclarer un paiement pour cette cotisation.
+            </p>
+            <ng-container *ngTemplateOutlet="picker; context: { form: participantsForm }" />
+            <div class="actions">
+              <button mat-button type="button" matStepperPrevious><mat-icon>arrow_back</mat-icon> Précédent</button>
+              <button mat-flat-button type="submit">Suivant <mat-icon iconPositionEnd>arrow_forward</mat-icon></button>
+            </div>
+          </form>
+        </mat-step>
+
+        <!-- 6. Bénéficiaires -->
+        <mat-step [stepControl]="beneficiariesForm" [editable]="!created()">
+          <form [formGroup]="beneficiariesForm" (ngSubmit)="next(beneficiariesForm)" class="step">
+            <p class="step__hint">
+              Bénéficiaires de la cotisation (facultatif). Indépendants des participants : un participant n'est pas
+              automatiquement bénéficiaire.
+            </p>
+            <ng-container *ngTemplateOutlet="picker; context: { form: beneficiariesForm }" />
+            <div class="actions">
+              <button mat-button type="button" matStepperPrevious><mat-icon>arrow_back</mat-icon> Précédent</button>
+              <button mat-flat-button type="submit">Suivant <mat-icon iconPositionEnd>arrow_forward</mat-icon></button>
+            </div>
+          </form>
+        </mat-step>
+
+        <!-- 7. Séance et échéance -->
+        <mat-step [stepControl]="sessionForm" [editable]="!created()">
+          <form [formGroup]="sessionForm" (ngSubmit)="next(sessionForm)" class="step">
+            <p class="step__hint">Séance à laquelle la cotisation s'applique, et sa date limite de paiement.</p>
+            <mat-form-field appearance="outline" class="full">
+              <mat-label>Séance</mat-label>
+              <mat-select formControlName="sessionId">
+                <mat-option [value]="null">Aucune pour l'instant</mat-option>
+                @for (session of sessions(); track session.id) {
+                  <mat-option [value]="session.id">
+                    {{ session.label }} — {{ fromIsoDate(session.date) | date: 'd MMM yyyy' }}
+                  </mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="full">
+              <mat-label>Échéance (facultative)</mat-label>
+              <input matInput [matDatepicker]="duePicker" formControlName="dueDate" (click)="duePicker.open()" />
+              <mat-datepicker-toggle matIconSuffix [for]="duePicker" />
+              <mat-datepicker #duePicker />
+              <mat-hint>
+                {{ sessionForm.controls.sessionId.value ? 'Date limite de paiement pour cette séance' : 'Choisissez d\'abord une séance' }}
+              </mat-hint>
+              @if (sessionForm.controls.dueDate.hasError('matDatepickerParse')) {
+                <mat-error>Date invalide (JJ/MM/AAAA)</mat-error>
+              }
+            </mat-form-field>
+            <div class="actions">
+              <button mat-button type="button" matStepperPrevious><mat-icon>arrow_back</mat-icon> Précédent</button>
+              <button mat-flat-button type="submit">Suivant <mat-icon iconPositionEnd>arrow_forward</mat-icon></button>
+            </div>
+          </form>
+        </mat-step>
+
+        <!-- 8. Destination des fonds -->
+        <mat-step [stepControl]="destinationForm" [editable]="!created()">
+          <form [formGroup]="destinationForm" (ngSubmit)="next(destinationForm)" class="step">
+            <div class="choices">
+              <label class="choice" [class.choice--selected]="destinationForm.controls.fundDestination.value === 'TONTINE_FUND'">
+                <input type="radio" formControlName="fundDestination" value="TONTINE_FUND" />
+                <mat-icon>account_balance</mat-icon>
+                <span class="choice__title">Fonds commun</span>
+                <span class="choice__text">Alimente le fonds commun de la tontine.</span>
+              </label>
+              <label class="choice" [class.choice--selected]="destinationForm.controls.fundDestination.value === 'INDIVIDUAL_SAVINGS'">
+                <input type="radio" formControlName="fundDestination" value="INDIVIDUAL_SAVINGS" />
+                <mat-icon>savings</mat-icon>
+                <span class="choice__title">Épargne individuelle</span>
+                <span class="choice__text">Crédite l'épargne personnelle du membre qui verse.</span>
+              </label>
+            </div>
+            @if (destinationForm.controls.fundDestination.invalid && destinationForm.controls.fundDestination.touched) {
+              <p class="field-error">Choisissez une destination.</p>
+            }
+            <div class="actions">
+              <button mat-button type="button" matStepperPrevious><mat-icon>arrow_back</mat-icon> Précédent</button>
+              <button mat-flat-button type="submit">Suivant <mat-icon iconPositionEnd>arrow_forward</mat-icon></button>
+            </div>
+          </form>
+        </mat-step>
+
+        <!-- 9. Récapitulatif -->
+        <mat-step [editable]="!created()">
+          <div class="step">
+            <p class="step__hint">Relisez les informations avant d'enregistrer la cotisation en brouillon.</p>
+            <dl class="recap">
+              <div class="recap__row">
+                <dt>Nom</dt>
+                <dd>{{ infoForm.controls.name.value }}</dd>
+              </div>
+              @if (infoForm.controls.description.value) {
+                <div class="recap__row">
+                  <dt>Description</dt>
+                  <dd>{{ infoForm.controls.description.value }}</dd>
+                </div>
+              }
+              <div class="recap__row">
+                <dt>Montant</dt>
+                <dd>{{ isFixed() ? formatFcfa(amountForm.controls.amount.value) : 'Montant libre' }} · mensuelle</dd>
+              </div>
+              <div class="recap__row">
+                <dt>Caractère</dt>
+                <dd>{{ natureForm.controls.mandatory.value ? 'Obligatoire' : 'Facultative' }}</dd>
+              </div>
+              <div class="recap__row">
+                <dt>Visibilité</dt>
+                <dd>{{ visibilityForm.controls.visibility.value ? visibilityLabels[visibilityForm.controls.visibility.value] : '' }}</dd>
+              </div>
+              <div class="recap__row">
+                <dt>Participants</dt>
+                <dd>
+                  @if (participantsForm.controls.memberIds.value?.length) {
+                    {{ participantsForm.controls.memberIds.value!.length }} :
+                    {{ memberNames(participantsForm.controls.memberIds.value).join(', ') }}
+                  } @else {
+                    <span class="warn"><mat-icon>warning</mat-icon> Aucun : personne ne pourra déclarer de paiement.</span>
+                  }
+                </dd>
+              </div>
+              <div class="recap__row">
+                <dt>Bénéficiaires</dt>
+                <dd>
+                  @if (beneficiariesForm.controls.memberIds.value?.length) {
+                    {{ memberNames(beneficiariesForm.controls.memberIds.value).join(', ') }}
+                  } @else {
+                    Aucun
+                  }
+                </dd>
+              </div>
+              <div class="recap__row">
+                <dt>Séance</dt>
+                <dd>
+                  @if (selectedSession(); as s) {
+                    {{ s.label }} ({{ fromIsoDate(s.date) | date: 'd MMM yyyy' }})
+                    @if (sessionForm.controls.dueDate.value) {
+                      · échéance le {{ sessionForm.controls.dueDate.value | date: 'd MMM yyyy' }}
+                    } @else {
+                      · sans échéance
+                    }
+                  } @else {
+                    <span class="warn"><mat-icon>warning</mat-icon> Aucune : la cotisation n'apparaîtra dans aucune séance.</span>
+                  }
+                </dd>
+              </div>
+              <div class="recap__row">
+                <dt>Destination</dt>
+                <dd>{{ destinationForm.controls.fundDestination.value ? destinationLabels[destinationForm.controls.fundDestination.value] : '' }}</dd>
+              </div>
+            </dl>
+
+            <p class="note">
+              <mat-icon>info</mat-icon>
+              <span>Les règles de sanction seront configurées séparément : leurs seuils et montants restent à valider.</span>
+            </p>
+
+            @if (saveError(); as message) {
+              <p class="notice notice--error" role="alert">
+                <mat-icon>error_outline</mat-icon>
+                <span>{{ message }}</span>
+              </p>
+            }
+
+            <div class="actions">
+              <button mat-button type="button" matStepperPrevious [disabled]="saving() || !!created()">
+                <mat-icon>arrow_back</mat-icon> Modifier
+              </button>
+              <button mat-flat-button type="button" (click)="saveDraft()" [disabled]="saving()">
+                @if (saving()) {
+                  <mat-spinner diameter="20" />
+                } @else {
+                  <span class="btn-label">
+                    <mat-icon>save</mat-icon>
+                    {{ created() ? 'Réessayer' : 'Enregistrer le brouillon' }}
+                  </span>
+                }
+              </button>
+            </div>
+          </div>
+        </mat-step>
+
+        <!-- 10. Activation -->
+        <mat-step>
+          <div class="step">
+            @if (created(); as c) {
+              @if (activated()) {
+                <div class="result result--success">
+                  <span class="result__icon"><mat-icon>check_circle</mat-icon></span>
+                  <h3 class="result__title">Cotisation activée</h3>
+                  <p class="result__text">« {{ c.name }} » est publiée. Ses participants peuvent désormais déclarer leurs paiements.</p>
+                  <div class="result__actions">
+                    <a mat-flat-button routerLink="/contributions">Voir les cotisations</a>
+                    @if (selectedSession(); as s) {
+                      <a mat-stroked-button [routerLink]="['/sessions', s.id]">Voir la séance</a>
+                    }
+                  </div>
+                </div>
+              } @else {
+                <div class="result">
+                  <span class="result__icon result__icon--draft"><mat-icon>draft</mat-icon></span>
+                  <h3 class="result__title">Brouillon enregistré</h3>
+                  <p class="result__text">
+                    « {{ c.name }} » est enregistrée mais <strong>pas encore active</strong> : elle reste invisible
+                    pour les membres tant que vous ne l'activez pas.
+                  </p>
+
+                  @if (activationError(); as message) {
+                    <p class="notice notice--error" role="alert">
+                      <mat-icon>error_outline</mat-icon>
+                      <span>{{ message }}</span>
+                    </p>
+                  }
+
+                  <div class="result__actions">
+                    <button mat-flat-button type="button" class="activate" (click)="activate()" [disabled]="activating()">
+                      @if (activating()) {
+                        <mat-spinner diameter="20" />
+                      } @else {
+                        <span class="btn-label">
+                          <mat-icon>rocket_launch</mat-icon>
+                          Activer la cotisation
+                        </span>
+                      }
+                    </button>
+                    <a mat-stroked-button routerLink="/contributions">Laisser en brouillon</a>
+                  </div>
+                </div>
+              }
+            }
+          </div>
+        </mat-step>
+      </mat-stepper>
+    </div>
+  </div>
+</section>
+
+<!-- Sélecteur de membres (participants / bénéficiaires) -->
+<ng-template #picker let-form="form">
+  <div class="picker" [formGroup]="form">
+    <div class="picker__bar">
+      <span class="picker__count">
+        {{ form.controls.memberIds.value.length }} / {{ members().length }} sélectionné(s)
+      </span>
+      <span class="picker__links">
+        <button mat-button type="button" (click)="selectAll(form)">Tous les membres</button>
+        <button mat-button type="button" (click)="clearAll(form)">Aucun</button>
+      </span>
+    </div>
+    @if (referenceLoading()) {
+      <div class="picker__loading"><mat-spinner diameter="28" /></div>
+    } @else {
+      <mat-selection-list formControlName="memberIds" class="picker__list">
+        @for (member of members(); track member.id) {
+          <mat-list-option [value]="member.id" togglePosition="before">
+            <span matListItemTitle>{{ member.fullName }}</span>
+          </mat-list-option>
+        }
+      </mat-selection-list>
+    }
+  </div>
+</ng-template>

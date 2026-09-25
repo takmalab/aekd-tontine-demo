@@ -1,0 +1,140 @@
+<section class="page">
+  <header class="page__header">
+    <div>
+      <h1 class="page__title">Cotisations</h1>
+      <p class="page__subtitle">
+        Chaque cotisation est définie séparément : montant, caractère obligatoire, destination des fonds.
+      </p>
+    </div>
+
+    @if (canManage) {
+      <a mat-flat-button class="page__action" routerLink="/contributions/new">
+        <mat-icon>add</mat-icon>
+        Nouvelle cotisation
+      </a>
+    }
+  </header>
+
+  @if (loading()) {
+    <div class="state"><mat-spinner diameter="40" /></div>
+  } @else if (error()) {
+    <div class="state state--card">
+      <mat-icon class="state__icon state__icon--brown">cloud_off</mat-icon>
+      <p class="state__title">Impossible de charger les cotisations</p>
+      <p class="state__text">Vérifiez que le serveur est démarré, puis réessayez.</p>
+      <button mat-stroked-button (click)="load()"><mat-icon>refresh</mat-icon> Réessayer</button>
+    </div>
+  } @else if (rows().length === 0) {
+    <div class="state state--card">
+      <mat-icon class="state__icon">payments</mat-icon>
+      <p class="state__title">Aucune cotisation pour le moment</p>
+      @if (canManage) {
+        <p class="state__text">Créez une cotisation avec l'assistant, puis activez-la après relecture.</p>
+        <a mat-flat-button routerLink="/contributions/new"><mat-icon>add</mat-icon> Nouvelle cotisation</a>
+      } @else {
+        <p class="state__text">Les cotisations publiées par le trésorier apparaîtront ici.</p>
+      }
+    </div>
+  } @else {
+    @if (canManage) {
+      <div class="filters" role="tablist" aria-label="Filtrer par statut">
+        @for (f of filters; track f.value) {
+          <button
+            type="button"
+            role="tab"
+            class="filter"
+            [class.filter--active]="filter() === f.value"
+            [attr.aria-selected]="filter() === f.value"
+            (click)="filter.set(f.value)"
+          >
+            {{ f.label }}
+            <span class="filter__count">{{ counts()[f.value] }}</span>
+          </button>
+        }
+      </div>
+    }
+
+    @if (visibleRows().length === 0) {
+      <div class="state state--card state--compact">
+        <p class="state__text">Aucune cotisation dans cette catégorie.</p>
+      </div>
+    }
+
+    <div class="grid">
+      @for (row of visibleRows(); track row.definition.id) {
+        <article
+          class="contrib"
+          [class.contrib--mandatory]="row.definition.mandatory"
+          [class.contrib--draft]="row.definition.status === 'DRAFT'"
+        >
+          <div class="contrib__top">
+            <h2 class="contrib__name">{{ row.definition.name }}</h2>
+            <span [class]="'status status--' + row.definition.status.toLowerCase()">
+              {{ statusLabels[row.definition.status] }}
+            </span>
+          </div>
+
+          <div class="contrib__amount">
+            @if (row.definition.amountMode === 'FIXED') {
+              {{ formatFcfa(row.definition.amount) }}
+            } @else {
+              <span class="contrib__voluntary">Montant libre</span>
+            }
+            <span class="contrib__freq">/ {{ frequencyLabels[row.definition.frequency] | lowercase }}</span>
+          </div>
+
+          @if (row.definition.description) {
+            <p class="contrib__desc">{{ row.definition.description }}</p>
+          }
+
+          <div class="chips">
+            <span class="chip" [class.chip--orange]="row.definition.mandatory" [class.chip--brown]="!row.definition.mandatory">
+              {{ row.definition.mandatory ? 'Obligatoire' : 'Facultative' }}
+            </span>
+            <span class="chip chip--outline">
+              <mat-icon>{{ row.definition.fundDestination === 'TONTINE_FUND' ? 'account_balance' : 'savings' }}</mat-icon>
+              {{ destinationLabels[row.definition.fundDestination] }}
+            </span>
+            @if (row.definition.visibility === 'PRIVATE') {
+              <span class="chip chip--outline"><mat-icon>lock</mat-icon> Privée</span>
+            }
+          </div>
+
+          <div class="contrib__sessions">
+            <mat-icon>event</mat-icon>
+            @if (row.periods.length === 0) {
+              <span class="muted">Rattachée à aucune séance</span>
+            } @else {
+              <span>
+                @for (p of row.periods; track p.id; let last = $last) {
+                  <a [routerLink]="['/sessions', p.sessionId]">{{ p.sessionLabel }}</a>
+                  @if (p.dueDate) {
+                    <span class="muted"> (échéance {{ fromIsoDate(p.dueDate) | date: 'd MMM' }})</span>
+                  }
+                  @if (!last) {
+                    ,
+                  }
+                }
+              </span>
+            }
+          </div>
+
+          @if (canManage && row.definition.status === 'DRAFT') {
+            <div class="contrib__actions">
+              <span class="muted">En brouillon : invisible pour les membres.</span>
+              <button
+                mat-flat-button
+                type="button"
+                (click)="activate(row)"
+                [disabled]="activatingId() === row.definition.id"
+              >
+                <mat-icon>rocket_launch</mat-icon>
+                Activer
+              </button>
+            </div>
+          }
+        </article>
+      }
+    </div>
+  }
+</section>
