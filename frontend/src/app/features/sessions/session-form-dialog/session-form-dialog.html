@@ -1,0 +1,108 @@
+<div class="dialog-head">
+  <span class="dialog-head__icon"><mat-icon>event</mat-icon></span>
+  <div>
+    <h2 mat-dialog-title class="dialog-head__title">Nouvelle séance</h2>
+    <p class="dialog-head__subtitle">Réunion de la tontine : date, lieu, récepteur et bénéficiaire(s).</p>
+  </div>
+</div>
+
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <mat-dialog-content class="dialog-body">
+    <mat-form-field appearance="outline" class="full">
+      <mat-label>Libellé</mat-label>
+      <input matInput formControlName="label" placeholder="Ex. : Séance d'octobre 2026" cdkFocusInitial />
+      @if (form.controls.label.hasError('required') && form.controls.label.touched) {
+        <mat-error>Le libellé est requis</mat-error>
+      }
+      @if (form.controls.label.hasError('maxlength')) {
+        <mat-error>100 caractères maximum</mat-error>
+      }
+    </mat-form-field>
+
+    <div class="row">
+      <mat-form-field appearance="outline">
+        <mat-label>Date de la séance</mat-label>
+        <input matInput [matDatepicker]="datePicker" formControlName="date" (click)="datePicker.open()" />
+        <mat-datepicker-toggle matIconSuffix [for]="datePicker" />
+        <mat-datepicker #datePicker />
+        @if (form.controls.date.hasError('matDatepickerParse')) {
+          <mat-error>Date invalide (JJ/MM/AAAA)</mat-error>
+        } @else if (form.controls.date.hasError('required') && form.controls.date.touched) {
+          <mat-error>La date est requise</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Lieu</mat-label>
+        <mat-icon matPrefix class="prefix-icon">place</mat-icon>
+        <input matInput formControlName="location" placeholder="Quartier, ville" />
+        @if (form.controls.location.hasError('required') && form.controls.location.touched) {
+          <mat-error>Le lieu est requis</mat-error>
+        }
+        @if (form.controls.location.hasError('maxlength')) {
+          <mat-error>150 caractères maximum</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    @if (membersError()) {
+      <p class="notice notice--error" role="alert">
+        <mat-icon>error_outline</mat-icon>
+        <span>Impossible de charger la liste des membres.</span>
+        <button mat-button type="button" class="notice__action" (click)="loadMembers()">Réessayer</button>
+      </p>
+    }
+
+    <mat-form-field appearance="outline" class="full">
+      <mat-label>Récepteur</mat-label>
+      <mat-icon matPrefix class="prefix-icon">home</mat-icon>
+      <mat-select formControlName="hostMemberId">
+        @for (member of members(); track member.id) {
+          <mat-option [value]="member.id">{{ member.fullName }}</mat-option>
+        }
+      </mat-select>
+      <mat-hint>{{ membersLoading() ? 'Chargement des membres…' : 'Membre qui reçoit la séance' }}</mat-hint>
+      @if (form.controls.hostMemberId.hasError('required') && form.controls.hostMemberId.touched) {
+        <mat-error>Le récepteur est requis</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full">
+      <mat-label>Bénéficiaire(s)</mat-label>
+      <mat-icon matPrefix class="prefix-icon">redeem</mat-icon>
+      <mat-select formControlName="beneficiaryMemberIds" multiple>
+        <mat-select-trigger>
+          {{ memberName(form.controls.beneficiaryMemberIds.value?.[0] ?? '') }}
+          @if ((form.controls.beneficiaryMemberIds.value?.length ?? 0) > 1) {
+            <span class="more">(+{{ form.controls.beneficiaryMemberIds.value!.length - 1 }})</span>
+          }
+        </mat-select-trigger>
+        @for (member of members(); track member.id) {
+          <mat-option [value]="member.id">{{ member.fullName }}</mat-option>
+        }
+      </mat-select>
+      <mat-hint>Membre(s) qui reçoivent la cagnotte</mat-hint>
+      @if (form.controls.beneficiaryMemberIds.hasError('required') && form.controls.beneficiaryMemberIds.touched) {
+        <mat-error>Au moins un bénéficiaire est requis</mat-error>
+      }
+    </mat-form-field>
+
+    @if (errorMessage(); as message) {
+      <p class="notice notice--error" role="alert">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ message }}</span>
+      </p>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="dialog-actions">
+    <button mat-button type="button" mat-dialog-close [disabled]="saving()">Annuler</button>
+    <button mat-flat-button type="submit" [disabled]="saving()">
+      @if (saving()) {
+        <mat-spinner diameter="20" />
+      } @else {
+        Créer la séance
+      }
+    </button>
+  </mat-dialog-actions>
+</form>

@@ -165,7 +165,7 @@ class ContributionDefinitionServiceTest {
                 "Cotisation 10 000", null, new BigDecimal(10000), AmountMode.FIXED,
                 ContributionFrequency.MONTHLY, true, Visibility.PUBLIC, FundDestination.TONTINE_FUND));
         Session session = sessionRepository.save(
-                new Session("Octobre 2026", LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31)));
+                new Session("Octobre 2026", LocalDate.of(2026, 10, 1), null, null));
 
         ContributionPeriodResponse period = service.addPeriod(def.id(),
                 new ContributionPeriodRequest(session.getId(), LocalDate.of(2026, 10, 15)));

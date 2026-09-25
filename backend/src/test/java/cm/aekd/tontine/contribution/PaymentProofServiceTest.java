@@ -91,7 +91,7 @@ class PaymentProofServiceTest {
         definitionService.addParticipant(def.id(), new MemberRefRequest(member.getId()));
         definitionService.activate(def.id());
         Session session = sessionRepository.save(
-                new Session("Octobre 2026", LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31)));
+                new Session("Octobre 2026", LocalDate.of(2026, 10, 1), null, null));
         ContributionPeriodResponse period = definitionService.addPeriod(def.id(),
                 new ContributionPeriodRequest(session.getId(), null));
 

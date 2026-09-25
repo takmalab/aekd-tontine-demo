@@ -105,7 +105,7 @@ class FundServiceTest {
         definitionService.addParticipant(def.id(), new MemberRefRequest(participant.getId()));
         definitionService.activate(def.id());
         Session session = sessionRepository.save(
-                new Session("Session " + destination, LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31)));
+                new Session("Session " + destination, LocalDate.of(2026, 10, 1), null, null));
         return definitionService.addPeriod(def.id(), new ContributionPeriodRequest(session.getId(), null));
     }
 

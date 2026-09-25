@@ -1,0 +1,95 @@
+<section class="page">
+  <header class="page__header">
+    <div>
+      <h1 class="page__title">Séances</h1>
+      <p class="page__subtitle">
+        Réunions de la tontine : date, lieu, récepteur, bénéficiaires et cotisations.
+        @if (!loading() && !error()) {
+          <span class="page__counts">
+            {{ sessions().length }} séance{{ sessions().length > 1 ? 's' : '' }}
+            @if (currentCount()) { · 1 aujourd'hui }
+            @if (upcomingCount()) { · {{ upcomingCount() }} à venir }
+          </span>
+        }
+      </p>
+    </div>
+
+    @if (canManage) {
+      <button mat-flat-button class="page__action" (click)="openCreateDialog()">
+        <mat-icon>add</mat-icon>
+        Nouvelle séance
+      </button>
+    }
+  </header>
+
+  @if (loading()) {
+    <div class="state"><mat-spinner diameter="40" /></div>
+  } @else if (error()) {
+    <div class="state state--card">
+      <mat-icon class="state__icon state__icon--brown">cloud_off</mat-icon>
+      <p class="state__title">Impossible de charger les séances</p>
+      <p class="state__text">Vérifiez que le serveur est démarré, puis réessayez.</p>
+      <button mat-stroked-button (click)="load()"><mat-icon>refresh</mat-icon> Réessayer</button>
+    </div>
+  } @else if (rows().length === 0) {
+    <div class="state state--card">
+      <mat-icon class="state__icon">event_note</mat-icon>
+      <p class="state__title">Aucune séance pour le moment</p>
+      @if (canManage) {
+        <p class="state__text">Créez la première séance pour y rattacher les cotisations.</p>
+        <button mat-flat-button (click)="openCreateDialog()"><mat-icon>add</mat-icon> Nouvelle séance</button>
+      } @else {
+        <p class="state__text">Les séances créées par le trésorier apparaîtront ici.</p>
+      }
+    </div>
+  } @else {
+    <div class="grid">
+      @for (row of rows(); track row.session.id) {
+        <a
+          class="session-card"
+          [class.session-card--current]="row.timing === 'CURRENT'"
+          [class.session-card--past]="row.timing === 'PAST'"
+          [routerLink]="['/sessions', row.session.id]"
+        >
+          <div class="session-card__date">
+            <span class="session-card__day">{{ row.date | date: 'd' }}</span>
+            <span class="session-card__month">{{ row.date | date: 'MMM' }}</span>
+            <span class="session-card__month">{{ row.date | date: 'yyyy' }}</span>
+          </div>
+
+          <div class="session-card__body">
+            <span [class]="'badge badge--' + row.timing.toLowerCase()">{{ timingLabels[row.timing] }}</span>
+            <h2 class="session-card__label">{{ row.session.label }}</h2>
+            <p class="session-card__meta">
+              <mat-icon>event</mat-icon>
+              <span>{{ row.date | date: 'EEEE d MMMM yyyy' }}</span>
+            </p>
+            <p class="session-card__meta">
+              <mat-icon>place</mat-icon>
+              <span>{{ row.session.location ?? 'Lieu non renseigné' }}</span>
+            </p>
+            <p class="session-card__meta">
+              <mat-icon>home</mat-icon>
+              @if (row.session.hostMember; as host) {
+                <span>Reçue par <strong>{{ host.memberFullName }}</strong></span>
+              } @else {
+                <span>Récepteur non renseigné</span>
+              }
+            </p>
+            @if (row.session.beneficiaries.length > 0) {
+              <p class="session-card__meta">
+                <mat-icon>redeem</mat-icon>
+                <span>
+                  Bénéficiaire{{ row.session.beneficiaries.length > 1 ? 's' : '' }} :
+                  <strong>{{ beneficiaryNames(row.session) }}</strong>
+                </span>
+              </p>
+            }
+          </div>
+
+          <mat-icon class="session-card__chevron">chevron_right</mat-icon>
+        </a>
+      }
+    </div>
+  }
+</section>

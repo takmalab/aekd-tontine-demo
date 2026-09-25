@@ -141,8 +141,10 @@ public class DemoDataSeeder implements ApplicationRunner {
         List<Member> allMembers = List.of(jean, marie, paul, sylvie, robert);
 
         loginAs(tresorier);
+        // Données fictives de démonstration : réunion le 1er du mois, reçue par
+        // Marie Ngo Bikoro, Paul Etoundi bénéficiaire de la séance.
         SessionResponse session = sessionService.create(new SessionRequest(currentMonthLabel(),
-                currentMonthStart(), currentMonthEnd()));
+                currentMonthStart(), "Douala – Akwa", marie.getId(), List.of(paul.getId())));
 
         ContributionDefinitionResponse c50k = createActiveDefinition("Cotisation 50 000 FCFA",
                 new BigDecimal(50000), AmountMode.FIXED, true, FundDestination.TONTINE_FUND, allMembers);
@@ -246,11 +248,6 @@ public class DemoDataSeeder implements ApplicationRunner {
     private static LocalDate currentMonthStart() {
         LocalDate today = LocalDate.now();
         return today.withDayOfMonth(1);
-    }
-
-    private static LocalDate currentMonthEnd() {
-        LocalDate today = LocalDate.now();
-        return today.withDayOfMonth(today.lengthOfMonth());
     }
 
     private static String currentMonthLabel() {

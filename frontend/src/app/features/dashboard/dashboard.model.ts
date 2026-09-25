@@ -1,8 +1,9 @@
 export interface SessionSummary {
   id: string;
   label: string;
-  startDate: string;
-  endDate: string;
+  /** Jour de la séance (LocalDate "YYYY-MM-DD"). */
+  date: string;
+  location: string | null;
 }
 
 export interface AdminDashboardResponse {

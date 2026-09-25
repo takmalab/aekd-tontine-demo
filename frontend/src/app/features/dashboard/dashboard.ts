@@ -1,18 +1,18 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../../core/services/auth.service';
+import { formatFcfa, fromIsoDate } from '../../shared/utils/format';
 import { DashboardService } from './dashboard.service';
 import { AdminDashboardResponse, MemberDashboardResponse, SessionSummary, StatTile } from './dashboard.model';
 
-function formatFcfa(amount: number): string {
-  return `${new Intl.NumberFormat('fr-FR').format(amount)} FCFA`;
-}
 
 @Component({
   selector: 'app-dashboard',
-  imports: [MatCardModule, MatIconModule, MatProgressSpinnerModule],
+  imports: [RouterLink, DatePipe, MatCardModule, MatIconModule, MatProgressSpinnerModule],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
 })
@@ -20,6 +20,7 @@ export class Dashboard implements OnInit {
   private readonly dashboardService = inject(DashboardService);
   private readonly authService = inject(AuthService);
 
+  readonly fromIsoDate = fromIsoDate;
   readonly loading = signal(true);
   readonly isStaff = this.authService.hasAnyRole(['ADMIN', 'TRESORIER']);
   readonly currentSession = signal<SessionSummary | null>(null);

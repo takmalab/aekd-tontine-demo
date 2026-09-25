@@ -9,8 +9,8 @@ import java.util.UUID;
 
 public interface SessionRepository extends JpaRepository<Session, UUID> {
 
-    List<Session> findAllByOrderByStartDateDesc();
+    List<Session> findAllByOrderBySessionDateDesc();
 
-    Optional<Session> findFirstByStartDateLessThanEqualAndEndDateGreaterThanEqual(LocalDate onOrAfterStart,
-                                                                                   LocalDate onOrBeforeEnd);
+    /** Séance la plus récente tenue au plus tard à la date donnée. */
+    Optional<Session> findFirstBySessionDateLessThanEqualOrderBySessionDateDesc(LocalDate onOrBefore);
 }

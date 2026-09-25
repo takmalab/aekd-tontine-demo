@@ -13,10 +13,16 @@
           <p class="banner__session">
             <mat-icon>event</mat-icon>
             <span>
-              Séance en cours : <strong>{{ session.label }}</strong>&nbsp;
-              <span class="banner__dates">({{ session.startDate }} → {{ session.endDate }})</span>
+              Séance actuelle : <strong>{{ session.label }}</strong>&nbsp;
+              <span class="banner__dates">
+                ({{ fromIsoDate(session.date) | date: 'd MMMM yyyy' }}@if (session.location) { · {{ session.location }} })
+              </span>
             </span>
           </p>
+          <a class="banner__link" [routerLink]="['/sessions', session.id]">
+            Voir les cotisations de la séance
+            <mat-icon>arrow_forward</mat-icon>
+          </a>
         } @else {
           <p class="banner__session banner__session--empty">
             <mat-icon>event_busy</mat-icon>

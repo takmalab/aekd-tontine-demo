@@ -105,12 +105,42 @@ class DashboardServiceTest {
     }
 
     @Test
+    void currentSessionIsTheMostRecentSessionHeldOnOrBeforeToday() {
+        Member admin = createMember(RoleName.ADMIN, "dashadmin4");
+        loginAsMember(admin, RoleName.ADMIN);
+
+        sessionRepository.save(new Session("Séance passée ancienne", LocalDate.now().minusDays(40), null, null));
+        Session latestHeld = sessionRepository.save(
+                new Session("Dernière séance tenue", LocalDate.now().minusDays(3), null, null));
+        sessionRepository.save(new Session("Séance future", LocalDate.now().plusDays(10), null, null));
+
+        AdminDashboardResponse dashboard = dashboardService.adminDashboard();
+        assertThat(dashboard.currentSession()).isNotNull();
+        assertThat(dashboard.currentSession().id()).isEqualTo(latestHeld.getId());
+        assertThat(dashboard.currentSession().date()).isEqualTo(LocalDate.now().minusDays(3));
+
+        Session meetingToday = sessionRepository.save(
+                new Session("Séance du jour", LocalDate.now(), "Douala", null));
+        assertThat(dashboardService.adminDashboard().currentSession().id()).isEqualTo(meetingToday.getId());
+    }
+
+    @Test
+    void onlyFutureSessionsMeansNoCurrentSession() {
+        Member admin = createMember(RoleName.ADMIN, "dashadmin5");
+        loginAsMember(admin, RoleName.ADMIN);
+
+        sessionRepository.save(new Session("Séance future seule", LocalDate.now().plusDays(7), null, null));
+
+        assertThat(dashboardService.adminDashboard().currentSession()).isNull();
+    }
+
+    @Test
     void memberDashboardSeparatesPaidPendingLateAndOptional() {
         Member treasurer = createMember(RoleName.TRESORIER, "dashtreso2");
         Member member = createMember(RoleName.MEMBRE, "dashmember2");
 
         Session today = sessionRepository.save(
-                new Session("Séance en cours", LocalDate.now().minusDays(5), LocalDate.now().plusDays(5)));
+                new Session("Séance en cours", LocalDate.now().minusDays(5), null, null));
 
         loginAsMember(treasurer, RoleName.TRESORIER);
 
@@ -165,7 +195,7 @@ class DashboardServiceTest {
         Member memberB = createMember(RoleName.MEMBRE, "dashb3");
 
         Session today = sessionRepository.save(
-                new Session("Séance active", LocalDate.now().minusDays(1), LocalDate.now().plusDays(1)));
+                new Session("Séance active", LocalDate.now().minusDays(1), null, null));
 
         loginAsMember(treasurer, RoleName.TRESORIER);
         ContributionDefinitionResponse def = definitionService.create(new ContributionDefinitionRequest(

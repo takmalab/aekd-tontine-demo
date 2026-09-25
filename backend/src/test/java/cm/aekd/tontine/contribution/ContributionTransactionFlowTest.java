@@ -86,7 +86,7 @@ class ContributionTransactionFlowTest {
         definitionService.addParticipant(def.id(), new MemberRefRequest(participant.getId()));
         definitionService.activate(def.id());
         Session session = sessionRepository.save(
-                new Session("Octobre 2026", LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31)));
+                new Session("Octobre 2026", LocalDate.of(2026, 10, 1), null, null));
         return definitionService.addPeriod(def.id(), new ContributionPeriodRequest(session.getId(), null));
     }
 
@@ -162,7 +162,7 @@ class ContributionTransactionFlowTest {
         definitionService.addParticipant(def.id(), new MemberRefRequest(treasurerMember.getId()));
         definitionService.activate(def.id());
         Session session = sessionRepository.save(
-                new Session("Novembre 2026", LocalDate.of(2026, 11, 1), LocalDate.of(2026, 11, 30)));
+                new Session("Novembre 2026", LocalDate.of(2026, 11, 1), null, null));
         ContributionPeriodResponse period = definitionService.addPeriod(def.id(),
                 new ContributionPeriodRequest(session.getId(), null));
 

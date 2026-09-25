@@ -34,8 +34,11 @@ import java.util.UUID;
 /**
  * Tableaux de bord (CLAUDE.md §25), calculés à la volée à partir des
  * données existantes — aucune table dédiée, même logique que FundService.
- * "Séance actuelle" = la séance dont startDate ≤ aujourd'hui ≤ endDate ;
- * absente (null) si aucune ne correspond, sans repli inventé.
+ * "Séance actuelle" = la dernière séance tenue, c'est-à-dire la séance la plus
+ * récente dont la date est ≤ aujourd'hui (une séance est désormais un jour
+ * unique, plus une période). Absente (null) s'il n'y en a aucune ; une séance
+ * future n'est jamais retenue. DÉCISION À VALIDER : définition proposée suite
+ * au passage à une date unique, à confirmer par le porteur du projet.
  */
 @Service
 @Transactional(readOnly = true)
@@ -174,7 +177,7 @@ public class DashboardService {
 
     private Optional<Session> currentSession() {
         LocalDate today = LocalDate.now();
-        return sessionRepository.findFirstByStartDateLessThanEqualAndEndDateGreaterThanEqual(today, today);
+        return sessionRepository.findFirstBySessionDateLessThanEqualOrderBySessionDateDesc(today);
     }
 
     private List<ContributionPeriod> activePeriodsOf(Session session) {

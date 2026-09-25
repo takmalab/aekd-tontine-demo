@@ -107,7 +107,7 @@ class SanctionFlowTest {
         definitionService.addParticipant(def.id(), new MemberRefRequest(participant.getId()));
         definitionService.activate(def.id());
         Session session = sessionRepository.save(
-                new Session("Session Sanction", LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 30)));
+                new Session("Session Sanction", LocalDate.of(2026, 9, 1), null, null));
         return definitionService.addPeriod(def.id(), new ContributionPeriodRequest(session.getId(), dueDate));
     }
 

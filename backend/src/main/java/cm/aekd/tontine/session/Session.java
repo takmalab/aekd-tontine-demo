@@ -1,10 +1,14 @@
 package cm.aekd.tontine.session;
 
+import cm.aekd.tontine.member.Member;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -15,8 +19,10 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Séance : période de rencontre/gestion de la tontine (CLAUDE.md §7),
- * à laquelle sont rattachées les cotisations (pas encore implémentées).
+ * Séance : réunion de la tontine tenue un jour donné (CLAUDE.md §7, adapté
+ * sur décision du porteur du projet : une date unique au lieu d'une période),
+ * avec un lieu et un membre récepteur. Les cotisations y sont rattachées via
+ * ContributionPeriod ; ses bénéficiaires sont dans SessionBeneficiary.
  */
 @Entity
 @Table(name = "session")
@@ -29,11 +35,17 @@ public class Session {
     @Column(name = "label", nullable = false, length = 100)
     private String label;
 
-    @Column(name = "start_date", nullable = false)
-    private LocalDate startDate;
+    @Column(name = "session_date", nullable = false)
+    private LocalDate sessionDate;
 
-    @Column(name = "end_date", nullable = false)
-    private LocalDate endDate;
+    /** Nullable en base pour les séances antérieures à la migration V12. */
+    @Column(name = "location", length = 150)
+    private String location;
+
+    /** Membre récepteur ; nullable en base pour les séances antérieures à V12. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "host_member_id")
+    private Member hostMember;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -44,10 +56,11 @@ public class Session {
     protected Session() {
     }
 
-    public Session(String label, LocalDate startDate, LocalDate endDate) {
+    public Session(String label, LocalDate sessionDate, String location, Member hostMember) {
         this.label = label;
-        this.startDate = startDate;
-        this.endDate = endDate;
+        this.sessionDate = sessionDate;
+        this.location = location;
+        this.hostMember = hostMember;
     }
 
     @PrePersist
@@ -74,20 +87,28 @@ public class Session {
         this.label = label;
     }
 
-    public LocalDate getStartDate() {
-        return startDate;
+    public LocalDate getSessionDate() {
+        return sessionDate;
     }
 
-    public void setStartDate(LocalDate startDate) {
-        this.startDate = startDate;
+    public void setSessionDate(LocalDate sessionDate) {
+        this.sessionDate = sessionDate;
     }
 
-    public LocalDate getEndDate() {
-        return endDate;
+    public String getLocation() {
+        return location;
     }
 
-    public void setEndDate(LocalDate endDate) {
-        this.endDate = endDate;
+    public void setLocation(String location) {
+        this.location = location;
+    }
+
+    public Member getHostMember() {
+        return hostMember;
+    }
+
+    public void setHostMember(Member hostMember) {
+        this.hostMember = hostMember;
     }
 
     public Instant getCreatedAt() {

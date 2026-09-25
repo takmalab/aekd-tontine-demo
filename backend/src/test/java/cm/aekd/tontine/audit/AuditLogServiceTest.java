@@ -75,8 +75,8 @@ class AuditLogServiceTest {
         Member treasurer = createMember(RoleName.TRESORIER, "audittreso1");
         loginAsMember(treasurer, RoleName.TRESORIER);
 
-        var session = sessionService.create(
-                new SessionRequest("Octobre 2026", LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31)));
+        var session = sessionService.create(new SessionRequest("Octobre 2026", LocalDate.of(2026, 10, 3),
+                "Douala", treasurer.getId(), List.of(treasurer.getId())));
 
         List<AuditLogResponse> logs = auditLogService.findByEntity("Session", session.id());
         assertThat(logs).hasSize(1);
