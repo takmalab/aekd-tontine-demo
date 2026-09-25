@@ -1,40 +1,91 @@
-<mat-toolbar color="primary" class="topbar">
-  <span class="topbar__title">AEKD – Tontine</span>
-  <span class="topbar__spacer"></span>
-
-  @if (currentUser(); as user) {
-    <button mat-button [matMenuTriggerFor]="userMenu" class="topbar__user">
-      <mat-icon>account_circle</mat-icon>
-      {{ user.email }}
-    </button>
-    <mat-menu #userMenu="matMenu">
-      <div class="topbar__roles">{{ user.roles.join(', ') }}</div>
-      <button mat-menu-item (click)="logout()">
-        <mat-icon>logout</mat-icon>
-        <span>Se déconnecter</span>
+<div class="app">
+  <mat-toolbar class="topbar">
+    @if (isCompact()) {
+      <button
+        mat-icon-button
+        class="topbar__menu"
+        (click)="toggleDrawer()"
+        [attr.aria-expanded]="drawerOpen()"
+        aria-label="Ouvrir le menu de navigation"
+      >
+        <mat-icon>{{ drawerOpen() ? 'close' : 'menu' }}</mat-icon>
       </button>
-    </mat-menu>
-  }
-</mat-toolbar>
+    }
 
-<mat-sidenav-container class="shell">
-  <mat-sidenav mode="side" opened class="shell__sidenav">
-    <mat-nav-list>
-      @for (item of navItems(); track item.path) {
-        <a
-          mat-list-item
-          [routerLink]="item.path"
-          routerLinkActive="shell__nav-item--active"
-          class="shell__nav-item"
-        >
-          <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
-          <span matListItemTitle>{{ item.label }}</span>
-        </a>
+    <a routerLink="/dashboard" class="topbar__brand" (click)="onNavigate()">
+      <span class="topbar__logo">
+        <img src="assets/logo-aekd-mark.png" alt="Logo AEKD" />
+      </span>
+      <span class="topbar__brand-text">
+        <span class="topbar__title">AEKD</span>
+        <span class="topbar__subtitle">Tontine</span>
+      </span>
+    </a>
+
+    <span class="topbar__spacer"></span>
+
+    @if (currentUser(); as user) {
+      <button mat-button [matMenuTriggerFor]="userMenu" class="topbar__user">
+        <span class="topbar__user-inner">
+          <span class="avatar">{{ initials() }}</span>
+          <span class="topbar__email">{{ user.email }}</span>
+          <mat-icon class="topbar__chevron">expand_more</mat-icon>
+        </span>
+      </button>
+      <mat-menu #userMenu="matMenu" xPosition="before">
+        <div class="user-menu__header">
+          <div class="user-menu__email">{{ user.email }}</div>
+          <div class="user-menu__roles">{{ roleLabel() }}</div>
+        </div>
+        <button mat-menu-item (click)="logout()">
+          <mat-icon>logout</mat-icon>
+          <span>Se déconnecter</span>
+        </button>
+      </mat-menu>
+    }
+  </mat-toolbar>
+
+  <mat-sidenav-container class="shell" [hasBackdrop]="isCompact()">
+    <mat-sidenav
+      class="shell__sidenav"
+      [mode]="isCompact() ? 'over' : 'side'"
+      [opened]="sidenavOpened()"
+      [disableClose]="!isCompact()"
+      (closedStart)="onSidenavClosed()"
+    >
+      <nav class="nav" aria-label="Navigation principale">
+        <div class="nav__section">Menu</div>
+        @for (item of navItems(); track item.path) {
+          <a
+            class="nav__item"
+            [routerLink]="item.path"
+            routerLinkActive="nav__item--active"
+            (click)="onNavigate()"
+          >
+            <mat-icon class="nav__icon">{{ item.icon }}</mat-icon>
+            <span class="nav__label">{{ item.label }}</span>
+          </a>
+        }
+      </nav>
+
+      @if (currentUser(); as user) {
+        <div class="nav__footer">
+          <span class="avatar avatar--brown">{{ initials() }}</span>
+          <div class="nav__footer-text">
+            <div class="nav__footer-email">{{ user.email }}</div>
+            <div class="nav__footer-role">{{ roleLabel() }}</div>
+          </div>
+          <button mat-icon-button class="nav__logout" (click)="logout()" aria-label="Se déconnecter">
+            <mat-icon>logout</mat-icon>
+          </button>
+        </div>
       }
-    </mat-nav-list>
-  </mat-sidenav>
+    </mat-sidenav>
 
-  <mat-sidenav-content class="shell__content">
-    <router-outlet />
-  </mat-sidenav-content>
-</mat-sidenav-container>
+    <mat-sidenav-content class="shell__content">
+      <main class="shell__main">
+        <router-outlet />
+      </main>
+    </mat-sidenav-content>
+  </mat-sidenav-container>
+</div>

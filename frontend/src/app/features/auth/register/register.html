@@ -1,18 +1,31 @@
 <div class="register-page">
-  <mat-card class="register-card">
-    <mat-card-header>
-      <mat-card-title>Créer un compte</mat-card-title>
-      <mat-card-subtitle>Votre compte devra être validé par un administrateur avant de pouvoir vous connecter.</mat-card-subtitle>
-    </mat-card-header>
+  <div class="register-page__glow register-page__glow--orange"></div>
+  <div class="register-page__glow register-page__glow--brown"></div>
+
+  <mat-card class="register-card" appearance="outlined">
+    <div class="register-card__header">
+      <a routerLink="/login" class="register-card__back" aria-label="Retour à la connexion">
+        <mat-icon>arrow_back</mat-icon>
+      </a>
+      <img class="register-card__logo" src="assets/logo-aekd.png" alt="Amicale des Enfants Kamkop de Douala – AEKD" />
+      <h1 class="register-card__title">Créer un compte</h1>
+      <p class="register-card__subtitle">
+        Votre compte devra être validé par un administrateur avant de pouvoir vous connecter.
+      </p>
+    </div>
 
     <mat-card-content>
       @if (successMessage(); as message) {
-        <p class="register-form__success">{{ message }}</p>
+        <p class="register-form__notice register-form__notice--success" role="status">
+          <mat-icon>check_circle</mat-icon>
+          <span>{{ message }}</span>
+        </p>
       }
 
       <form [formGroup]="form" (ngSubmit)="submit()" class="register-form">
         <mat-form-field appearance="outline" class="register-form__field">
           <mat-label>Nom complet</mat-label>
+          <mat-icon matPrefix>person</mat-icon>
           <input matInput formControlName="fullName" />
           @if (form.controls.fullName.hasError('required') && form.controls.fullName.touched) {
             <mat-error>Le nom est requis</mat-error>
@@ -21,6 +34,7 @@
 
         <mat-form-field appearance="outline" class="register-form__field">
           <mat-label>Email</mat-label>
+          <mat-icon matPrefix>mail</mat-icon>
           <input matInput type="email" formControlName="email" autocomplete="email" />
           @if (form.controls.email.hasError('required') && form.controls.email.touched) {
             <mat-error>L'email est requis</mat-error>
@@ -32,11 +46,13 @@
 
         <mat-form-field appearance="outline" class="register-form__field">
           <mat-label>Téléphone (facultatif)</mat-label>
+          <mat-icon matPrefix>call</mat-icon>
           <input matInput formControlName="phone" />
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="register-form__field">
           <mat-label>Mot de passe</mat-label>
+          <mat-icon matPrefix>lock</mat-icon>
           <input matInput type="password" formControlName="password" autocomplete="new-password" />
           @if (form.controls.password.hasError('required') && form.controls.password.touched) {
             <mat-error>Le mot de passe est requis</mat-error>
@@ -47,12 +63,14 @@
         </mat-form-field>
 
         @if (errorMessage(); as message) {
-          <p class="register-form__error">{{ message }}</p>
+          <p class="register-form__notice register-form__notice--error" role="alert">
+            <mat-icon>error_outline</mat-icon>
+            <span>{{ message }}</span>
+          </p>
         }
 
         <button
           mat-flat-button
-          color="primary"
           type="submit"
           class="register-form__submit"
           [disabled]="loading()"
@@ -67,7 +85,8 @@
     </mat-card-content>
 
     <mat-card-footer class="register-footer">
-      <a routerLink="/login">Déjà un compte ? Se connecter</a>
+      Déjà un compte ?
+      <a routerLink="/login">Se connecter</a>
     </mat-card-footer>
   </mat-card>
 </div>

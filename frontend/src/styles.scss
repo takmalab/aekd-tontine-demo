@@ -1,39 +1,171 @@
-// Include theming for Angular Material with `mat.theme()`.
-// This Sass mixin will define CSS variables that are used for styling Angular Material
-// components according to the Material 3 design spec.
-// Learn more about theming and how to use it for your application's
-// custom components at https://material.angular.dev/guide/theming
+// AEKD brand theme.
+//
+// The palette is exclusively:
+//   Orange  #E86E09 — primary + accent
+//   Marron  #AB583A — secondary
+//   Gris    #36353A — text, navigation, structural elements
+// plus neutral (white / warm gray) surfaces.
+//
+// `mat.theme()` generates the full set of Material 3 system tokens from a tonal
+// palette; since no built-in palette reproduces the exact brand hexes, every
+// color-bearing system token is then overridden with `mat.theme-overrides()`
+// so all Material components pick up the precise brand values.
 @use '@angular/material' as mat;
+
+// Brand tokens, also exposed as CSS custom properties below for component SCSS.
+$orange: #e86e09;
+$orange-dark: #c95d05; // hover / pressed shade of the orange
+$orange-soft: #fdeddf; // light orange tint (containers, highlights)
+$brown: #ab583a;
+$brown-dark: #8c4529;
+$brown-soft: #f6e8e2;
+$gray: #36353a;
+$gray-dark: #2a292d;
+$gray-muted: #6b6a70;
+$surface: #faf8f6;
 
 html {
   height: 100%;
+
   @include mat.theme(
     (
       color: (
-        primary: mat.$azure-palette,
-        tertiary: mat.$blue-palette,
+        primary: mat.$orange-palette,
+        tertiary: mat.$orange-palette,
+        theme-type: light,
       ),
-      typography: Roboto,
+      typography: (
+        plain-family: ('Inter', 'Roboto', sans-serif),
+        brand-family: ('Poppins', 'Inter', sans-serif),
+        bold-weight: 700,
+        medium-weight: 600,
+        regular-weight: 400,
+      ),
       density: 0,
     )
   );
+
+  @include mat.theme-overrides(
+    (
+      primary: $orange,
+      on-primary: #ffffff,
+      primary-container: $orange-soft,
+      on-primary-container: $gray,
+      inverse-primary: #ffb784,
+      primary-fixed: $orange-soft,
+      primary-fixed-dim: #fbd3b1,
+      on-primary-fixed: $gray,
+      on-primary-fixed-variant: $brown-dark,
+
+      secondary: $brown,
+      on-secondary: #ffffff,
+      secondary-container: $brown-soft,
+      on-secondary-container: $gray,
+      secondary-fixed: $brown-soft,
+      secondary-fixed-dim: #ecd1c6,
+      on-secondary-fixed: $gray,
+      on-secondary-fixed-variant: $brown-dark,
+
+      tertiary: $gray,
+      on-tertiary: #ffffff,
+      tertiary-container: #e8e7ea,
+      on-tertiary-container: $gray,
+      tertiary-fixed: #e8e7ea,
+      tertiary-fixed-dim: #d3d2d6,
+      on-tertiary-fixed: $gray,
+      on-tertiary-fixed-variant: $gray,
+
+      // Errors stay inside the palette: a deep shade of the brand brown.
+      error: $brown-dark,
+      on-error: #ffffff,
+      error-container: $brown-soft,
+      on-error-container: $brown-dark,
+
+      background: $surface,
+      on-background: $gray,
+      surface: $surface,
+      on-surface: $gray,
+      surface-variant: #efebe7,
+      on-surface-variant: $gray-muted,
+      surface-dim: #e4dfdb,
+      surface-bright: #ffffff,
+      surface-container-lowest: #ffffff,
+      surface-container-low: #f6f3f0,
+      surface-container: #f2eeea,
+      surface-container-high: #ece8e4,
+      surface-container-highest: #e7e2de,
+      surface-tint: $orange,
+      inverse-surface: $gray,
+      inverse-on-surface: #ffffff,
+      outline: #8e8c92,
+      outline-variant: #dcd7d2,
+      shadow: #000000,
+      scrim: #000000,
+    )
+  );
+
+  --aekd-orange: #{$orange};
+  --aekd-orange-dark: #{$orange-dark};
+  --aekd-orange-soft: #{$orange-soft};
+  --aekd-brown: #{$brown};
+  --aekd-brown-dark: #{$brown-dark};
+  --aekd-brown-soft: #{$brown-soft};
+  --aekd-gray: #{$gray};
+  --aekd-gray-dark: #{$gray-dark};
+  --aekd-gray-muted: #{$gray-muted};
+  --aekd-surface: #{$surface};
+  --aekd-radius: 14px;
+  --aekd-shadow: 0 1px 2px rgba(54, 53, 58, 0.06), 0 4px 16px rgba(54, 53, 58, 0.06);
+  --aekd-shadow-lg: 0 12px 40px rgba(54, 53, 58, 0.16);
 }
 
 body {
-  // Default the application to a light color theme. This can be changed to
-  // `dark` to enable the dark color theme, or to `light dark` to defer to the
-  // user's system settings.
   color-scheme: light;
-
-  // Set a default background, font and text colors for the application using
-  // Angular Material's system-level CSS variables. Learn more about these
-  // variables at https://material.angular.dev/guide/system-variables
   background-color: var(--mat-sys-surface);
   color: var(--mat-sys-on-surface);
   font: var(--mat-sys-body-medium);
-
-  // Reset the user agent margin.
   margin: 0;
   height: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
-/* You can add global styles to this file, and also import other style files */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+h1,
+h2,
+h3 {
+  font-family: 'Poppins', 'Inter', sans-serif;
+  color: var(--aekd-gray);
+}
+
+a {
+  color: var(--aekd-brown);
+}
+
+::selection {
+  background: var(--aekd-orange-soft);
+  color: var(--aekd-gray);
+}
+
+// Neutralize the browser's (blue) autofill tint so inputs stay within the palette.
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #fff inset !important;
+  box-shadow: 0 0 0 1000px #fff inset !important;
+  -webkit-text-fill-color: var(--aekd-gray);
+  caret-color: var(--aekd-gray);
+  transition: background-color 9999s ease-out 0s;
+}
+
+// Filled buttons: slightly bolder label for legibility of white text on orange.
+.mat-mdc-unelevated-button.mat-mdc-button-base,
+.mat-mdc-raised-button.mat-mdc-button-base {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}

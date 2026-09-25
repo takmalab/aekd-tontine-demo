@@ -4,28 +4,46 @@
       <mat-spinner diameter="40" />
     </div>
   } @else {
-    <h1 class="dashboard__title">{{ isStaff ? 'Tableau de bord' : 'Mon tableau de bord' }}</h1>
+    <header class="banner">
+      <div class="banner__text">
+        <span class="banner__eyebrow">{{ isStaff ? 'Espace gestion' : 'Espace membre' }}</span>
+        <h1 class="banner__title">{{ isStaff ? 'Tableau de bord' : 'Mon tableau de bord' }}</h1>
 
-    @if (currentSession(); as session) {
-      <p class="dashboard__session">
-        Séance en cours : <strong>{{ session.label }}</strong>
-        ({{ session.startDate }} → {{ session.endDate }})
-      </p>
-    } @else {
-      <p class="dashboard__session dashboard__session--empty">Aucune séance en cours actuellement.</p>
-    }
+        @if (currentSession(); as session) {
+          <p class="banner__session">
+            <mat-icon>event</mat-icon>
+            <span>
+              Séance en cours : <strong>{{ session.label }}</strong>&nbsp;
+              <span class="banner__dates">({{ session.startDate }} → {{ session.endDate }})</span>
+            </span>
+          </p>
+        } @else {
+          <p class="banner__session banner__session--empty">
+            <mat-icon>event_busy</mat-icon>
+            <span>Aucune séance en cours actuellement.</span>
+          </p>
+        }
+      </div>
+      <img class="banner__logo" src="assets/logo-aekd-mark.png" alt="" aria-hidden="true" />
+    </header>
 
     <div class="dashboard__grid">
-      @for (tile of tiles(); track tile.label) {
+      @for (tile of tiles(); track tile.label; let i = $index) {
         <mat-card
           class="stat-card"
+          appearance="outlined"
           [class.stat-card--warn]="tile.tone === 'warn'"
           [class.stat-card--ok]="tile.tone === 'ok'"
+          [style.animation-delay.ms]="i * 40"
         >
-          <mat-card-content>
-            <mat-icon class="stat-card__icon">{{ tile.icon }}</mat-icon>
-            <div class="stat-card__value">{{ tile.value }}</div>
-            <div class="stat-card__label">{{ tile.label }}</div>
+          <mat-card-content class="stat-card__body">
+            <span class="stat-card__icon">
+              <mat-icon>{{ tile.icon }}</mat-icon>
+            </span>
+            <div class="stat-card__text">
+              <div class="stat-card__value">{{ tile.value }}</div>
+              <div class="stat-card__label">{{ tile.label }}</div>
+            </div>
           </mat-card-content>
         </mat-card>
       }

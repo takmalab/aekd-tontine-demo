@@ -1,14 +1,45 @@
-<div class="login-page">
-  <mat-card class="login-card">
-    <mat-card-header>
-      <mat-card-title>AEKD – Tontine</mat-card-title>
-      <mat-card-subtitle>Connexion</mat-card-subtitle>
-    </mat-card-header>
+<div class="login">
+  <!-- Illustrative side (photo) -->
+  <section class="hero" aria-hidden="false">
+    <div class="hero__photo" role="img" aria-label="Membres d'une communauté rassemblés et souriants"></div>
+    <div class="hero__overlay"></div>
 
-    <mat-card-content>
-      <form [formGroup]="form" (ngSubmit)="submit()" class="login-form">
-        <mat-form-field appearance="outline" class="login-form__field">
+    <div class="hero__content">
+      <div class="hero__brand">
+        <span class="hero__logo"><img src="assets/logo-aekd-mark.png" alt="Logo AEKD" /></span>
+        <span class="hero__brand-name">AEKD</span>
+      </div>
+
+      <div class="hero__text">
+        <span class="hero__eyebrow">Amicale des Enfants Kamkop de Douala</span>
+        <h1 class="hero__title">La solidarité, <span>en toute transparence.</span></h1>
+        <p class="hero__lead">
+          Séances, cotisations, épargne et prêts de la tontine, réunis dans un seul espace.
+        </p>
+        <ul class="hero__chips">
+          <li><mat-icon>event</mat-icon> Séances</li>
+          <li><mat-icon>payments</mat-icon> Cotisations</li>
+          <li><mat-icon>savings</mat-icon> Épargne</li>
+          <li><mat-icon>account_balance</mat-icon> Prêts</li>
+        </ul>
+      </div>
+
+      <span class="hero__credit">Photo : Random Institute / Unsplash</span>
+    </div>
+  </section>
+
+  <!-- Form side -->
+  <section class="panel">
+    <div class="panel__inner">
+      <img class="panel__logo" src="assets/logo-aekd.png" alt="Amicale des Enfants Kamkop de Douala – AEKD" />
+
+      <h2 class="panel__title">Bienvenue</h2>
+      <p class="panel__subtitle">Connectez-vous à votre espace tontine.</p>
+
+      <form [formGroup]="form" (ngSubmit)="submit()" class="form" novalidate>
+        <mat-form-field appearance="outline" class="form__field">
           <mat-label>Email</mat-label>
+          <mat-icon matPrefix>mail</mat-icon>
           <input matInput type="email" formControlName="email" autocomplete="email" />
           @if (form.controls.email.hasError('required') && form.controls.email.touched) {
             <mat-error>L'email est requis</mat-error>
@@ -18,36 +49,52 @@
           }
         </mat-form-field>
 
-        <mat-form-field appearance="outline" class="login-form__field">
+        <mat-form-field appearance="outline" class="form__field">
           <mat-label>Mot de passe</mat-label>
-          <input matInput type="password" formControlName="password" autocomplete="current-password" />
+          <mat-icon matPrefix>lock</mat-icon>
+          <input
+            matInput
+            [type]="showPassword() ? 'text' : 'password'"
+            formControlName="password"
+            autocomplete="current-password"
+          />
+          <button
+            mat-icon-button
+            matSuffix
+            type="button"
+            (click)="showPassword.set(!showPassword())"
+            [attr.aria-label]="showPassword() ? 'Masquer le mot de passe' : 'Afficher le mot de passe'"
+          >
+            <mat-icon>{{ showPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+          </button>
           @if (form.controls.password.hasError('required') && form.controls.password.touched) {
             <mat-error>Le mot de passe est requis</mat-error>
           }
         </mat-form-field>
 
         @if (errorMessage(); as message) {
-          <p class="login-form__error">{{ message }}</p>
+          <p class="form__error" role="alert">
+            <mat-icon>error_outline</mat-icon>
+            <span>{{ message }}</span>
+          </p>
         }
 
-        <button
-          mat-flat-button
-          color="primary"
-          type="submit"
-          class="login-form__submit"
-          [disabled]="loading()"
-        >
+        <button mat-flat-button type="submit" class="form__submit" [disabled]="loading()">
           @if (loading()) {
-            <mat-spinner diameter="20" />
+            <mat-spinner diameter="22" />
           } @else {
-            Se connecter
+            <span class="form__submit-label">
+              Se connecter
+              <mat-icon>arrow_forward</mat-icon>
+            </span>
           }
         </button>
       </form>
-    </mat-card-content>
 
-    <mat-card-footer class="login-footer">
-      <a routerLink="/register">Pas encore de compte ? Créer un compte</a>
-    </mat-card-footer>
-  </mat-card>
+      <p class="panel__footer">
+        Pas encore de compte ?
+        <a routerLink="/register">Créer un compte</a>
+      </p>
+    </div>
+  </section>
 </div>
