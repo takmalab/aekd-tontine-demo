@@ -1,0 +1,198 @@
+<section class="page">
+  <header class="page__header">
+    <h1 class="page__title">Mes cotisations</h1>
+    <p class="page__subtitle">
+      Les cotisations auxquelles vous participez, séance par séance. Un paiement déclaré n'est comptabilisé qu'après
+      validation par le trésorier.
+    </p>
+  </header>
+
+  @if (loading()) {
+    <div class="state"><mat-spinner diameter="40" /></div>
+  } @else if (noMemberProfile()) {
+    <div class="state state--card">
+      <mat-icon class="state__icon state__icon--brown">person_off</mat-icon>
+      <p class="state__title">Aucun profil membre</p>
+      <p class="state__text">Ce compte n'est pas rattaché à un membre de la tontine : il n'a pas de cotisations.</p>
+    </div>
+  } @else if (error()) {
+    <div class="state state--card">
+      <mat-icon class="state__icon state__icon--brown">cloud_off</mat-icon>
+      <p class="state__title">Impossible de charger vos cotisations</p>
+      <p class="state__text">Vérifiez que le serveur est démarré, puis réessayez.</p>
+      <button mat-stroked-button (click)="load()"><mat-icon>refresh</mat-icon> Réessayer</button>
+    </div>
+  } @else {
+    <!-- Synthèse -->
+    <div class="summary">
+      <div class="summary__item summary__item--late">
+        <span class="summary__value">{{ counts().LATE }}</span>
+        <span class="summary__label">En retard</span>
+      </div>
+      <div class="summary__item">
+        <span class="summary__value">{{ counts().NOT_PAID }}</span>
+        <span class="summary__label">À payer</span>
+      </div>
+      <div class="summary__item summary__item--pending">
+        <span class="summary__value">{{ counts().PENDING }}</span>
+        <span class="summary__label">En attente</span>
+      </div>
+      <div class="summary__item summary__item--paid">
+        <span class="summary__value">{{ counts().PAID }}</span>
+        <span class="summary__label">Payées</span>
+      </div>
+    </div>
+
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" class="tab" [class.tab--active]="tab() === 'contributions'"
+              [attr.aria-selected]="tab() === 'contributions'" (click)="tab.set('contributions')">
+        <mat-icon>receipt_long</mat-icon> Cotisations
+      </button>
+      <button type="button" role="tab" class="tab" [class.tab--active]="tab() === 'history'"
+              [attr.aria-selected]="tab() === 'history'" (click)="tab.set('history')">
+        <mat-icon>history</mat-icon> Mes paiements
+        <span class="tab__count">{{ transactions().length }}</span>
+      </button>
+    </div>
+
+    @if (tab() === 'contributions') {
+      @if (groups().length === 0) {
+        <div class="state state--card">
+          <mat-icon class="state__icon">payments</mat-icon>
+          <p class="state__title">Aucune cotisation à régler</p>
+          <p class="state__text">Vous n'êtes participant à aucune cotisation active rattachée à une séance.</p>
+        </div>
+      }
+
+      @for (group of groups(); track group.sessionId) {
+        <h2 class="group-title">
+          <mat-icon>event</mat-icon>
+          {{ group.label }}
+          @if (group.date) {
+            <span class="group-title__date">{{ fromIsoDate(group.date) | date: 'd MMM yyyy' }}</span>
+          }
+        </h2>
+
+        <div class="list">
+          @for (row of group.rows; track row.period.id) {
+            <article [class]="'item item--' + row.status.toLowerCase()">
+              <div class="item__main">
+                <div class="item__top">
+                  <h3 class="item__name">{{ row.definition.name }}</h3>
+                  <span [class]="'status status--' + row.status.toLowerCase()">{{ periodStatusLabels[row.status] }}</span>
+                </div>
+                <div class="item__meta">
+                  <span class="item__amount">
+                    {{ row.definition.amountMode === 'FIXED' ? formatFcfa(row.definition.amount) : 'Montant libre' }}
+                  </span>
+                  <span class="chip" [class.chip--orange]="row.definition.mandatory" [class.chip--brown]="!row.definition.mandatory">
+                    {{ row.definition.mandatory ? 'Obligatoire' : 'Facultative' }}
+                  </span>
+                  <span class="item__due">
+                    <mat-icon>event_available</mat-icon>
+                    @if (row.period.dueDate) {
+                      Échéance {{ fromIsoDate(row.period.dueDate) | date: 'd MMM yyyy' }}
+                    } @else {
+                      Sans échéance
+                    }
+                  </span>
+                </div>
+
+                @if (activeTransaction(row); as t) {
+                  <p class="item__tx">
+                    <mat-icon>{{ t.status === 'VALIDATED' ? 'verified' : 'hourglass_top' }}</mat-icon>
+                    <span>
+                      {{ formatFcfa(t.amount) }} déclaré le {{ fromIsoDate(t.paymentDate) | date: 'd MMM yyyy' }} via
+                      {{ operatorLabels[t.operator] }} (réf. {{ t.transactionReference }})
+                      @if (t.status === 'VALIDATED') {
+                        — validé
+                      } @else {
+                        — en attente de validation
+                      }
+                    </span>
+                  </p>
+                }
+                @if (lastRejected(row); as r) {
+                  <p class="item__tx item__tx--rejected">
+                    <mat-icon>block</mat-icon>
+                    <span>Paiement du {{ fromIsoDate(r.paymentDate) | date: 'd MMM' }} (réf. {{ r.transactionReference }}) rejeté : vous pouvez en déclarer un nouveau.</span>
+                  </p>
+                }
+              </div>
+
+              <div class="item__actions">
+                @if (canDeclare(row.status)) {
+                  <button mat-flat-button type="button" (click)="declare(row)">
+                    <mat-icon>send_money</mat-icon>
+                    Déclarer un paiement
+                  </button>
+                } @else if (activeTransaction(row); as t) {
+                  @if (t.status === 'PENDING') {
+                    <button mat-stroked-button type="button" (click)="openUpload(t)">
+                      <mat-icon>attach_file</mat-icon>
+                      Justificatif
+                    </button>
+                  }
+                  <button mat-button type="button" (click)="viewProof(t)">
+                    <mat-icon>visibility</mat-icon>
+                    Voir
+                  </button>
+                }
+              </div>
+            </article>
+          }
+        </div>
+      }
+    } @else {
+      @if (history().length === 0) {
+        <div class="state state--card">
+          <mat-icon class="state__icon">history</mat-icon>
+          <p class="state__title">Aucun paiement déclaré</p>
+          <p class="state__text">Vos déclarations de paiement apparaîtront ici avec leur statut.</p>
+        </div>
+      } @else {
+        <div class="list">
+          @for (t of history(); track t.id) {
+            <article class="item">
+              <div class="item__main">
+                <div class="item__top">
+                  <h3 class="item__name">{{ t.contributionDefinitionName }}</h3>
+                  <span [class]="'status status--tx-' + t.status.toLowerCase()">{{ transactionStatusLabels[t.status] }}</span>
+                </div>
+                <div class="item__meta">
+                  <span class="item__amount">{{ formatFcfa(t.amount) }}</span>
+                  <span class="item__due"><mat-icon>event</mat-icon> {{ t.sessionLabel }}</span>
+                </div>
+                <p class="item__tx">
+                  <mat-icon>payments</mat-icon>
+                  <span>
+                    {{ operatorLabels[t.operator] }} · réf. {{ t.transactionReference }} · payé le
+                    {{ fromIsoDate(t.paymentDate) | date: 'd MMM yyyy' }}
+                    @if (t.validatedAt) {
+                      · {{ t.status === 'VALIDATED' ? 'validé' : 'rejeté' }} le {{ t.validatedAt | date: 'd MMM yyyy' }}
+                    }
+                  </span>
+                </p>
+                @if (t.observation) {
+                  <p class="item__obs">« {{ t.observation }} »</p>
+                }
+              </div>
+              <div class="item__actions">
+                @if (t.status === 'PENDING') {
+                  <button mat-stroked-button type="button" (click)="openUpload(t)">
+                    <mat-icon>attach_file</mat-icon>
+                    Justificatif
+                  </button>
+                }
+                <button mat-button type="button" (click)="viewProof(t)">
+                  <mat-icon>visibility</mat-icon>
+                  Voir
+                </button>
+              </div>
+            </article>
+          }
+        </div>
+      }
+    }
+  }
+</section>

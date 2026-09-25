@@ -1,0 +1,145 @@
+@use '../payments-page' as pg;
+
+@include pg.page-base;
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+
+  &__item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: #fff;
+    border: 1px solid var(--mat-sys-outline-variant);
+    box-shadow: var(--aekd-shadow);
+
+    &--late {
+      background: var(--aekd-brown-soft);
+      border-color: #ecd1c6;
+
+      .summary__value {
+        color: var(--aekd-brown);
+      }
+    }
+
+    &--pending .summary__value {
+      color: var(--aekd-orange-dark);
+    }
+
+    &--paid .summary__value {
+      color: var(--aekd-gray);
+    }
+  }
+
+  &__value {
+    font-family: 'Poppins', sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1.1;
+  }
+
+  &__label {
+    font-size: 13px;
+    color: var(--aekd-gray-muted);
+  }
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  background: #fff;
+  color: var(--aekd-gray);
+  font: inherit;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--aekd-orange);
+    outline-offset: 2px;
+  }
+
+  &__count {
+    display: inline-grid;
+    place-items: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: #ece8e4;
+    font-size: 12px;
+  }
+
+  &--active {
+    background: var(--aekd-gray);
+    border-color: var(--aekd-gray);
+    color: #fff;
+
+    mat-icon {
+      color: var(--aekd-orange);
+    }
+
+    .tab__count {
+      background: var(--aekd-orange);
+      color: #fff;
+    }
+  }
+}
+
+.group-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 12px;
+  font-size: 17px;
+  font-weight: 700;
+
+  mat-icon {
+    color: var(--aekd-orange);
+  }
+
+  &__date {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--aekd-gray-muted);
+  }
+}
+
+@media (max-width: 599.98px) {
+  .summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .tabs {
+    .tab {
+      flex: 1;
+      justify-content: center;
+      padding: 0 10px;
+    }
+  }
+}

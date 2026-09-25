@@ -1,0 +1,68 @@
+<div class="head">
+  <span class="head__icon" [class.head__icon--success]="data.justDeclared">
+    <mat-icon>{{ data.justDeclared ? 'check' : 'attach_file' }}</mat-icon>
+  </span>
+  <div class="head__text">
+    <h2 mat-dialog-title class="head__title">
+      {{ data.justDeclared ? 'Paiement déclaré' : 'Justificatif du paiement' }}
+    </h2>
+    <p class="head__subtitle">
+      {{ data.transaction.contributionDefinitionName }} · {{ formatFcfa(data.transaction.amount) }} ·
+      {{ operatorLabels[data.transaction.operator] }}
+    </p>
+  </div>
+</div>
+
+<mat-dialog-content class="body">
+  @if (data.justDeclared) {
+    <p class="info">
+      <mat-icon>hourglass_top</mat-icon>
+      <span>
+        Votre paiement est <strong>en attente de validation</strong> par le trésorier. Il n'est pas encore
+        comptabilisé.
+      </span>
+    </p>
+  }
+
+  <p class="label">Joindre un justificatif (facultatif) : capture ou reçu, JPG, PNG ou PDF, 10 Mo maximum.</p>
+
+  <label
+    class="drop"
+    [class.drop--over]="dragOver()"
+    [class.drop--filled]="file()"
+    (dragover)="$event.preventDefault(); dragOver.set(true)"
+    (dragleave)="dragOver.set(false)"
+    (drop)="onDrop($event)"
+  >
+    <input type="file" [accept]="accept" (change)="onFileSelected($event)" />
+    @if (file(); as f) {
+      <mat-icon class="drop__icon">{{ f.type === 'application/pdf' ? 'picture_as_pdf' : 'image' }}</mat-icon>
+      <span class="drop__name">{{ f.name }}</span>
+      <span class="drop__hint">{{ sizeLabel(f.size) }} · cliquez pour changer de fichier</span>
+    } @else {
+      <mat-icon class="drop__icon">cloud_upload</mat-icon>
+      <span class="drop__name">Choisir un fichier</span>
+      <span class="drop__hint">ou le glisser ici</span>
+    }
+  </label>
+
+  @if (errorMessage(); as message) {
+    <p class="notice" role="alert">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ message }}</span>
+    </p>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end" class="actions">
+  <button mat-button type="button" mat-dialog-close [disabled]="uploading()">
+    {{ data.justDeclared ? 'Plus tard' : 'Annuler' }}
+  </button>
+  <button mat-flat-button type="button" (click)="upload()" [disabled]="!file() || uploading()">
+    @if (uploading()) {
+      <mat-spinner diameter="20" />
+    } @else {
+      Envoyer le justificatif
+    }
+  </button>
+</mat-dialog-actions>

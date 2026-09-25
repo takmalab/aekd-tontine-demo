@@ -1,0 +1,63 @@
+@use '../payments-dialog' as dlg;
+
+@include dlg.dialog-base;
+
+.drop {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 26px 16px;
+  margin-bottom: 12px;
+  border-radius: 14px;
+  border: 2px dashed var(--mat-sys-outline-variant);
+  background: #faf8f6;
+  cursor: pointer;
+  text-align: center;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+
+  input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  &__icon {
+    width: 36px;
+    height: 36px;
+    font-size: 36px;
+    color: var(--aekd-orange);
+  }
+
+  &__name {
+    font-weight: 700;
+    color: var(--aekd-gray);
+    overflow-wrap: anywhere;
+  }
+
+  &__hint {
+    font-size: 12.5px;
+    color: var(--aekd-gray-muted);
+  }
+
+  &:hover,
+  &--over {
+    border-color: var(--aekd-orange);
+    background: var(--aekd-orange-soft);
+  }
+
+  &:has(input:focus-visible) {
+    outline: 2px solid var(--aekd-orange);
+    outline-offset: 2px;
+  }
+
+  &--filled {
+    border-style: solid;
+    border-color: var(--aekd-orange);
+    background: var(--aekd-orange-soft);
+  }
+}

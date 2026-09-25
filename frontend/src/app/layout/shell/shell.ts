@@ -23,6 +23,8 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Tableau de bord', path: '/dashboard', icon: 'dashboard' },
   { label: 'Séances', path: '/sessions', icon: 'event' },
   { label: 'Cotisations', path: '/contributions', icon: 'payments' },
+  { label: 'Mes cotisations', path: '/my-contributions', icon: 'receipt_long', roles: ['MEMBRE'] },
+  { label: 'Paiements', path: '/payments', icon: 'fact_check', roles: ['ADMIN', 'TRESORIER'] },
   { label: 'Membres', path: '/members', icon: 'group', roles: ['ADMIN', 'TRESORIER'] },
   { label: 'Sanctions', path: '/sanctions', icon: 'gavel' },
   { label: 'Prêts', path: '/loans', icon: 'account_balance' },

@@ -7,7 +7,7 @@ import { Member } from './member.model';
 /**
  * Lecture seule des membres, pour les sélecteurs (récepteur, bénéficiaires…).
  * L'écran de gestion des membres fera l'objet d'une fonctionnalité séparée.
- * `/api/members` est réservé à ADMIN et TRESORIER.
+ * `/api/members` est réservé à ADMIN et TRESORIER ; `/api/members/mine` est ouvert.
  */
 @Injectable({ providedIn: 'root' })
 export class MemberService {
@@ -15,5 +15,10 @@ export class MemberService {
 
   list(): Observable<Member[]> {
     return this.http.get<Member[]>(`${environment.apiUrl}/members`);
+  }
+
+  /** Profil membre de l'utilisateur connecté (ouvert à tout utilisateur ayant un profil membre). */
+  mine(): Observable<Member> {
+    return this.http.get<Member>(`${environment.apiUrl}/members/mine`);
   }
 }

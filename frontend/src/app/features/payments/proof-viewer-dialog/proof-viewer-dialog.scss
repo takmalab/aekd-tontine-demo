@@ -1,0 +1,59 @@
+@use '../payments-dialog' as dlg;
+
+@include dlg.dialog-base;
+
+.viewer {
+  min-height: 240px;
+
+  &__center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 240px;
+    text-align: center;
+    color: var(--aekd-gray-muted);
+
+    p {
+      margin: 0;
+    }
+  }
+
+  &__title {
+    font-weight: 700;
+    color: var(--aekd-gray);
+  }
+
+  &__icon {
+    width: 48px;
+    height: 48px;
+    font-size: 48px;
+    color: var(--aekd-orange);
+
+    &--brown {
+      color: var(--aekd-brown);
+    }
+  }
+
+  &__image {
+    display: block;
+    max-width: 100%;
+    max-height: 62vh;
+    margin: 0 auto;
+    border-radius: 12px;
+    border: 1px solid var(--mat-sys-outline-variant);
+  }
+
+  &__pdf {
+    display: block;
+    width: 100%;
+    height: 62vh;
+    border: 1px solid var(--mat-sys-outline-variant);
+    border-radius: 12px;
+  }
+}
+
+.actions a[mat-stroked-button] {
+  border-radius: 10px;
+}

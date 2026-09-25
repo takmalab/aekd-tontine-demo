@@ -46,6 +46,18 @@ export const routes: Routes = [
             (m) => m.ContributionWizard,
           ),
       },
+      {
+        path: 'my-contributions',
+        loadComponent: () =>
+          import('./features/payments/my-contributions/my-contributions').then((m) => m.MyContributions),
+      },
+      {
+        path: 'payments',
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN', 'TRESORIER'] },
+        loadComponent: () =>
+          import('./features/payments/pending-payments/pending-payments').then((m) => m.PendingPayments),
+      },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],
   },

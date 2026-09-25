@@ -1,0 +1,51 @@
+@use '../payments-page' as pg;
+
+@include pg.page-base;
+
+.readonly {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #f2eeea;
+  border-left: 4px solid var(--aekd-gray);
+  font-size: 13.5px;
+
+  mat-icon {
+    flex: none;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: var(--aekd-gray);
+  }
+}
+
+.totals {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: var(--aekd-gray);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 14px;
+
+  strong {
+    color: #fff;
+  }
+
+  &__amount {
+    font-family: 'Poppins', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--aekd-orange);
+  }
+}
+
+.reject {
+  color: var(--aekd-brown) !important;
+}

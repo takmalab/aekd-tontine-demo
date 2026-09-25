@@ -1,0 +1,96 @@
+<div class="head">
+  <span class="head__icon"><mat-icon>send_money</mat-icon></span>
+  <div class="head__text">
+    <h2 mat-dialog-title class="head__title">Déclarer un paiement</h2>
+    <p class="head__subtitle">
+      {{ data.definition.name }} · {{ data.period.sessionLabel }}
+      @if (data.period.dueDate) {
+        · échéance {{ fromIsoDate(data.period.dueDate) | date: 'd MMM yyyy' }}
+      }
+    </p>
+  </div>
+</div>
+
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <mat-dialog-content class="body">
+    <p class="info">
+      <mat-icon>info</mat-icon>
+      <span>
+        Vous déclarez un paiement déjà effectué. Il ne sera pris en compte qu'après validation par le trésorier.
+      </span>
+    </p>
+
+    <mat-form-field appearance="outline" class="full">
+      <mat-label>Montant</mat-label>
+      <input matInput type="number" inputmode="numeric" min="1" step="1" formControlName="amount" />
+      <span matTextSuffix>FCFA</span>
+      @if (isFixed) {
+        <mat-hint>Montant fixe de la cotisation</mat-hint>
+      }
+      @if (form.controls.amount.hasError('required')) {
+        <mat-error>Le montant est requis</mat-error>
+      } @else if (form.controls.amount.hasError('min') || form.controls.amount.hasError('pattern')) {
+        <mat-error>Montant entier strictement positif</mat-error>
+      }
+    </mat-form-field>
+
+    <p class="label">Moyen de paiement</p>
+    <div class="operators" role="radiogroup" aria-label="Moyen de paiement">
+      @for (op of operators; track op[0]) {
+        <label class="operator" [class.operator--selected]="form.controls.operator.value === op[0]">
+          <input type="radio" formControlName="operator" [value]="op[0]" />
+          <mat-icon>{{ operatorIcons[op[0]] }}</mat-icon>
+          <span>{{ op[1] }}</span>
+        </label>
+      }
+    </div>
+    @if (form.controls.operator.invalid && form.controls.operator.touched) {
+      <p class="field-error">Choisissez le moyen de paiement.</p>
+    }
+
+    <div class="row">
+      <mat-form-field appearance="outline">
+        <mat-label>Référence de la transaction</mat-label>
+        <input matInput formControlName="transactionReference" placeholder="Ex. : MP260925.1234.A12345" />
+        @if (form.controls.transactionReference.hasError('required')) {
+          <mat-error>La référence est requise</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Date du paiement</mat-label>
+        <input matInput [matDatepicker]="picker" formControlName="paymentDate" (click)="picker.open()" />
+        <mat-datepicker-toggle matIconSuffix [for]="picker" />
+        <mat-datepicker #picker />
+        @if (form.controls.paymentDate.hasError('matDatepickerParse')) {
+          <mat-error>Date invalide (JJ/MM/AAAA)</mat-error>
+        } @else if (form.controls.paymentDate.hasError('required')) {
+          <mat-error>La date est requise</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    <mat-form-field appearance="outline" class="full">
+      <mat-label>Observation (facultative)</mat-label>
+      <textarea matInput formControlName="observation" rows="2"></textarea>
+    </mat-form-field>
+
+    @if (errorMessage(); as message) {
+      <p class="notice" role="alert">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ message }}</span>
+      </p>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="actions">
+    <button mat-button type="button" mat-dialog-close [disabled]="saving()">Annuler</button>
+    <button mat-flat-button type="submit" [disabled]="saving()">
+      @if (saving()) {
+        <mat-spinner diameter="20" />
+      } @else {
+        Déclarer le paiement
+      }
+    </button>
+  </mat-dialog-actions>
+</form>

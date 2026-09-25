@@ -1,0 +1,54 @@
+<div class="head">
+  <span class="head__icon"><mat-icon>receipt_long</mat-icon></span>
+  <div class="head__text">
+    <h2 mat-dialog-title class="head__title">Justificatif</h2>
+    <p class="head__subtitle">
+      {{ transaction.memberFullName }} · {{ transaction.contributionDefinitionName }} ·
+      {{ formatFcfa(transaction.amount) }} · {{ operatorLabels[transaction.operator] }} · réf.
+      {{ transaction.transactionReference }}
+    </p>
+  </div>
+</div>
+
+<mat-dialog-content class="body viewer">
+  @switch (state()) {
+    @case ('loading') {
+      <div class="viewer__center"><mat-spinner diameter="36" /></div>
+    }
+    @case ('image') {
+      <img class="viewer__image" [src]="objectUrl()" [alt]="'Justificatif ' + filename()" />
+    }
+    @case ('pdf') {
+      <iframe class="viewer__pdf" [src]="safeUrl()" [title]="'Justificatif ' + filename()"></iframe>
+    }
+    @case ('other') {
+      <div class="viewer__center">
+        <mat-icon class="viewer__icon">description</mat-icon>
+        <p>Aperçu indisponible pour ce format : téléchargez le fichier.</p>
+      </div>
+    }
+    @case ('none') {
+      <div class="viewer__center">
+        <mat-icon class="viewer__icon">image_not_supported</mat-icon>
+        <p class="viewer__title">Aucun justificatif joint</p>
+        <p>Le membre n'a pas transmis de justificatif pour ce paiement.</p>
+      </div>
+    }
+    @case ('error') {
+      <div class="viewer__center">
+        <mat-icon class="viewer__icon viewer__icon--brown">cloud_off</mat-icon>
+        <p>Impossible de récupérer le justificatif.</p>
+      </div>
+    }
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end" class="actions">
+  @if (objectUrl(); as url) {
+    <a mat-stroked-button [href]="url" [attr.download]="filename()">
+      <mat-icon>download</mat-icon>
+      Télécharger
+    </a>
+  }
+  <button mat-flat-button type="button" mat-dialog-close>Fermer</button>
+</mat-dialog-actions>

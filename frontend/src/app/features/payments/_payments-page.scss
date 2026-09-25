@@ -1,0 +1,277 @@
+// Styles communs aux pages du module paiements (en-tête, états, puces, statuts, liste).
+@mixin page-base {
+  .page {
+    &__header {
+      margin-bottom: 20px;
+    }
+
+    &__title {
+      margin: 0 0 4px;
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    &__subtitle {
+      margin: 0;
+      max-width: 720px;
+      color: var(--aekd-gray-muted);
+      font-size: 14px;
+    }
+  }
+
+  .state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 56px 16px;
+    text-align: center;
+
+    &--card {
+      background: #fff;
+      border: 1px dashed var(--mat-sys-outline-variant);
+      border-radius: 18px;
+    }
+
+    &__icon {
+      width: 56px;
+      height: 56px;
+      font-size: 56px;
+      color: var(--aekd-orange);
+
+      &--brown {
+        color: var(--aekd-brown);
+      }
+    }
+
+    &__title {
+      margin: 8px 0 0;
+      font-weight: 700;
+      font-size: 17px;
+    }
+
+    &__text {
+      margin: 0 0 12px;
+      max-width: 440px;
+      color: var(--aekd-gray-muted);
+    }
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+
+    &--orange {
+      background: var(--aekd-orange);
+      color: #fff;
+    }
+
+    &--brown {
+      background: var(--aekd-brown);
+      color: #fff;
+    }
+  }
+
+  // Statuts : PAID/VALIDATED = gris foncé plein ; PENDING = orange ;
+  // LATE/REJECTED = marron ; NOT_PAID = neutre. Uniquement la palette AEKD.
+  .status {
+    flex: none;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+
+    &--paid,
+    &--tx-validated {
+      background: var(--aekd-gray);
+      color: #fff;
+    }
+
+    &--pending,
+    &--tx-pending {
+      background: var(--aekd-orange-soft);
+      color: var(--aekd-brown-dark);
+      border: 1px solid var(--aekd-orange);
+    }
+
+    &--late,
+    &--tx-rejected {
+      background: var(--aekd-brown);
+      color: #fff;
+    }
+
+    &--not_paid {
+      background: #ece8e4;
+      color: var(--aekd-gray);
+    }
+  }
+
+  .list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 18px 16px 22px;
+    border-radius: 16px;
+    background: #fff;
+    border: 1px solid var(--mat-sys-outline-variant);
+    box-shadow: var(--aekd-shadow);
+    overflow: hidden;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 5px;
+      background: #dcd7d2;
+    }
+
+    &--paid::before {
+      background: var(--aekd-gray);
+    }
+
+    &--pending::before {
+      background: var(--aekd-orange);
+    }
+
+    &--late::before {
+      background: var(--aekd-brown);
+    }
+
+    &__main {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    &__top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    &__name {
+      margin: 0;
+      font-size: 15.5px;
+      font-weight: 700;
+      overflow-wrap: anywhere;
+    }
+
+    &__meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px 12px;
+      font-size: 13px;
+      color: var(--aekd-gray-muted);
+    }
+
+    &__amount {
+      font-family: 'Poppins', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--aekd-gray);
+    }
+
+    &__due {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+
+      mat-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+        color: var(--aekd-brown);
+      }
+    }
+
+    &__tx {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      margin: 2px 0 0;
+      font-size: 13px;
+      line-height: 1.45;
+      color: var(--aekd-gray);
+
+      mat-icon {
+        flex: none;
+        font-size: 17px;
+        width: 17px;
+        height: 17px;
+        color: var(--aekd-orange);
+      }
+
+      &--rejected {
+        color: var(--aekd-brown-dark);
+
+        mat-icon {
+          color: var(--aekd-brown);
+        }
+      }
+    }
+
+    &__obs {
+      margin: 0;
+      font-size: 13px;
+      font-style: italic;
+      color: var(--aekd-gray-muted);
+      overflow-wrap: anywhere;
+    }
+
+    &__actions {
+      flex: none;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+
+      button {
+        border-radius: 10px;
+      }
+    }
+  }
+
+  @media (max-width: 599.98px) {
+    .page__title {
+      font-size: 24px;
+    }
+
+    .item {
+      flex-direction: column;
+      align-items: stretch;
+      padding: 14px 14px 14px 18px;
+
+      &__actions {
+        justify-content: stretch;
+
+        button {
+          flex: 1;
+        }
+      }
+    }
+  }
+}

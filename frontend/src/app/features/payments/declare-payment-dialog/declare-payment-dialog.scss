@@ -1,0 +1,77 @@
+@use '../payments-dialog' as dlg;
+
+@include dlg.dialog-base;
+
+.operators {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.operator {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 6px;
+  border-radius: 12px;
+  border: 1.5px solid var(--mat-sys-outline-variant);
+  background: #fff;
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.25;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+
+  input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  mat-icon {
+    color: var(--aekd-gray-muted);
+  }
+
+  &:hover {
+    border-color: #f3c9a4;
+  }
+
+  &:has(input:focus-visible) {
+    outline: 2px solid var(--aekd-orange);
+    outline-offset: 2px;
+  }
+
+  &--selected {
+    border-color: var(--aekd-orange);
+    background: var(--aekd-orange-soft);
+    box-shadow: 0 0 0 1px var(--aekd-orange);
+
+    mat-icon {
+      color: var(--aekd-orange);
+    }
+  }
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+@media (max-width: 599.98px) {
+  .operators {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}
