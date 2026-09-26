@@ -1,0 +1,86 @@
+<div class="head">
+  <span class="head__icon"><mat-icon>gavel</mat-icon></span>
+  <div class="head__text">
+    <h2 mat-dialog-title class="head__title">Nouvelle règle de sanction</h2>
+    <p class="head__subtitle">{{ data.contribution.name }}</p>
+  </div>
+</div>
+
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <mat-dialog-content class="body">
+    <p class="info">
+      <mat-icon>info</mat-icon>
+      <span>
+        La règle ne s'applique jamais automatiquement : elle signale les membres en retard, et le trésorier décide
+        d'appliquer ou non la sanction.
+      </span>
+    </p>
+
+    <p class="label">Type de sanction</p>
+    <div class="choices">
+      <label class="choice" [class.choice--selected]="isMonetary()">
+        <input type="radio" formControlName="type" value="MONETARY" />
+        <mat-icon>payments</mat-icon>
+        <span class="choice__title">Monétaire</span>
+        <span class="choice__text">Un montant à payer.</span>
+      </label>
+      <label class="choice" [class.choice--selected]="!isMonetary()">
+        <input type="radio" formControlName="type" value="IN_KIND" />
+        <mat-icon>handshake</mat-icon>
+        <span class="choice__title">En nature</span>
+        <span class="choice__text">Une contrepartie décrite librement.</span>
+      </label>
+    </div>
+
+    <mat-form-field appearance="outline" class="full">
+      <mat-label>Seuil de retard</mat-label>
+      <input matInput type="number" inputmode="numeric" min="0" step="1" formControlName="lateDaysThreshold" />
+      <span matTextSuffix>jours</span>
+      <mat-hint>Nombre de jours après l'échéance à partir duquel un membre non à jour devient candidat</mat-hint>
+      @if (form.controls.lateDaysThreshold.hasError('required')) {
+        <mat-error>Le seuil est requis (0 = dès le lendemain de l'échéance)</mat-error>
+      } @else if (form.controls.lateDaysThreshold.invalid) {
+        <mat-error>Nombre de jours entier, positif ou nul</mat-error>
+      }
+    </mat-form-field>
+
+    @if (isMonetary()) {
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Montant de la sanction</mat-label>
+        <input matInput type="number" inputmode="numeric" min="1" step="1" formControlName="monetaryAmount" />
+        <span matTextSuffix>FCFA</span>
+        @if (form.controls.monetaryAmount.hasError('required')) {
+          <mat-error>Le montant est requis</mat-error>
+        } @else if (form.controls.monetaryAmount.invalid) {
+          <mat-error>Montant entier strictement positif</mat-error>
+        }
+      </mat-form-field>
+    } @else {
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Description de la sanction</mat-label>
+        <textarea matInput formControlName="description" rows="3"></textarea>
+        @if (form.controls.description.hasError('required')) {
+          <mat-error>La description est requise</mat-error>
+        }
+      </mat-form-field>
+    }
+
+    @if (errorMessage(); as message) {
+      <p class="notice" role="alert">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ message }}</span>
+      </p>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="actions">
+    <button mat-button type="button" mat-dialog-close [disabled]="saving()">Annuler</button>
+    <button mat-flat-button type="submit" [disabled]="saving()">
+      @if (saving()) {
+        <mat-spinner diameter="20" />
+      } @else {
+        Créer la règle
+      }
+    </button>
+  </mat-dialog-actions>
+</form>

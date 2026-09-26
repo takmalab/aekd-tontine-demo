@@ -80,6 +80,10 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/loans/loan-policies/loan-policies').then((m) => m.LoanPolicies),
       },
+      {
+        path: 'sanctions',
+        loadComponent: () => import('./features/sanctions/sanctions-page').then((m) => m.SanctionsPage),
+      },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],
   },

@@ -1,0 +1,218 @@
+<section class="page">
+  <header class="page__header">
+    <h1 class="page__title">Sanctions</h1>
+    <p class="page__subtitle">
+      Règles de sanction par cotisation obligatoire, membres en retard concernés, et sanctions appliquées.
+      Rien n'est appliqué automatiquement.
+    </p>
+  </header>
+
+  @if (!isTreasurer) {
+    <p class="readonly">
+      <mat-icon>visibility</mat-icon>
+      <span>
+        Vous pouvez créer des règles et consulter les sanctions. L'examen des candidats, l'application et l'annulation
+        sont réservés au trésorier.
+      </span>
+    </p>
+  }
+
+  @if (loading()) {
+    <div class="state"><mat-spinner diameter="40" /></div>
+  } @else if (error()) {
+    <div class="state state--card">
+      <mat-icon class="state__icon state__icon--brown">cloud_off</mat-icon>
+      <p class="state__title">Impossible de charger les cotisations</p>
+    </div>
+  } @else if (contributions().length === 0) {
+    <div class="state state--card">
+      <mat-icon class="state__icon">payments</mat-icon>
+      <p class="state__title">Aucune cotisation</p>
+      <p class="state__text">Les règles de sanction se configurent pour une cotisation.</p>
+    </div>
+  } @else {
+    <mat-form-field appearance="outline" class="picker" subscriptSizing="dynamic">
+      <mat-label>Cotisation</mat-label>
+      <mat-select [value]="selectedId()" (selectionChange)="select($event.value)">
+        @if (mandatory().length) {
+          <mat-optgroup label="Obligatoires">
+            @for (c of mandatory(); track c.id) {
+              <mat-option [value]="c.id">
+                {{ c.name }}
+                @if (c.status !== 'ACTIVE') {
+                  (brouillon)
+                }
+              </mat-option>
+            }
+          </mat-optgroup>
+        }
+        @if (optional().length) {
+          <mat-optgroup label="Facultatives (sans sanction de retard)">
+            @for (c of optional(); track c.id) {
+              <mat-option [value]="c.id">{{ c.name }}</mat-option>
+            }
+          </mat-optgroup>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    @if (selected(); as c) {
+      @if (!c.mandatory) {
+        <p class="info info--warn">
+          <mat-icon>info</mat-icon>
+          <span>
+            Cette cotisation est <strong>facultative</strong> : une cotisation facultative non payée ne donne pas lieu à
+            sanction (CLAUDE.md §18), aucune règle ne peut donc lui être associée.
+          </span>
+        </p>
+      }
+
+      @if (detailLoading()) {
+        <div class="state state--compact"><mat-spinner diameter="32" /></div>
+      } @else if (detailError()) {
+        <div class="state state--card state--compact">
+          <p class="state__text">Impossible de charger les sanctions de cette cotisation.</p>
+          <button mat-stroked-button (click)="loadDetail()"><mat-icon>refresh</mat-icon> Réessayer</button>
+        </div>
+      } @else {
+        <!-- Règles -->
+        <section class="block">
+          <div class="block__head">
+            <h2 class="block__title"><mat-icon>rule</mat-icon> Règles <span class="count">{{ rules().length }}</span></h2>
+            <div class="block__actions">
+              <a mat-button [routerLink]="['/contributions', c.id]">
+                <mat-icon>open_in_new</mat-icon>
+                Voir la cotisation
+              </a>
+              <button mat-flat-button type="button" (click)="createRule()" [disabled]="!c.mandatory">
+                <mat-icon>add</mat-icon>
+                Nouvelle règle
+              </button>
+            </div>
+          </div>
+
+          @if (rules().length === 0) {
+            <p class="empty">
+              @if (c.mandatory) {
+                Aucune règle pour cette cotisation.
+              } @else {
+                Aucune règle (cotisation facultative).
+              }
+            </p>
+          } @else {
+            <div class="rules">
+              @for (rule of rules(); track rule.id) {
+                @let cand = candidates()[rule.id];
+                <article class="rule" [class.rule--inactive]="!rule.active">
+                  <div class="rule__top">
+                    <span [class]="'type type--' + rule.type.toLowerCase()">{{ typeLabels[rule.type] }}</span>
+                    @if (!rule.active) {
+                      <span class="status status--cancelled">Inactive</span>
+                    }
+                  </div>
+                  <p class="rule__what">{{ ruleSummary(rule) }}</p>
+                  <p class="rule__when"><mat-icon>schedule</mat-icon> {{ thresholdLabel(rule.lateDaysThreshold) }}</p>
+
+                  @if (isTreasurer && rule.active) {
+                    <button type="button" class="toggle" (click)="toggleCandidates(rule)" [attr.aria-expanded]="!!cand">
+                      <mat-icon>group</mat-icon>
+                      Membres concernés
+                      @if (cand && !cand.loading && !cand.error) {
+                        <span class="pill" [class.pill--ko]="cand.list.length > 0">{{ cand.list.length }}</span>
+                      }
+                      <mat-icon class="toggle__chevron">{{ cand ? 'expand_less' : 'expand_more' }}</mat-icon>
+                    </button>
+                    @if (cand) {
+                      @if (cand.loading) {
+                        <div class="state state--compact"><mat-spinner diameter="24" /></div>
+                      } @else if (cand.error) {
+                        <p class="empty">Impossible de charger les membres concernés.</p>
+                      } @else if (cand.list.length === 0) {
+                        <p class="empty">Aucun membre ne remplit actuellement les conditions de cette règle.</p>
+                      } @else {
+                        <ul class="candidates">
+                          @for (m of cand.list; track m.memberId + m.contributionPeriodId) {
+                            <li>
+                              <span class="candidates__who">
+                                <strong>{{ m.memberFullName }}</strong>
+                                <span class="muted">{{ m.sessionLabel }}</span>
+                              </span>
+                              <button
+                                mat-stroked-button
+                                type="button"
+                                (click)="applyTo(rule, m)"
+                                [disabled]="busy() === rule.id + ':' + m.memberId + ':' + m.contributionPeriodId"
+                              >
+                                <mat-icon>gavel</mat-icon>
+                                Appliquer
+                              </button>
+                            </li>
+                          }
+                        </ul>
+                      }
+                    }
+                  }
+                </article>
+              }
+            </div>
+          }
+        </section>
+
+        <!-- Sanctions appliquées -->
+        <section class="block">
+          <div class="block__head">
+            <h2 class="block__title"><mat-icon>gavel</mat-icon> Sanctions appliquées</h2>
+          </div>
+          <div class="filters" role="tablist" aria-label="Filtrer les sanctions">
+            @for (f of appliedFilters; track f.value) {
+              <button type="button" role="tab" class="filter" [class.filter--active]="appliedFilter() === f.value"
+                      [attr.aria-selected]="appliedFilter() === f.value" (click)="appliedFilter.set(f.value)">
+                {{ f.label }}
+                <span class="filter__count">{{ appliedCounts()[f.value] }}</span>
+              </button>
+            }
+          </div>
+
+          @if (visibleApplied().length === 0) {
+            <p class="empty">Aucune sanction dans cette catégorie.</p>
+          } @else {
+            <div class="list">
+              @for (s of visibleApplied(); track s.id) {
+                <article class="item" [class.item--late]="s.status === 'APPLIED'" [class.item--cancelled]="s.status === 'CANCELLED'">
+                  <div class="item__main">
+                    <div class="item__top">
+                      <h3 class="item__name">{{ s.memberFullName }}</h3>
+                      <span [class]="'status status--' + s.status.toLowerCase()">{{ statusLabels[s.status] }}</span>
+                    </div>
+                    <div class="item__meta">
+                      <span [class]="'type type--' + s.type.toLowerCase()">{{ typeLabels[s.type] }}</span>
+                      @if (s.type === 'MONETARY') {
+                        <span class="item__amount">{{ formatFcfa(s.amount) }}</span>
+                      }
+                      <span class="item__due"><mat-icon>event</mat-icon> {{ s.sessionLabel }}</span>
+                    </div>
+                    @if (s.type === 'IN_KIND' && s.description) {
+                      <p class="item__obs">« {{ s.description }} »</p>
+                    }
+                    <p class="item__tx">
+                      <mat-icon>schedule</mat-icon>
+                      <span>Appliquée le {{ s.appliedAt | date: 'd MMM yyyy' }} par {{ s.appliedByEmail }}</span>
+                    </p>
+                  </div>
+                  @if (isTreasurer && s.status === 'APPLIED') {
+                    <div class="item__actions">
+                      <button mat-button type="button" class="cancel" (click)="cancel(s)" [disabled]="busy() === s.id">
+                        <mat-icon>undo</mat-icon>
+                        Annuler
+                      </button>
+                    </div>
+                  }
+                </article>
+              }
+            </div>
+          }
+        </section>
+      }
+    }
+  }
+</section>

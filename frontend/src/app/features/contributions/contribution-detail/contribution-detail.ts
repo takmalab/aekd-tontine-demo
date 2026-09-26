@@ -10,6 +10,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { catchError, forkJoin, of } from 'rxjs';
+import { AuthService } from '../../../core/services/auth.service';
 import { formatFcfa, fromIsoDate, toIsoDate } from '../../../shared/utils/format';
 import { Member } from '../../members/member.model';
 import { MemberService } from '../../members/member.service';
@@ -97,6 +98,7 @@ export class ContributionDetail implements OnInit {
   private readonly memberService = inject(MemberService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly authService = inject(AuthService);
 
   /** Paramètre de route `:id`. */
   readonly id = input.required<string>();
@@ -109,6 +111,8 @@ export class ContributionDetail implements OnInit {
   readonly frequencyLabels = FREQUENCY_LABELS;
   readonly amountModeLabels = AMOUNT_MODE_LABELS;
   readonly participantLabels = PARTICIPANT_STATUS_LABELS;
+  /** Lien vers la gestion des sanctions de la cotisation (ADMIN / TRESORIER). */
+  readonly isStaff = this.authService.hasAnyRole(['ADMIN', 'TRESORIER']);
 
   readonly loading = signal(true);
   readonly notFound = signal(false);

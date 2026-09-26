@@ -105,6 +105,20 @@
     }
   }
 
+  &__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #fff;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+
+    &:hover {
+      color: var(--aekd-orange);
+    }
+  }
+
   &__cta {
     flex: none;
     display: flex;

@@ -1,0 +1,64 @@
+<section class="page">
+  <header class="page__header">
+    <h1 class="page__title">Mes sanctions</h1>
+    <p class="page__subtitle">
+      Sanctions appliquées par le trésorier en cas de retard sur une cotisation obligatoire.
+    </p>
+  </header>
+
+  @if (loading()) {
+    <div class="state"><mat-spinner diameter="40" /></div>
+  } @else if (noMemberProfile()) {
+    <div class="state state--card">
+      <mat-icon class="state__icon state__icon--brown">person_off</mat-icon>
+      <p class="state__title">Aucun profil membre</p>
+      <p class="state__text">Ce compte n'est pas rattaché à un membre de la tontine.</p>
+    </div>
+  } @else if (error()) {
+    <div class="state state--card">
+      <mat-icon class="state__icon state__icon--brown">cloud_off</mat-icon>
+      <p class="state__title">Impossible de charger vos sanctions</p>
+      <button mat-stroked-button (click)="load()"><mat-icon>refresh</mat-icon> Réessayer</button>
+    </div>
+  } @else if (sanctions().length === 0) {
+    <div class="state state--card">
+      <mat-icon class="state__icon">verified</mat-icon>
+      <p class="state__title">Aucune sanction</p>
+      <p class="state__text">Vous n'avez reçu aucune sanction.</p>
+    </div>
+  } @else {
+    <div class="totals">
+      <span><strong>{{ active().length }}</strong> sanction{{ active().length > 1 ? 's' : '' }} en vigueur</span>
+      @if (activeAmount() > 0) {
+        <span>Montant des sanctions monétaires : <strong class="totals__amount">{{ formatFcfa(activeAmount()) }}</strong></span>
+      }
+    </div>
+
+    <div class="list">
+      @for (s of sanctions(); track s.id) {
+        <article class="item" [class.item--late]="s.status === 'APPLIED'" [class.item--cancelled]="s.status === 'CANCELLED'">
+          <div class="item__main">
+            <div class="item__top">
+              <h3 class="item__name">{{ s.contributionDefinitionName }}</h3>
+              <span [class]="'status status--' + s.status.toLowerCase()">{{ statusLabels[s.status] }}</span>
+            </div>
+            <div class="item__meta">
+              <span [class]="'type type--' + s.type.toLowerCase()">{{ typeLabels[s.type] }}</span>
+              @if (s.type === 'MONETARY') {
+                <span class="item__amount">{{ formatFcfa(s.amount) }}</span>
+              }
+              <span class="item__due"><mat-icon>event</mat-icon> {{ s.sessionLabel }}</span>
+            </div>
+            @if (s.type === 'IN_KIND' && s.description) {
+              <p class="item__obs">« {{ s.description }} »</p>
+            }
+            <p class="item__tx">
+              <mat-icon>gavel</mat-icon>
+              <span>Appliquée le {{ s.appliedAt | date: 'd MMM yyyy' }} par {{ s.appliedByEmail }}</span>
+            </p>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</section>

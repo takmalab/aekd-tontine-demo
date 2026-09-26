@@ -1,0 +1,66 @@
+// Styles communs aux vues sanctions.
+@mixin sanctions-base {
+  .totals {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+    margin-bottom: 14px;
+    padding: 14px 18px;
+    border-radius: 14px;
+    background: var(--aekd-gray);
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 14px;
+
+    strong {
+      color: #fff;
+    }
+
+    &__amount {
+      font-family: 'Poppins', sans-serif;
+      font-size: 18px;
+      color: var(--aekd-orange) !important;
+    }
+  }
+
+  // Statut d'une sanction appliquée.
+  .status {
+    &--applied {
+      background: var(--aekd-brown);
+      color: #fff;
+    }
+
+    &--cancelled {
+      background: #ece8e4;
+      color: var(--aekd-gray-muted);
+      text-decoration: line-through;
+    }
+  }
+
+  .type {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+
+    &--monetary {
+      background: var(--aekd-orange-soft);
+      color: var(--aekd-brown-dark);
+      border: 1px solid var(--aekd-orange);
+    }
+
+    &--in_kind {
+      background: #ece8e4;
+      color: var(--aekd-gray);
+      border: 1px solid #dcd7d2;
+    }
+  }
+
+  .item--cancelled {
+    background: #fcfbfa;
+    opacity: 0.8;
+  }
+}

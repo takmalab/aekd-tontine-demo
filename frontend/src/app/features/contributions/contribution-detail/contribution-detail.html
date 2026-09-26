@@ -53,6 +53,14 @@
             <mat-icon>tune</mat-icon>
             {{ amountModeLabels[d.amountMode] }}
           </li>
+          @if (isStaff && d.mandatory) {
+            <li>
+              <a class="hero__link" [routerLink]="['/sanctions']" [queryParams]="{ contribution: d.id }">
+                <mat-icon>gavel</mat-icon>
+                Sanctions
+              </a>
+            </li>
+          }
         </ul>
       </div>
 
