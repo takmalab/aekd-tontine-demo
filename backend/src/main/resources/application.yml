@@ -3,9 +3,9 @@ spring:
     name: tontine-backend
 
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/aekd_tontine}
-    username: ${SPRING_DATASOURCE_USERNAME:aekd}
-    password: ${SPRING_DATASOURCE_PASSWORD:aekd_dev_password}
+    url: postgresql://${{PGUSER}}:${{POSTGRES_PASSWORD}}@${{RAILWAY_PRIVATE_DOMAIN}}:5432/${{PGDATABASE}}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
 
   jpa:
     hibernate:
@@ -22,7 +22,7 @@ spring:
       max-request-size: 10MB
 
 server:
-  port: ${PORT:8080}
+  port: ${PORT:5432}
 
 app:
   jwt:
