@@ -1,0 +1,50 @@
+<div class="head">
+  <span class="head__icon"><mat-icon>person</mat-icon></span>
+  <div class="head__text">
+    <h2 mat-dialog-title class="head__title">Modifier le membre</h2>
+    <p class="head__subtitle">{{ member.email }}</p>
+  </div>
+</div>
+
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <mat-dialog-content class="body">
+    <mat-form-field appearance="outline" class="full">
+      <mat-label>Nom complet</mat-label>
+      <input matInput formControlName="fullName" />
+      @if (form.controls.fullName.hasError('required')) {
+        <mat-error>Le nom est requis</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full">
+      <mat-label>Téléphone (facultatif)</mat-label>
+      <input matInput formControlName="phone" />
+    </mat-form-field>
+
+    <div class="toggle-row">
+      <div>
+        <p class="toggle-row__label">Membre actif</p>
+        <p class="toggle-row__hint">Un membre inactif reste consultable mais n'apparaît plus comme participant actif.</p>
+      </div>
+      <mat-slide-toggle formControlName="active" />
+    </div>
+
+    @if (errorMessage(); as message) {
+      <p class="notice" role="alert">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ message }}</span>
+      </p>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="actions">
+    <button mat-button type="button" mat-dialog-close [disabled]="saving()">Annuler</button>
+    <button mat-flat-button type="submit" [disabled]="saving()">
+      @if (saving()) {
+        <mat-spinner diameter="20" />
+      } @else {
+        Enregistrer
+      }
+    </button>
+  </mat-dialog-actions>
+</form>

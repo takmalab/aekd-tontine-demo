@@ -1,0 +1,84 @@
+<section class="page">
+  <header class="page__header page__header--row">
+    <div>
+      <h1 class="page__title">Utilisateurs</h1>
+      <p class="page__subtitle">Comptes d'accès à l'application : rôles, statut, validation des auto-inscriptions.</p>
+    </div>
+    <div class="header-actions">
+      <app-export-menu filename="utilisateurs" [rows]="exportRows()" />
+      <button mat-flat-button class="page__action" (click)="create()">
+        <mat-icon>person_add</mat-icon>
+        Nouveau compte
+      </button>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <app-page-state state="loading" title="Chargement…" />
+  } @else if (error()) {
+    <app-page-state state="error" icon="cloud_off" title="Impossible de charger les comptes">
+      <button mat-stroked-button (click)="load()"><mat-icon>refresh</mat-icon> Réessayer</button>
+    </app-page-state>
+  } @else if (users().length === 0) {
+    <app-page-state state="empty" icon="manage_accounts" title="Aucun compte" />
+  } @else {
+    <app-filter-chips [options]="statusOptions()" [active]="statusFilter()" ariaLabel="Filtrer par statut" (activeChange)="onStatusFilter($event)" />
+
+    <div class="toolbar">
+      <app-search-bar label="Rechercher un compte" placeholder="Email, nom du membre…" (valueChange)="onSearch($event)" />
+      <mat-form-field appearance="outline" class="sort">
+        <mat-label>Trier par</mat-label>
+        <mat-select [value]="sortBy()" (selectionChange)="onSortChange($event.value)">
+          <mat-option value="email">Email</mat-option>
+          <mat-option value="createdAt">Date de création (récent)</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    @if (filtered().length === 0) {
+      <app-page-state state="empty" icon="search_off" title="Aucun résultat" text="Aucun compte ne correspond à ces critères." />
+    } @else {
+      <div class="list">
+        @for (u of paged(); track u.id) {
+          <article class="item" [class.item--pending]="u.status === 'PENDING_VALIDATION'" [class.item--inactive]="u.status === 'DISABLED'">
+            <div class="item__main">
+              <div class="item__top">
+                <h3 class="item__name">{{ u.email }}</h3>
+                <app-status-badge [variant]="badgeVariant[u.status]" [label]="statusLabels[u.status]" />
+              </div>
+              <div class="item__meta">
+                @if (u.memberFullName) {
+                  <span>{{ u.memberFullName }}</span>
+                }
+                @for (role of u.roles; track role) {
+                  <span class="chip chip--brown">{{ roleLabels[role] }}</span>
+                }
+                <span>Créé le {{ u.createdAt | date: 'd MMM yyyy' }}</span>
+              </div>
+            </div>
+            <div class="item__actions">
+              <button mat-stroked-button type="button" (click)="edit(u)">
+                <mat-icon>edit</mat-icon>
+                Modifier
+              </button>
+              @if (u.status === 'PENDING_VALIDATION') {
+                <button mat-flat-button type="button" (click)="approve(u)" [disabled]="busyId() === u.id">
+                  <mat-icon>task_alt</mat-icon>
+                  Valider
+                </button>
+              }
+            </div>
+          </article>
+        }
+      </div>
+
+      <app-pagination
+        [total]="filtered().length"
+        [pageIndex]="pageIndex()"
+        [pageSize]="pageSize()"
+        (pageIndexChange)="pageIndex.set($event)"
+        (pageSizeChange)="pageSize.set($event); pageIndex.set(0)"
+      />
+    }
+  }
+</section>

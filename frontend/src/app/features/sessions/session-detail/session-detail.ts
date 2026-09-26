@@ -4,9 +4,9 @@ import { Component, OnInit, computed, inject, input, signal } from '@angular/cor
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { forkJoin } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
+import { PageState } from '../../../shared/components/page-state/page-state';
 import { formatFcfa, fromIsoDate } from '../../../shared/utils/format';
 import {
   CONTRIBUTION_STATUS_LABELS,
@@ -18,7 +18,7 @@ import { SessionService } from '../session.service';
 
 @Component({
   selector: 'app-session-detail',
-  imports: [RouterLink, DatePipe, MatButtonModule, MatIconModule, MatProgressSpinnerModule],
+  imports: [RouterLink, DatePipe, MatButtonModule, MatIconModule, PageState],
   templateUrl: './session-detail.html',
   styleUrl: './session-detail.scss',
 })

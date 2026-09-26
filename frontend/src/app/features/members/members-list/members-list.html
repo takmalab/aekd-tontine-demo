@@ -1,0 +1,81 @@
+<section class="page">
+  <header class="page__header page__header--row">
+    <div>
+      <h1 class="page__title">Membres</h1>
+      <p class="page__subtitle">
+        Membres de l'amicale liés à un compte utilisateur.
+        @if (!isAdmin) {
+          Consultation seule : la modification est réservée à l'administrateur.
+        }
+      </p>
+    </div>
+    <app-export-menu filename="membres" [rows]="exportRows()" />
+  </header>
+
+  @if (loading()) {
+    <app-page-state state="loading" title="Chargement…" />
+  } @else if (error()) {
+    <app-page-state state="error" icon="cloud_off" title="Impossible de charger les membres">
+      <button mat-stroked-button (click)="load()"><mat-icon>refresh</mat-icon> Réessayer</button>
+    </app-page-state>
+  } @else if (members().length === 0) {
+    <app-page-state state="empty" icon="group" title="Aucun membre" />
+  } @else {
+    <p class="info">
+      <mat-icon>group</mat-icon>
+      <span>{{ activeCount() }} membre{{ activeCount() > 1 ? 's' : '' }} actif{{ activeCount() > 1 ? 's' : '' }} sur {{ members().length }}.</span>
+    </p>
+
+    <div class="toolbar">
+      <app-search-bar label="Rechercher un membre" placeholder="Nom, email, téléphone…" (valueChange)="onSearch($event)" />
+      <mat-form-field appearance="outline" class="sort">
+        <mat-label>Trier par</mat-label>
+        <mat-select [value]="sortBy()" (selectionChange)="onSortChange($event.value)">
+          <mat-option value="name">Nom</mat-option>
+          <mat-option value="joinDate">Date d'adhésion (récent)</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    @if (filtered().length === 0) {
+      <app-page-state state="empty" icon="search_off" title="Aucun résultat" text="Aucun membre ne correspond à votre recherche." />
+    } @else {
+      <div class="list">
+        @for (m of paged(); track m.id) {
+          <article class="item" [class.item--inactive]="!m.active">
+            <div class="item__main">
+              <div class="item__top">
+                <h3 class="item__name">{{ m.fullName }}</h3>
+                <app-status-badge [variant]="m.active ? 'paid' : 'not_paid'" [label]="m.active ? 'Actif' : 'Inactif'" />
+              </div>
+              <div class="item__meta">
+                <span class="item__due"><mat-icon>mail</mat-icon> {{ m.email }}</span>
+                @if (m.phone) {
+                  <span class="item__due"><mat-icon>call</mat-icon> {{ m.phone }}</span>
+                }
+                <span class="item__due"><mat-icon>event</mat-icon> Adhésion le {{ fromIsoDate(m.joinDate) | date: 'd MMM yyyy' }}</span>
+              </div>
+            </div>
+
+            @if (isAdmin) {
+              <div class="item__actions">
+                <button mat-stroked-button type="button" (click)="edit(m)">
+                  <mat-icon>edit</mat-icon>
+                  Modifier
+                </button>
+              </div>
+            }
+          </article>
+        }
+      </div>
+
+      <app-pagination
+        [total]="filtered().length"
+        [pageIndex]="pageIndex()"
+        [pageSize]="pageSize()"
+        (pageIndexChange)="pageIndex.set($event)"
+        (pageSizeChange)="pageSize.set($event); pageIndex.set(0)"
+      />
+    }
+  }
+</section>

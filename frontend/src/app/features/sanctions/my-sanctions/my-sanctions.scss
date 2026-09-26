@@ -1,5 +1,3 @@
-@use '../../../shared/styles/page' as pg;
 @use '../sanctions' as sn;
 
-@include pg.page-base;
 @include sn.sanctions-base;

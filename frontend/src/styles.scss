@@ -11,6 +11,7 @@
 // color-bearing system token is then overridden with `mat.theme-overrides()`
 // so all Material components pick up the precise brand values.
 @use '@angular/material' as mat;
+@use './app/shared/styles/page' as pg;
 
 // Brand tokens, also exposed as CSS custom properties below for component SCSS.
 $orange: #e86e09;
@@ -118,6 +119,12 @@ html {
   --aekd-shadow: 0 1px 2px rgba(54, 53, 58, 0.06), 0 4px 16px rgba(54, 53, 58, 0.06);
   --aekd-shadow-lg: 0 12px 40px rgba(54, 53, 58, 0.16);
 }
+
+// Classes communes aux pages (état, statuts, puces, listes de cartes) : rendues
+// globales pour que les composants partagés (PageState, StatusBadge…) puissent
+// les utiliser depuis leur propre gabarit — l'encapsulation Angular empêche un
+// composant enfant d'hériter des styles inclus via mixin dans le composant parent.
+@include pg.page-base;
 
 body {
   color-scheme: light;

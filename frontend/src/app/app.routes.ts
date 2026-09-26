@@ -84,6 +84,25 @@ export const routes: Routes = [
         path: 'sanctions',
         loadComponent: () => import('./features/sanctions/sanctions-page').then((m) => m.SanctionsPage),
       },
+      {
+        path: 'members',
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN', 'TRESORIER'] },
+        loadComponent: () =>
+          import('./features/members/members-list/members-list').then((m) => m.MembersList),
+      },
+      {
+        path: 'users',
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN'] },
+        loadComponent: () => import('./features/users/users-list/users-list').then((m) => m.UsersList),
+      },
+      {
+        path: 'audit',
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN'] },
+        loadComponent: () => import('./features/audit/audit-log/audit-log').then((m) => m.AuditLogPage),
+      },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],
   },

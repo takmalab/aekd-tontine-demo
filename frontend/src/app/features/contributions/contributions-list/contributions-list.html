@@ -16,48 +16,36 @@
   </header>
 
   @if (loading()) {
-    <div class="state"><mat-spinner diameter="40" /></div>
+    <app-page-state state="loading" title="Chargement…" />
   } @else if (error()) {
-    <div class="state state--card">
-      <mat-icon class="state__icon state__icon--brown">cloud_off</mat-icon>
-      <p class="state__title">Impossible de charger les cotisations</p>
-      <p class="state__text">Vérifiez que le serveur est démarré, puis réessayez.</p>
+    <app-page-state state="error" icon="cloud_off" title="Impossible de charger les cotisations" text="Vérifiez que le serveur est démarré, puis réessayez.">
       <button mat-stroked-button (click)="load()"><mat-icon>refresh</mat-icon> Réessayer</button>
-    </div>
+    </app-page-state>
   } @else if (rows().length === 0) {
-    <div class="state state--card">
-      <mat-icon class="state__icon">payments</mat-icon>
-      <p class="state__title">Aucune cotisation pour le moment</p>
+    <app-page-state state="empty" icon="payments" title="Aucune cotisation pour le moment" [text]="canManage ? 'Créez une cotisation avec l\'assistant, puis activez-la après relecture.' : 'Les cotisations publiées par le trésorier apparaîtront ici.'">
       @if (canManage) {
-        <p class="state__text">Créez une cotisation avec l'assistant, puis activez-la après relecture.</p>
         <a mat-flat-button routerLink="/contributions/new"><mat-icon>add</mat-icon> Nouvelle cotisation</a>
-      } @else {
-        <p class="state__text">Les cotisations publiées par le trésorier apparaîtront ici.</p>
       }
-    </div>
+    </app-page-state>
   } @else {
+    <div class="toolbar">
+      <app-search-bar label="Rechercher une cotisation" placeholder="Nom de la cotisation…" (valueChange)="onSearch($event)" />
+      <mat-form-field appearance="outline" class="sort">
+        <mat-label>Trier par</mat-label>
+        <mat-select [value]="sortBy()" (selectionChange)="onSortChange($event.value)">
+          <mat-option value="default">Par défaut</mat-option>
+          <mat-option value="name">Nom</mat-option>
+          <mat-option value="amount">Montant</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+
     @if (canManage) {
-      <div class="filters" role="tablist" aria-label="Filtrer par statut">
-        @for (f of filters; track f.value) {
-          <button
-            type="button"
-            role="tab"
-            class="filter"
-            [class.filter--active]="filter() === f.value"
-            [attr.aria-selected]="filter() === f.value"
-            (click)="filter.set(f.value)"
-          >
-            {{ f.label }}
-            <span class="filter__count">{{ counts()[f.value] }}</span>
-          </button>
-        }
-      </div>
+      <app-filter-chips [options]="statusOptions()" [active]="filter()" ariaLabel="Filtrer par statut" (activeChange)="filter.set($event)" />
     }
 
     @if (visibleRows().length === 0) {
-      <div class="state state--card state--compact">
-        <p class="state__text">Aucune cotisation dans cette catégorie.</p>
-      </div>
+      <app-page-state state="empty" icon="search_off" title="Aucune cotisation dans cette catégorie" />
     }
 
     <div class="grid">

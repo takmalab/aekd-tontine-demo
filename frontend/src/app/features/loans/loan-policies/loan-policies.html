@@ -53,7 +53,12 @@
         <article class="policy" [class.policy--inactive]="!p.active">
           <div class="policy__top">
             <h2 class="policy__name">{{ p.name }}</h2>
-            <span class="badge" [class.badge--active]="p.active">{{ p.active ? 'Active' : 'Inactive' }}</span>
+            <span class="policy__top-right">
+              <span class="badge" [class.badge--active]="p.active">{{ p.active ? 'Active' : 'Inactive' }}</span>
+              @if (isAdmin) {
+                <app-action-menu [actions]="actionsFor(p)" [disabled]="busyId() === p.id" (selected)="onAction($event, p)" />
+              }
+            </span>
           </div>
           @if (p.description) {
             <p class="policy__desc">{{ p.description }}</p>
@@ -72,14 +77,6 @@
                 }
               </ul>
             }
-          }
-          @if (isAdmin && p.active) {
-            <div class="policy__actions">
-              <button mat-button type="button" class="deactivate" (click)="deactivate(p)" [disabled]="busyId() === p.id">
-                <mat-icon>block</mat-icon>
-                Désactiver
-              </button>
-            </div>
           }
         </article>
       }

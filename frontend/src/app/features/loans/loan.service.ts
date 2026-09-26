@@ -34,8 +34,22 @@ export class LoanService {
     return this.http.post<LoanPolicy>(`${this.api}/loan-policies`, request);
   }
 
+  /** Refusé par le backend (409) si la politique a déjà été utilisée par un prêt. */
+  updatePolicy(id: string, request: LoanPolicyRequest): Observable<LoanPolicy> {
+    return this.http.put<LoanPolicy>(`${this.api}/loan-policies/${id}`, request);
+  }
+
+  activatePolicy(id: string): Observable<LoanPolicy> {
+    return this.http.put<LoanPolicy>(`${this.api}/loan-policies/${id}/activate`, {});
+  }
+
   deactivatePolicy(id: string): Observable<LoanPolicy> {
     return this.http.put<LoanPolicy>(`${this.api}/loan-policies/${id}/deactivate`, {});
+  }
+
+  /** Refusé par le backend (409) si la politique a déjà été utilisée par un prêt. */
+  deletePolicy(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.api}/loan-policies/${id}`);
   }
 
   // ---------- Prêts ----------

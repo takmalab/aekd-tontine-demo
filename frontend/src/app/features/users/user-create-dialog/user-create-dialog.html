@@ -1,0 +1,91 @@
+<div class="head">
+  <span class="head__icon"><mat-icon>person_add</mat-icon></span>
+  <div class="head__text">
+    <h2 mat-dialog-title class="head__title">Nouveau compte utilisateur</h2>
+    <p class="head__subtitle">Créé directement actif, sans passer par la validation d'auto-inscription.</p>
+  </div>
+</div>
+
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <mat-dialog-content class="body">
+    <mat-form-field appearance="outline" class="full">
+      <mat-label>Email</mat-label>
+      <input matInput type="email" formControlName="email" cdkFocusInitial />
+      @if (form.controls.email.hasError('required') && form.controls.email.touched) {
+        <mat-error>L'email est requis</mat-error>
+      }
+      @if (form.controls.email.hasError('email')) {
+        <mat-error>Email invalide</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full">
+      <mat-label>Mot de passe</mat-label>
+      <input matInput type="password" formControlName="password" />
+      @if (form.controls.password.hasError('required') && form.controls.password.touched) {
+        <mat-error>Le mot de passe est requis</mat-error>
+      }
+      @if (form.controls.password.hasError('minlength')) {
+        <mat-error>8 caractères minimum</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full">
+      <mat-label>Rôle(s)</mat-label>
+      <mat-select formControlName="roles" multiple>
+        @for (role of allRoles; track role) {
+          <mat-option [value]="role">{{ roleLabels[role] }}</mat-option>
+        }
+      </mat-select>
+      @if (form.controls.roles.touched && (form.controls.roles.value ?? []).length === 0) {
+        <mat-error>Au moins un rôle est requis</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-checkbox formControlName="withMember" class="checkbox-row">Associer un profil membre</mat-checkbox>
+
+    @if (form.controls.withMember.value) {
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Nom complet</mat-label>
+        <input matInput formControlName="fullName" />
+        @if (form.controls.fullName.hasError('required') && form.controls.fullName.touched) {
+          <mat-error>Le nom est requis</mat-error>
+        }
+      </mat-form-field>
+
+      <div class="grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Téléphone (facultatif)</mat-label>
+          <input matInput formControlName="phone" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Date d'adhésion</mat-label>
+          <input matInput [matDatepicker]="joinDatePicker" formControlName="joinDate" (click)="joinDatePicker.open()" />
+          <mat-datepicker-toggle matIconSuffix [for]="joinDatePicker" />
+          <mat-datepicker #joinDatePicker />
+          @if (form.controls.joinDate.hasError('required') && form.controls.joinDate.touched) {
+            <mat-error>La date est requise</mat-error>
+          }
+        </mat-form-field>
+      </div>
+    }
+
+    @if (errorMessage(); as message) {
+      <p class="notice" role="alert">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ message }}</span>
+      </p>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="actions">
+    <button mat-button type="button" mat-dialog-close [disabled]="saving()">Annuler</button>
+    <button mat-flat-button type="submit" [disabled]="saving()">
+      @if (saving()) {
+        <mat-spinner diameter="20" />
+      } @else {
+        Créer le compte
+      }
+    </button>
+  </mat-dialog-actions>
+</form>

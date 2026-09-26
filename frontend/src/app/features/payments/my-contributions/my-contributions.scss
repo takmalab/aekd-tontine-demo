@@ -1,7 +1,3 @@
-@use '../../../shared/styles/page' as pg;
-
-@include pg.page-base;
-
 .summary {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));

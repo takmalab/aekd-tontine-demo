@@ -1,8 +1,6 @@
-@use '../../../shared/styles/page' as pg;
 @use '../../loans/loans' as loans;
 @use '../sanctions' as sn;
 
-@include pg.page-base;
 @include loans.loans-page;
 @include sn.sanctions-base;
 

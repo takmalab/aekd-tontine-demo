@@ -1,0 +1,77 @@
+@use '../../loans/loans' as loans;
+
+@include loans.loans-page;
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px 16px;
+  margin-bottom: 16px;
+
+  button[mat-stroked-button] {
+    height: 56px;
+    border-radius: 12px;
+  }
+}
+
+.sort {
+  width: 240px;
+}
+
+.log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.log-row {
+  display: grid;
+  grid-template-columns: 150px 160px 140px 1fr 200px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid var(--mat-sys-outline-variant);
+  box-shadow: var(--aekd-shadow);
+
+  &__when {
+    font-size: 12.5px;
+    color: var(--aekd-gray-muted);
+    white-space: nowrap;
+  }
+
+  &__entity {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--aekd-gray);
+  }
+
+  &__desc {
+    min-width: 0;
+    font-size: 13.5px;
+    color: var(--aekd-gray);
+    overflow-wrap: anywhere;
+  }
+
+  &__user {
+    font-size: 12.5px;
+    color: var(--aekd-gray-muted);
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 899.98px) {
+  .log-row {
+    grid-template-columns: 1fr;
+    justify-items: start;
+    gap: 6px;
+
+    &__user {
+      text-align: left;
+    }
+  }
+}

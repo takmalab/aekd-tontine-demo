@@ -5,21 +5,15 @@
   </a>
 
   @if (loading()) {
-    <div class="state"><mat-spinner diameter="40" /></div>
+    <app-page-state state="loading" title="Chargement…" />
   } @else if (notFound()) {
-    <div class="state state--card">
-      <mat-icon class="state__icon state__icon--brown">search_off</mat-icon>
-      <p class="state__title">Séance introuvable</p>
-      <p class="state__text">Cette séance n'existe pas ou n'est plus disponible.</p>
+    <app-page-state state="error" icon="search_off" title="Séance introuvable" text="Cette séance n'existe pas ou n'est plus disponible.">
       <a mat-stroked-button routerLink="/sessions">Retour aux séances</a>
-    </div>
+    </app-page-state>
   } @else if (error()) {
-    <div class="state state--card">
-      <mat-icon class="state__icon state__icon--brown">cloud_off</mat-icon>
-      <p class="state__title">Impossible de charger la séance</p>
-      <p class="state__text">Vérifiez que le serveur est démarré, puis réessayez.</p>
+    <app-page-state state="error" icon="cloud_off" title="Impossible de charger la séance" text="Vérifiez que le serveur est démarré, puis réessayez.">
       <button mat-stroked-button (click)="load()"><mat-icon>refresh</mat-icon> Réessayer</button>
-    </div>
+    </app-page-state>
   } @else if (session(); as s) {
     <!-- En-tête de la séance -->
     <header class="hero">

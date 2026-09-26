@@ -1,7 +1,5 @@
-@use '../../../shared/styles/page' as pg;
 @use '../loans' as loans;
 
-@include pg.page-base;
 @include loans.loans-page;
 
 .info {
@@ -58,6 +56,13 @@
     gap: 10px;
   }
 
+  &__top-right {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
   &__name {
     margin: 0;
     font-size: 16.5px;
@@ -70,13 +75,6 @@
     font-size: 13px;
     line-height: 1.5;
     color: var(--aekd-gray-muted);
-  }
-
-  &__actions {
-    display: flex;
-    justify-content: flex-end;
-    padding-top: 8px;
-    border-top: 1px solid var(--mat-sys-outline-variant);
   }
 }
 
@@ -133,6 +131,3 @@
   }
 }
 
-.deactivate {
-  color: var(--aekd-brown) !important;
-}

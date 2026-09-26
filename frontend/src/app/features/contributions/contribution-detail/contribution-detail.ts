@@ -11,6 +11,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { catchError, forkJoin, of } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
+import { PageState } from '../../../shared/components/page-state/page-state';
+import { StatusBadge, StatusVariant } from '../../../shared/components/status-badge/status-badge';
 import { formatFcfa, fromIsoDate, toIsoDate } from '../../../shared/utils/format';
 import { Member } from '../../members/member.model';
 import { MemberService } from '../../members/member.service';
@@ -88,6 +90,8 @@ function filterOf(status: ContributionPeriodStatus): ParticipantFilter | null {
     MatProgressSpinnerModule,
     MatFormFieldModule,
     MatSelectModule,
+    PageState,
+    StatusBadge,
   ],
   templateUrl: './contribution-detail.html',
   styleUrl: './contribution-detail.scss',
@@ -273,6 +277,11 @@ export class ContributionDetail implements OnInit {
 
   percent(row: ParticipantRow): number {
     return row.dueAmount ? Math.min(100, (row.validatedAmount / row.dueAmount) * 100) : 0;
+  }
+
+  /** `ContributionPeriodStatus` et `StatusVariant` partagent les mêmes valeurs, en casse différente. */
+  statusVariant(status: ContributionPeriodStatus): StatusVariant {
+    return status.toLowerCase() as StatusVariant;
   }
 
   contribute(): void {

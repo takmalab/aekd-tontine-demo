@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
@@ -5,6 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { AuthService } from '../../../core/services/auth.service';
+import { ActionMenu, MenuAction } from '../../../shared/components/action-menu/action-menu';
 import { ConfirmDialog, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog';
 import { formatFcfa } from '../../../shared/utils/format';
 import { LoanPolicy } from '../loan.model';
@@ -17,13 +19,15 @@ interface Term {
   value: string;
 }
 
+type PolicyAction = 'edit' | 'toggle' | 'delete';
+
 /**
  * Politiques de prêt (CLAUDE.md §20) : consultables par tous ; création et
  * désactivation réservées à l'ADMIN (§6 — pas au trésorier).
  */
 @Component({
   selector: 'app-loan-policies',
-  imports: [MatButtonModule, MatIconModule, MatProgressSpinnerModule],
+  imports: [MatButtonModule, MatIconModule, MatProgressSpinnerModule, ActionMenu],
   templateUrl: './loan-policies.html',
   styleUrl: './loan-policies.scss',
 })
@@ -81,6 +85,31 @@ export class LoanPolicies implements OnInit {
     return terms;
   }
 
+  /** Actions du menu (⋮) d'une politique — ADMIN uniquement, cf. gabarit. */
+  actionsFor(policy: LoanPolicy): MenuAction<PolicyAction>[] {
+    return [
+      { label: 'Modifier', icon: 'edit', action: 'edit' },
+      policy.active
+        ? { label: 'Désactiver', icon: 'block', action: 'toggle' }
+        : { label: 'Activer', icon: 'task_alt', action: 'toggle' },
+      { label: 'Supprimer', icon: 'delete', action: 'delete', danger: true },
+    ];
+  }
+
+  onAction(action: PolicyAction, policy: LoanPolicy): void {
+    switch (action) {
+      case 'edit':
+        this.edit(policy);
+        break;
+      case 'toggle':
+        policy.active ? this.deactivate(policy) : this.activate(policy);
+        break;
+      case 'delete':
+        this.remove(policy);
+        break;
+    }
+  }
+
   create(): void {
     this.dialog
       .open(PolicyFormDialog, { width: '620px', maxWidth: 'calc(100vw - 24px)', autoFocus: false })
@@ -91,6 +120,33 @@ export class LoanPolicies implements OnInit {
           this.snackBar.open(`Politique « ${policy.name} » créée et active`, 'OK', { duration: 4000 });
         }
       });
+  }
+
+  edit(policy: LoanPolicy): void {
+    this.dialog
+      .open(PolicyFormDialog, { data: policy, width: '620px', maxWidth: 'calc(100vw - 24px)', autoFocus: false })
+      .afterClosed()
+      .subscribe((updated?: LoanPolicy) => {
+        if (updated) {
+          this.policies.update((list) => list.map((p) => (p.id === updated.id ? updated : p)));
+          this.snackBar.open('Politique mise à jour', 'OK', { duration: 4000 });
+        }
+      });
+  }
+
+  activate(policy: LoanPolicy): void {
+    this.busyId.set(policy.id);
+    this.loanService.activatePolicy(policy.id).subscribe({
+      next: (updated) => {
+        this.busyId.set(null);
+        this.policies.update((list) => list.map((p) => (p.id === updated.id ? updated : p)));
+        this.snackBar.open('Politique activée', 'OK', { duration: 4000 });
+      },
+      error: () => {
+        this.busyId.set(null);
+        this.snackBar.open("L'activation a échoué.", 'OK', { duration: 5000 });
+      },
+    });
   }
 
   deactivate(policy: LoanPolicy): void {
@@ -117,6 +173,41 @@ export class LoanPolicies implements OnInit {
           error: () => {
             this.busyId.set(null);
             this.snackBar.open('La désactivation a échoué.', 'OK', { duration: 5000 });
+          },
+        });
+      });
+  }
+
+  remove(policy: LoanPolicy): void {
+    const data: ConfirmDialogData = {
+      title: 'Supprimer cette politique ?',
+      message: `« ${policy.name} » sera définitivement supprimée. Impossible si elle a déjà été utilisée par un prêt.`,
+      confirmLabel: 'Supprimer',
+      icon: 'delete',
+    };
+    this.dialog
+      .open(ConfirmDialog, { data, width: '460px', maxWidth: 'calc(100vw - 32px)' })
+      .afterClosed()
+      .subscribe((confirmed) => {
+        if (!confirmed) {
+          return;
+        }
+        this.busyId.set(policy.id);
+        this.loanService.deletePolicy(policy.id).subscribe({
+          next: () => {
+            this.busyId.set(null);
+            this.policies.update((list) => list.filter((p) => p.id !== policy.id));
+            this.snackBar.open('Politique supprimée', 'OK', { duration: 4000 });
+          },
+          error: (error: HttpErrorResponse) => {
+            this.busyId.set(null);
+            this.snackBar.open(
+              error.status === 409
+                ? (error.error?.message ?? 'Cette politique a déjà été utilisée par un prêt : elle ne peut pas être supprimée.')
+                : 'La suppression a échoué.',
+              'OK',
+              { duration: 6000 },
+            );
           },
         });
       });

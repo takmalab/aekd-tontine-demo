@@ -1,7 +1,7 @@
 <div class="head">
   <span class="head__icon"><mat-icon>policy</mat-icon></span>
   <div class="head__text">
-    <h2 mat-dialog-title class="head__title">Nouvelle politique de prêt</h2>
+    <h2 mat-dialog-title class="head__title">{{ editing ? 'Modifier la politique' : 'Nouvelle politique de prêt' }}</h2>
     <p class="head__subtitle">Critères facultatifs : laissez vide ce qui ne doit pas être contrôlé.</p>
   </div>
 </div>
@@ -92,7 +92,7 @@
       @if (saving()) {
         <mat-spinner diameter="20" />
       } @else {
-        Créer la politique
+        {{ editing ? 'Enregistrer' : 'Créer la politique' }}
       }
     </button>
   </mat-dialog-actions>

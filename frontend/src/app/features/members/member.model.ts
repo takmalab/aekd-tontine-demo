@@ -9,3 +9,10 @@ export interface Member {
   active: boolean;
   createdAt: string;
 }
+
+/** Miroir de MemberUpdateRequest (backend) : seuls les champs fournis sont appliqués. */
+export interface MemberUpdateRequest {
+  fullName?: string;
+  phone?: string | null;
+  active?: boolean;
+}

@@ -1,0 +1,62 @@
+<section class="page">
+  <header class="page__header page__header--row">
+    <div>
+      <h1 class="page__title">Journal d'audit</h1>
+      <p class="page__subtitle">Historique des opérations importantes (séances, cotisations, paiements, sanctions, prêts, comptes).</p>
+    </div>
+    <app-export-menu filename="journal-audit" [rows]="exportRows()" />
+  </header>
+
+  @if (loading()) {
+    <app-page-state state="loading" title="Chargement…" />
+  } @else if (error()) {
+    <app-page-state state="error" icon="cloud_off" title="Impossible de charger le journal">
+      <button mat-stroked-button (click)="load()"><mat-icon>refresh</mat-icon> Réessayer</button>
+    </app-page-state>
+  } @else if (logs().length === 0) {
+    <app-page-state state="empty" icon="history" title="Aucune opération enregistrée" />
+  } @else {
+    <div class="toolbar">
+      <app-search-bar label="Rechercher" placeholder="Utilisateur, action, entité, description…" (valueChange)="onSearch($event)" />
+
+      <mat-form-field appearance="outline" class="sort">
+        <mat-label>Type d'action</mat-label>
+        <mat-select [value]="actionFilter()" (selectionChange)="onActionFilter($event.value)">
+          <mat-option value="ALL">Toutes</mat-option>
+          @for (action of availableActions(); track action) {
+            <mat-option [value]="action">{{ actionLabels[action] }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <button mat-stroked-button type="button" (click)="toggleDirection()">
+        <mat-icon>{{ direction() === 'desc' ? 'arrow_downward' : 'arrow_upward' }}</mat-icon>
+        Date {{ direction() === 'desc' ? '(récent → ancien)' : '(ancien → récent)' }}
+      </button>
+    </div>
+
+    @if (filtered().length === 0) {
+      <app-page-state state="empty" icon="search_off" title="Aucun résultat" />
+    } @else {
+      <div class="log-list">
+        @for (log of paged(); track log.id) {
+          <article class="log-row">
+            <span class="log-row__when">{{ log.occurredAt | date: 'd MMM yyyy, HH:mm' }}</span>
+            <span class="chip chip--orange">{{ actionLabels[log.action] }}</span>
+            <span class="log-row__entity">{{ log.entityType }}</span>
+            <span class="log-row__desc">{{ log.description }}</span>
+            <span class="log-row__user">{{ log.userEmail ?? '—' }}</span>
+          </article>
+        }
+      </div>
+
+      <app-pagination
+        [total]="filtered().length"
+        [pageIndex]="pageIndex()"
+        [pageSize]="pageSize()"
+        (pageIndexChange)="pageIndex.set($event)"
+        (pageSizeChange)="pageSize.set($event); pageIndex.set(0)"
+      />
+    }
+  }
+</section>

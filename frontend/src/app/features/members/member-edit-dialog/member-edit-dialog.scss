@@ -1,0 +1,27 @@
+@use '../../../shared/styles/dialog' as dlg;
+
+@include dlg.dialog-base;
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 4px 0 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #f2eeea;
+
+  &__label {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--aekd-gray);
+  }
+
+  &__hint {
+    margin: 2px 0 0;
+    font-size: 12.5px;
+    color: var(--aekd-gray-muted);
+  }
+}

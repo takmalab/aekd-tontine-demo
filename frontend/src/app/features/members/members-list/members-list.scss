@@ -1,0 +1,43 @@
+@use '../../loans/loans' as loans;
+
+@include loans.loans-page;
+
+.info {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--aekd-orange-soft);
+  border-left: 4px solid var(--aekd-orange);
+  font-size: 13.5px;
+
+  mat-icon {
+    flex: none;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: var(--aekd-orange);
+  }
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.sort {
+  width: 220px;
+}
+
+.item--inactive {
+  opacity: 0.7;
+
+  &::before {
+    background: #dcd7d2;
+  }
+}

@@ -1,7 +1,3 @@
-@use '../../../shared/styles/page' as pg;
-
-@include pg.page-base;
-
 .readonly {
   display: flex;
   align-items: flex-start;

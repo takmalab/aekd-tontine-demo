@@ -4,12 +4,16 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { catchError, forkJoin, map, of, switchMap } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { ConfirmDialog, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog';
+import { FilterChips, FilterOption } from '../../../shared/components/filter-chips/filter-chips';
+import { PageState } from '../../../shared/components/page-state/page-state';
+import { SearchBar } from '../../../shared/components/search-bar/search-bar';
 import { formatFcfa, fromIsoDate } from '../../../shared/utils/format';
 import {
   AMOUNT_MODE_LABELS,
@@ -28,10 +32,22 @@ interface ContributionRow {
 }
 
 type StatusFilter = 'ALL' | ContributionStatus;
+type SortKey = 'default' | 'name' | 'amount';
 
 @Component({
   selector: 'app-contributions-list',
-  imports: [RouterLink, DatePipe, LowerCasePipe, MatButtonModule, MatIconModule, MatProgressSpinnerModule],
+  imports: [
+    RouterLink,
+    DatePipe,
+    LowerCasePipe,
+    MatButtonModule,
+    MatIconModule,
+    MatFormFieldModule,
+    MatSelectModule,
+    PageState,
+    SearchBar,
+    FilterChips,
+  ],
   templateUrl: './contributions-list.html',
   styleUrl: './contributions-list.scss',
 })
@@ -53,28 +69,45 @@ export class ContributionsList implements OnInit {
   readonly error = signal(false);
   readonly rows = signal<ContributionRow[]>([]);
   readonly filter = signal<StatusFilter>('ALL');
+  readonly search = signal('');
+  readonly sortBy = signal<SortKey>('default');
   readonly activatingId = signal<string | null>(null);
 
-  readonly filters: { value: StatusFilter; label: string }[] = [
-    { value: 'ALL', label: 'Toutes' },
-    { value: 'ACTIVE', label: 'Actives' },
-    { value: 'DRAFT', label: 'Brouillons' },
-  ];
-
-  readonly counts = computed(() => {
+  readonly statusOptions = computed<FilterOption<StatusFilter>[]>(() => {
     const all = this.rows();
-    return {
-      ALL: all.length,
-      ACTIVE: all.filter((r) => r.definition.status === 'ACTIVE').length,
-      DRAFT: all.filter((r) => r.definition.status === 'DRAFT').length,
-      INACTIVE: all.filter((r) => r.definition.status === 'INACTIVE').length,
-    } as Record<StatusFilter, number>;
+    return [
+      { value: 'ALL', label: 'Toutes', count: all.length },
+      { value: 'ACTIVE', label: 'Actives', count: all.filter((r) => r.definition.status === 'ACTIVE').length },
+      { value: 'DRAFT', label: 'Brouillons', count: all.filter((r) => r.definition.status === 'DRAFT').length },
+    ];
   });
 
   readonly visibleRows = computed(() => {
     const f = this.filter();
-    return f === 'ALL' ? this.rows() : this.rows().filter((r) => r.definition.status === f);
+    const term = this.search().trim().toLowerCase();
+    let list = f === 'ALL' ? this.rows() : this.rows().filter((r) => r.definition.status === f);
+    if (term) {
+      list = list.filter((r) => r.definition.name.toLowerCase().includes(term));
+    }
+
+    const sortKey = this.sortBy();
+    if (sortKey === 'default') {
+      return list; // Ordre du backend : obligatoires d'abord, montant décroissant, nom.
+    }
+    return [...list].sort((a, b) =>
+      sortKey === 'name'
+        ? a.definition.name.localeCompare(b.definition.name, 'fr')
+        : (b.definition.amount ?? -1) - (a.definition.amount ?? -1),
+    );
   });
+
+  onSearch(term: string): void {
+    this.search.set(term);
+  }
+
+  onSortChange(key: SortKey): void {
+    this.sortBy.set(key);
+  }
 
   ngOnInit(): void {
     this.load();

@@ -2,12 +2,13 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { Member } from './member.model';
+import { Member, MemberUpdateRequest } from './member.model';
 
 /**
- * Lecture seule des membres, pour les sélecteurs (récepteur, bénéficiaires…).
- * L'écran de gestion des membres fera l'objet d'une fonctionnalité séparée.
- * `/api/members` est réservé à ADMIN et TRESORIER ; `/api/members/mine` est ouvert.
+ * Gestion des membres (CLAUDE.md §6). `/api/members` (liste, détail) et la
+ * mise à jour sont réservés à ADMIN et TRESORIER côté lecture ; la mise à
+ * jour elle-même est réservée à ADMIN côté backend (`MemberController.update`).
+ * `/api/members/mine` reste ouvert à tout utilisateur ayant un profil membre.
  */
 @Injectable({ providedIn: 'root' })
 export class MemberService {
@@ -20,5 +21,9 @@ export class MemberService {
   /** Profil membre de l'utilisateur connecté (ouvert à tout utilisateur ayant un profil membre). */
   mine(): Observable<Member> {
     return this.http.get<Member>(`${environment.apiUrl}/members/mine`);
+  }
+
+  update(id: string, request: MemberUpdateRequest): Observable<Member> {
+    return this.http.put<Member>(`${environment.apiUrl}/members/${id}`, request);
   }
 }
