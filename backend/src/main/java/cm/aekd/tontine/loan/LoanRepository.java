@@ -16,4 +16,7 @@ public interface LoanRepository extends JpaRepository<Loan, UUID> {
     long countByStatus(LoanStatus status);
 
     long countByStatusIn(List<LoanStatus> statuses);
+
+    /** Empêche de modifier/supprimer une politique déjà utilisée par un prêt (intégrité de l'historique). */
+    boolean existsByLoanPolicyId(UUID loanPolicyId);
 }

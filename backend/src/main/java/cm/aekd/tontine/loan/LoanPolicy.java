@@ -144,6 +144,26 @@ public class LoanPolicy {
         this.active = active;
     }
 
+    /**
+     * Applique une modification complète des critères (Modifier, CLAUDE.md §20).
+     * Réservé par {@link LoanPolicyService#update} aux politiques non encore
+     * utilisées par un prêt, pour ne jamais changer rétroactivement le sens
+     * d'une évaluation déjà effectuée.
+     */
+    public void update(String name, String description, BigDecimal minAmount, BigDecimal maxAmount,
+                        Integer maxDurationMonths, BigDecimal interestRate, BigDecimal minSavingsRequired,
+                        Integer minSeniorityMonths, Integer maxActiveLoans) {
+        this.name = name;
+        this.description = description;
+        this.minAmount = minAmount;
+        this.maxAmount = maxAmount;
+        this.maxDurationMonths = maxDurationMonths;
+        this.interestRate = interestRate;
+        this.minSavingsRequired = minSavingsRequired;
+        this.minSeniorityMonths = minSeniorityMonths;
+        this.maxActiveLoans = maxActiveLoans;
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
     }

@@ -584,18 +584,34 @@ VALIDER
 
 # 29. Exports
 
-## Décision actuelle
+## Question
 
-Les exports :
-
-* Excel ;
-* PDF ;
+Le MVP doit-il proposer un export des listes (Excel/CSV/PDF), initialement listé
+comme hors périmètre (CLAUDE.md §3) ?
 
 ## Statut
 
 ```text
-VALIDER
+DÉCIDÉ
 ```
+
+## Décision
+
+Le propriétaire du projet a validé le 2026-09-26 la sortie du périmètre MVP
+initial pour ajouter un export **CSV** côté frontend sur les écrans Membres,
+Utilisateurs et Journal d'audit.
+
+Un export Excel (`.xlsx`) ou PDF réel reste **hors périmètre** tant qu'il n'est
+pas explicitement redemandé (ajouterait une dépendance frontend supplémentaire,
+CLAUDE.md §19).
+
+## Conséquence technique
+
+* `shared/utils/csv-export.ts` : génère un CSV côté navigateur (`Blob`, aucune
+  dépendance) à partir des lignes déjà filtrées/affichées par l'écran — l'export
+  reflète toujours exactement la recherche/les filtres actifs, jamais un
+  ré-appel API séparé.
+* Composant `shared/components/export-menu/` réutilisé sur les écrans concernés.
 
 ---
 
