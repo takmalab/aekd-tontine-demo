@@ -1,7 +1,7 @@
 <div class="head">
   <span class="head__icon"><mat-icon>send_money</mat-icon></span>
   <div class="head__text">
-    <h2 mat-dialog-title class="head__title">Déclarer un paiement</h2>
+    <h2 mat-dialog-title class="head__title">{{ isComplement ? 'Compléter le paiement' : 'Déclarer un paiement' }}</h2>
     <p class="head__subtitle">
       {{ data.definition.name }} · {{ data.period.sessionLabel }}
       @if (data.period.dueDate) {
@@ -24,11 +24,19 @@
       <mat-label>Montant</mat-label>
       <input matInput type="number" inputmode="numeric" min="1" step="1" formControlName="amount" />
       <span matTextSuffix>FCFA</span>
-      @if (isFixed) {
-        <mat-hint>Montant fixe de la cotisation</mat-hint>
+      @if (isFixed && remaining !== null) {
+        <mat-hint>
+          @if (isComplement) {
+            Reste à payer : {{ formatFcfa(remaining) }} sur {{ formatFcfa(data.definition.amount) }} — paiement partiel possible
+          } @else {
+            Montant de la cotisation : {{ formatFcfa(remaining) }} — vous pouvez payer une partie maintenant
+          }
+        </mat-hint>
       }
       @if (form.controls.amount.hasError('required')) {
         <mat-error>Le montant est requis</mat-error>
+      } @else if (form.controls.amount.hasError('max')) {
+        <mat-error>Ne peut pas dépasser le reste dû ({{ formatFcfa(remaining) }})</mat-error>
       } @else if (form.controls.amount.hasError('min') || form.controls.amount.hasError('pattern')) {
         <mat-error>Montant entier strictement positif</mat-error>
       }

@@ -33,6 +33,10 @@
         <span class="summary__value">{{ counts().NOT_PAID }}</span>
         <span class="summary__label">À payer</span>
       </div>
+      <div class="summary__item summary__item--partial">
+        <span class="summary__value">{{ counts().PARTIAL }}</span>
+        <span class="summary__label">Partielles</span>
+      </div>
       <div class="summary__item summary__item--pending">
         <span class="summary__value">{{ counts().PENDING }}</span>
         <span class="summary__label">En attente</span>
@@ -98,19 +102,37 @@
                   </span>
                 </div>
 
-                @if (activeTransaction(row); as t) {
+                @if (row.remaining !== null && row.validated > 0 && row.remaining > 0) {
+                  <div class="progress" [attr.aria-label]="'Payé ' + row.validated + ' sur ' + row.definition.amount">
+                    <span class="progress__bar"><span [style.width.%]="(row.validated / row.definition.amount!) * 100"></span></span>
+                    <span class="progress__text">
+                      {{ formatFcfa(row.validated) }} versés sur {{ formatFcfa(row.definition.amount) }} —
+                      reste <strong>{{ formatFcfa(row.remaining) }}</strong>
+                    </span>
+                  </div>
+                }
+                @if (pendingTransaction(row); as t) {
                   <p class="item__tx">
-                    <mat-icon>{{ t.status === 'VALIDATED' ? 'verified' : 'hourglass_top' }}</mat-icon>
+                    <mat-icon>hourglass_top</mat-icon>
                     <span>
                       {{ formatFcfa(t.amount) }} déclaré le {{ fromIsoDate(t.paymentDate) | date: 'd MMM yyyy' }} via
-                      {{ operatorLabels[t.operator] }} (réf. {{ t.transactionReference }})
-                      @if (t.status === 'VALIDATED') {
-                        — validé
-                      } @else {
-                        — en attente de validation
-                      }
+                      {{ operatorLabels[t.operator] }} (réf. {{ t.transactionReference }}) — en attente de validation
                     </span>
                   </p>
+                } @else if (row.status === 'PAID') {
+                  @if (lastValidated(row); as t) {
+                    <p class="item__tx">
+                      <mat-icon>verified</mat-icon>
+                      <span>
+                        Réglée
+                        @if (row.transactions.length > 1 && row.definition.amountMode === 'FIXED') {
+                          en plusieurs versements
+                        }
+                        — dernier versement de {{ formatFcfa(t.amount) }} le
+                        {{ fromIsoDate(t.paymentDate) | date: 'd MMM yyyy' }} (réf. {{ t.transactionReference }}), validé
+                      </span>
+                    </p>
+                  }
                 }
                 @if (lastRejected(row); as r) {
                   <p class="item__tx item__tx--rejected">
@@ -124,15 +146,18 @@
                 @if (canDeclare(row.status)) {
                   <button mat-flat-button type="button" (click)="declare(row)">
                     <mat-icon>send_money</mat-icon>
-                    Déclarer un paiement
+                    {{ row.status === 'PARTIAL' ? 'Compléter le paiement' : 'Déclarer un paiement' }}
                   </button>
-                } @else if (activeTransaction(row); as t) {
-                  @if (t.status === 'PENDING') {
-                    <button mat-stroked-button type="button" (click)="openUpload(t)">
-                      <mat-icon>attach_file</mat-icon>
-                      Justificatif
-                    </button>
-                  }
+                } @else if (pendingTransaction(row); as t) {
+                  <button mat-stroked-button type="button" (click)="openUpload(t)">
+                    <mat-icon>attach_file</mat-icon>
+                    Justificatif
+                  </button>
+                  <button mat-button type="button" (click)="viewProof(t)">
+                    <mat-icon>visibility</mat-icon>
+                    Voir
+                  </button>
+                } @else if (lastValidated(row); as t) {
                   <button mat-button type="button" (click)="viewProof(t)">
                     <mat-icon>visibility</mat-icon>
                     Voir

@@ -86,8 +86,11 @@ export type PaymentOperator = 'MTN_MOMO' | 'ORANGE_MONEY' | 'BANK_TRANSFER' | 'C
 /** CLAUDE.md §14 : seul VALIDATED compte dans les fonds. */
 export type ContributionTransactionStatus = 'PENDING' | 'VALIDATED' | 'REJECTED';
 
-/** CLAUDE.md §13 : situation d'un membre pour une période. */
-export type ContributionPeriodStatus = 'PAID' | 'PENDING' | 'LATE' | 'NOT_PAID';
+/**
+ * CLAUDE.md §13 : situation d'un membre pour une période.
+ * PARTIAL : cotisation à montant fixe partiellement payée (paiements partiels autorisés).
+ */
+export type ContributionPeriodStatus = 'PAID' | 'PENDING' | 'PARTIAL' | 'LATE' | 'NOT_PAID';
 
 export const PAYMENT_OPERATOR_LABELS: Record<PaymentOperator, string> = {
   MTN_MOMO: 'MTN Mobile Money',
@@ -105,14 +108,28 @@ export const TRANSACTION_STATUS_LABELS: Record<ContributionTransactionStatus, st
 export const PERIOD_STATUS_LABELS: Record<ContributionPeriodStatus, string> = {
   PAID: 'Payée',
   PENDING: 'En attente',
+  PARTIAL: 'Partielle',
   LATE: 'En retard',
   NOT_PAID: 'À payer',
 };
 
+/** Miroir de ParticipantPaymentStatusResponse (backend) : situation d'un participant pour une période. */
+export interface ParticipantPaymentStatus {
+  memberId: string;
+  memberFullName: string;
+  status: ContributionPeriodStatus;
+  /** Montant fixe dû ; null pour un montant libre. */
+  dueAmount: number | null;
+  validatedAmount: number;
+  pendingAmount: number;
+  /** Reste dû ; null pour un montant libre. */
+  remainingAmount: number | null;
+}
+
 /** Miroir de ContributionTransactionRequest (backend). */
 export interface ContributionTransactionRequest {
   contributionPeriodId: string;
-  /** Toujours envoyé ; pour FIXED il doit être égal au montant de la cotisation. */
+  /** Toujours envoyé ; pour FIXED il doit être > 0 et <= au reste dû (paiements partiels autorisés). */
   amount: number;
   operator: PaymentOperator;
   transactionReference: string;

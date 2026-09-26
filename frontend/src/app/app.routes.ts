@@ -47,6 +47,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'contributions/:id',
+        loadComponent: () =>
+          import('./features/contributions/contribution-detail/contribution-detail').then(
+            (m) => m.ContributionDetail,
+          ),
+      },
+      {
         path: 'my-contributions',
         loadComponent: () =>
           import('./features/payments/my-contributions/my-contributions').then((m) => m.MyContributions),

@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -34,6 +35,8 @@ public class ContributionDefinitionService {
     private final SessionRepository sessionRepository;
     private final CurrentUserProvider currentUserProvider;
     private final AuditLogService auditLogService;
+    private final ContributionPeriodStatusService periodStatusService;
+    private final ContributionTransactionRepository transactionRepository;
 
     public ContributionDefinitionService(ContributionDefinitionRepository definitionRepository,
                                           ContributionParticipantRepository participantRepository,
@@ -42,7 +45,9 @@ public class ContributionDefinitionService {
                                           MemberRepository memberRepository,
                                           SessionRepository sessionRepository,
                                           CurrentUserProvider currentUserProvider,
-                                          AuditLogService auditLogService) {
+                                          AuditLogService auditLogService,
+                                          ContributionPeriodStatusService periodStatusService,
+                                          ContributionTransactionRepository transactionRepository) {
         this.definitionRepository = definitionRepository;
         this.participantRepository = participantRepository;
         this.beneficiaryRepository = beneficiaryRepository;
@@ -51,6 +56,8 @@ public class ContributionDefinitionService {
         this.sessionRepository = sessionRepository;
         this.currentUserProvider = currentUserProvider;
         this.auditLogService = auditLogService;
+        this.periodStatusService = periodStatusService;
+        this.transactionRepository = transactionRepository;
     }
 
     public ContributionDefinitionResponse create(ContributionDefinitionRequest request) {
@@ -147,6 +154,39 @@ public class ContributionDefinitionService {
         getVisibleOrThrow(definitionId);
         return periodRepository.findByContributionDefinitionId(definitionId).stream()
                 .map(ContributionPeriodResponse::from)
+                .toList();
+    }
+
+    /**
+     * Situation de paiement de chaque participant pour une période (CLAUDE.md §13),
+     * calculée comme ContributionPeriodStatusService (paiements partiels inclus).
+     * Accessible à quiconque peut voir la cotisation (§11).
+     * DÉCISION À VALIDER : un membre voit ainsi la situation (statut et montants,
+     * sans détail de transaction) des autres participants d'une cotisation visible.
+     */
+    @Transactional(readOnly = true)
+    public List<ParticipantPaymentStatusResponse> listParticipantStatuses(UUID definitionId, UUID periodId) {
+        ContributionDefinition definition = getVisibleOrThrow(definitionId);
+        ContributionPeriod period = periodRepository.findById(periodId)
+                .filter(p -> p.getContributionDefinition().getId().equals(definitionId))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Période introuvable"));
+        BigDecimal due = definition.getAmountMode() == AmountMode.FIXED ? definition.getAmount() : null;
+
+        return participantRepository.findByContributionDefinitionId(definitionId).stream()
+                .map(participant -> {
+                    UUID memberId = participant.getMember().getId();
+                    return new ParticipantPaymentStatusResponse(
+                            memberId,
+                            participant.getMember().getFullName(),
+                            periodStatusService.resolve(period, memberId),
+                            due,
+                            periodStatusService.validatedAmount(period, memberId),
+                            transactionRepository.sumAmountByMemberAndPeriodAndStatus(
+                                    memberId, periodId, ContributionTransactionStatus.PENDING),
+                            periodStatusService.remainingAmount(period, memberId));
+                })
+                .sorted(java.util.Comparator.comparing(ParticipantPaymentStatusResponse::memberFullName,
+                        String.CASE_INSENSITIVE_ORDER))
                 .toList();
     }
 

@@ -24,7 +24,7 @@ import { Session } from '../../sessions/session.model';
 import { SessionService } from '../../sessions/session.service';
 import { DeclarePaymentDialog, DeclarePaymentData } from '../declare-payment-dialog/declare-payment-dialog';
 import { PaymentService } from '../payment.service';
-import { canDeclare, displayedPeriodStatus, resolvePeriodStatus } from '../period-status';
+import { canDeclare, displayedPeriodStatus, remainingAmount, resolvePeriodStatus, validatedAmount } from '../period-status';
 import { ProofUploadDialog, ProofUploadData } from '../proof-upload-dialog/proof-upload-dialog';
 import { ProofViewerDialog } from '../proof-viewer-dialog/proof-viewer-dialog';
 
@@ -32,6 +32,10 @@ interface PeriodRow {
   definition: ContributionDefinition;
   period: ContributionPeriod;
   status: ContributionPeriodStatus;
+  /** Somme validée (paiements partiels possibles pour un montant fixe). */
+  validated: number;
+  /** Reste dû pour un montant fixe ; null pour un montant libre. */
+  remaining: number | null;
   /** Paiements du membre pour cette période, du plus récent au plus ancien. */
   transactions: ContributionTransaction[];
 }
@@ -108,7 +112,7 @@ export class MyContributions implements OnInit {
   });
 
   readonly counts = computed(() => {
-    const c: Record<ContributionPeriodStatus, number> = { PAID: 0, PENDING: 0, LATE: 0, NOT_PAID: 0 };
+    const c: Record<ContributionPeriodStatus, number> = { PAID: 0, PENDING: 0, PARTIAL: 0, LATE: 0, NOT_PAID: 0 };
     for (const row of this.rows()) {
       c[row.status]++;
     }
@@ -165,11 +169,13 @@ export class MyContributions implements OnInit {
               continue;
             }
             for (const period of item.periods) {
-              const raw = resolvePeriodStatus(period.id, period.dueDate, transactions);
+              const raw = resolvePeriodStatus(period.id, period.dueDate, transactions, item.definition);
               rows.push({
                 definition: item.definition,
                 period,
                 status: displayedPeriodStatus(raw, item.definition.mandatory),
+                validated: validatedAmount(period.id, transactions),
+                remaining: remainingAmount(period.id, item.definition, transactions),
                 transactions: transactions
                   .filter((t) => t.contributionPeriodId === period.id)
                   .sort((a, b) => b.paymentDate.localeCompare(a.paymentDate)),
@@ -189,9 +195,14 @@ export class MyContributions implements OnInit {
       });
   }
 
-  /** Paiement « actif » (en attente ou validé) d'une ligne, s'il existe. */
-  activeTransaction(row: PeriodRow): ContributionTransaction | undefined {
-    return row.transactions.find((t) => t.status === 'VALIDATED') ?? row.transactions.find((t) => t.status === 'PENDING');
+  /** Paiement en attente de validation d'une ligne, s'il existe. */
+  pendingTransaction(row: PeriodRow): ContributionTransaction | undefined {
+    return row.transactions.find((t) => t.status === 'PENDING');
+  }
+
+  /** Dernier paiement validé d'une ligne, s'il existe. */
+  lastValidated(row: PeriodRow): ContributionTransaction | undefined {
+    return row.transactions.find((t) => t.status === 'VALIDATED');
   }
 
   lastRejected(row: PeriodRow): ContributionTransaction | undefined {
@@ -199,7 +210,7 @@ export class MyContributions implements OnInit {
   }
 
   declare(row: PeriodRow): void {
-    const data: DeclarePaymentData = { definition: row.definition, period: row.period };
+    const data: DeclarePaymentData = { definition: row.definition, period: row.period, remaining: row.remaining };
     this.dialog
       .open(DeclarePaymentDialog, { data, width: '600px', maxWidth: 'calc(100vw - 24px)', autoFocus: false })
       .afterClosed()

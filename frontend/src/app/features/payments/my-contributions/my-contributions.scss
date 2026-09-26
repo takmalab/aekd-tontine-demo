@@ -4,7 +4,7 @@
 
 .summary {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 20px;
 
@@ -25,6 +25,10 @@
       .summary__value {
         color: var(--aekd-brown);
       }
+    }
+
+    &--partial .summary__value {
+      color: var(--aekd-brown);
     }
 
     &--pending .summary__value {
@@ -126,6 +130,44 @@
     font-size: 13px;
     font-weight: 500;
     color: var(--aekd-gray-muted);
+  }
+}
+
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 2px;
+
+  &__bar {
+    display: block;
+    height: 6px;
+    max-width: 360px;
+    border-radius: 999px;
+    background: #efebe7;
+    overflow: hidden;
+
+    span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--aekd-orange), var(--aekd-brown));
+    }
+  }
+
+  &__text {
+    font-size: 13px;
+    color: var(--aekd-gray);
+
+    strong {
+      color: var(--aekd-brown-dark);
+    }
+  }
+}
+
+@media (max-width: 1023.98px) {
+  .summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 

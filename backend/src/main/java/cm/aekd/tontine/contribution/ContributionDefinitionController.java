@@ -88,4 +88,11 @@ public class ContributionDefinitionController {
     public List<ContributionPeriodResponse> listPeriods(@PathVariable UUID id) {
         return service.listPeriods(id);
     }
+
+    /** Situation de paiement de chaque participant pour une période (lecture, visibilité §11). */
+    @GetMapping("/{id}/periods/{periodId}/participant-statuses")
+    public List<ParticipantPaymentStatusResponse> listParticipantStatuses(@PathVariable UUID id,
+                                                                          @PathVariable UUID periodId) {
+        return service.listParticipantStatuses(id, periodId);
+    }
 }

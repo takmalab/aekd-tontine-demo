@@ -58,6 +58,12 @@ class ContributionTransactionFlowTest {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private ContributionPeriodStatusService periodStatusService;
+
+    @Autowired
+    private ContributionPeriodRepository periodRepository;
+
     @AfterEach
     void clearSecurityContext() {
         SecurityContextHolder.clearContext();
@@ -125,14 +131,175 @@ class ContributionTransactionFlowTest {
     }
 
     @Test
-    void fixedAmountMismatchIsRejected() {
+    void fixedAmountAboveRemainingIsRejected() {
         Member member = createMember(RoleName.MEMBRE, "payer3");
         ContributionPeriodResponse period = setupActiveDefinitionWithParticipant(member);
 
         loginAsMember(member, RoleName.MEMBRE);
-        assertThatThrownBy(() -> paymentService.declare(period.contributionDefinitionId(),
-                new ContributionTransactionRequest(period.id(), new BigDecimal(10000), PaymentOperator.CASH,
-                        "REF-003", LocalDate.of(2026, 10, 5), null)))
+        assertThatThrownBy(() -> declare(period, 60000, "REF-003"))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("reste dû")
+                .hasMessageContaining("50000");
+        assertThatThrownBy(() -> declare(period, 0, "REF-003B"))
+                .isInstanceOf(ResponseStatusException.class);
+    }
+
+    private ContributionTransactionResponse declare(ContributionPeriodResponse period, long amount, String ref) {
+        return paymentService.declare(period.contributionDefinitionId(),
+                new ContributionTransactionRequest(period.id(), new BigDecimal(amount), PaymentOperator.CASH,
+                        ref, LocalDate.of(2026, 10, 5), null));
+    }
+
+    private ContributionPeriodStatus statusOf(ContributionPeriodResponse period, Member member) {
+        return periodStatusService.resolve(periodRepository.findById(period.id()).orElseThrow(), member.getId());
+    }
+
+    @Test
+    void partialPaymentsAccumulateUntilFullyPaid() {
+        Member member = createMember(RoleName.MEMBRE, "partial1");
+        ContributionPeriodResponse period = setupActiveDefinitionWithParticipant(member);
+        Member treasurer = createMember(RoleName.TRESORIER, "tresopartial1");
+
+        // 1er versement partiel : en attente, puis validé -> PARTIAL
+        loginAsMember(member, RoleName.MEMBRE);
+        ContributionTransactionResponse first = declare(period, 20000, "PART-1");
+        assertThat(first.amount()).isEqualByComparingTo("20000");
+        assertThat(statusOf(period, member)).isEqualTo(ContributionPeriodStatus.PENDING);
+
+        // Une seule déclaration en attente à la fois
+        assertThatThrownBy(() -> declare(period, 10000, "PART-1B"))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("en attente");
+
+        loginAsMember(treasurer, RoleName.TRESORIER);
+        transactionService.validate(first.id());
+        assertThat(statusOf(period, member)).isEqualTo(ContributionPeriodStatus.PARTIAL);
+        ContributionPeriod entity = periodRepository.findById(period.id()).orElseThrow();
+        assertThat(periodStatusService.remainingAmount(entity, member.getId())).isEqualByComparingTo("30000");
+        assertThat(periodStatusService.isFullyPaid(entity, member.getId())).isFalse();
+
+        // Plus que le reste dû : refusé ; le solde exact : accepté
+        loginAsMember(member, RoleName.MEMBRE);
+        assertThatThrownBy(() -> declare(period, 40000, "PART-2X"))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("30000");
+        ContributionTransactionResponse second = declare(period, 30000, "PART-2");
+        assertThat(statusOf(period, member)).isEqualTo(ContributionPeriodStatus.PENDING);
+
+        loginAsMember(treasurer, RoleName.TRESORIER);
+        transactionService.validate(second.id());
+        assertThat(statusOf(period, member)).isEqualTo(ContributionPeriodStatus.PAID);
+        assertThat(periodStatusService.isFullyPaid(entity, member.getId())).isTrue();
+
+        // Entièrement payée : plus aucune déclaration possible
+        loginAsMember(member, RoleName.MEMBRE);
+        assertThatThrownBy(() -> declare(period, 1000, "PART-3"))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("entièrement payée");
+    }
+
+    @Test
+    void omittedAmountDefaultsToRemainingForFixedContribution() {
+        Member member = createMember(RoleName.MEMBRE, "partial2");
+        ContributionPeriodResponse period = setupActiveDefinitionWithParticipant(member);
+        Member treasurer = createMember(RoleName.TRESORIER, "tresopartial2");
+
+        loginAsMember(member, RoleName.MEMBRE);
+        ContributionTransactionResponse first = declare(period, 15000, "DEF-1");
+        loginAsMember(treasurer, RoleName.TRESORIER);
+        transactionService.validate(first.id());
+
+        loginAsMember(member, RoleName.MEMBRE);
+        ContributionTransactionResponse rest = paymentService.declare(period.contributionDefinitionId(),
+                new ContributionTransactionRequest(period.id(), null, PaymentOperator.CASH,
+                        "DEF-2", LocalDate.of(2026, 10, 6), null));
+        assertThat(rest.amount()).isEqualByComparingTo("35000");
+    }
+
+    @Test
+    void partialPaymentPastDueDateIsPartialNotLate() {
+        Member member = createMember(RoleName.MEMBRE, "partial3");
+        Member treasurer = createMember(RoleName.TRESORIER, "tresopartial3");
+        loginAsMember(treasurer, RoleName.TRESORIER);
+        ContributionDefinitionResponse def = definitionService.create(new ContributionDefinitionRequest(
+                "Cotisation échue", null, new BigDecimal(10000), AmountMode.FIXED,
+                ContributionFrequency.MONTHLY, true, Visibility.PUBLIC, FundDestination.TONTINE_FUND));
+        definitionService.addParticipant(def.id(), new MemberRefRequest(member.getId()));
+        definitionService.activate(def.id());
+        Session session = sessionRepository.save(new Session("Séance passée", LocalDate.now().minusDays(20), null, null));
+        ContributionPeriodResponse period = definitionService.addPeriod(def.id(),
+                new ContributionPeriodRequest(session.getId(), LocalDate.now().minusDays(5)));
+
+        assertThat(statusOf(period, member)).isEqualTo(ContributionPeriodStatus.LATE);
+
+        loginAsMember(member, RoleName.MEMBRE);
+        ContributionTransactionResponse tx = declare(period, 4000, "LATE-1");
+        loginAsMember(treasurer, RoleName.TRESORIER);
+        transactionService.validate(tx.id());
+        assertThat(statusOf(period, member)).isEqualTo(ContributionPeriodStatus.PARTIAL);
+    }
+
+    @Test
+    void voluntaryContributionKeepsSingleActiveDeclarationRule() {
+        Member member = createMember(RoleName.MEMBRE, "volunteer1");
+        Member treasurer = createMember(RoleName.TRESORIER, "tresovol1");
+        loginAsMember(treasurer, RoleName.TRESORIER);
+        ContributionDefinitionResponse def = definitionService.create(new ContributionDefinitionRequest(
+                "Épargne", null, null, AmountMode.VOLUNTARY,
+                ContributionFrequency.MONTHLY, false, Visibility.PUBLIC, FundDestination.INDIVIDUAL_SAVINGS));
+        definitionService.addParticipant(def.id(), new MemberRefRequest(member.getId()));
+        definitionService.activate(def.id());
+        Session session = sessionRepository.save(new Session("Séance épargne", LocalDate.of(2026, 10, 3), null, null));
+        ContributionPeriodResponse period = definitionService.addPeriod(def.id(),
+                new ContributionPeriodRequest(session.getId(), null));
+
+        loginAsMember(member, RoleName.MEMBRE);
+        ContributionTransactionResponse tx = declare(period, 7500, "VOL-1");
+        loginAsMember(treasurer, RoleName.TRESORIER);
+        transactionService.validate(tx.id());
+        assertThat(statusOf(period, member)).isEqualTo(ContributionPeriodStatus.PAID);
+
+        loginAsMember(member, RoleName.MEMBRE);
+        assertThatThrownBy(() -> declare(period, 2500, "VOL-2"))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("déjà déclaré ou validé");
+    }
+
+    @Test
+    void participantStatusesReflectPartialAndFullPayments() {
+        Member full = createMember(RoleName.MEMBRE, "statusfull");
+        Member partial = createMember(RoleName.MEMBRE, "statuspartial");
+        Member none = createMember(RoleName.MEMBRE, "statusnone");
+        ContributionPeriodResponse period = setupActiveDefinitionWithParticipant(full);
+        definitionService.addParticipant(period.contributionDefinitionId(), new MemberRefRequest(partial.getId()));
+        definitionService.addParticipant(period.contributionDefinitionId(), new MemberRefRequest(none.getId()));
+        Member treasurer = createMember(RoleName.TRESORIER, "tresostatus");
+
+        loginAsMember(full, RoleName.MEMBRE);
+        ContributionTransactionResponse txFull = declare(period, 50000, "ST-1");
+        loginAsMember(partial, RoleName.MEMBRE);
+        ContributionTransactionResponse txPartial = declare(period, 20000, "ST-2");
+        loginAsMember(treasurer, RoleName.TRESORIER);
+        transactionService.validate(txFull.id());
+        transactionService.validate(txPartial.id());
+
+        // Lecture ouverte à un membre qui voit la cotisation (publique, active)
+        loginAsMember(none, RoleName.MEMBRE);
+        List<ParticipantPaymentStatusResponse> statuses =
+                definitionService.listParticipantStatuses(period.contributionDefinitionId(), period.id());
+        assertThat(statuses).hasSize(3);
+        java.util.Map<java.util.UUID, ParticipantPaymentStatusResponse> byMember = statuses.stream()
+                .collect(java.util.stream.Collectors.toMap(ParticipantPaymentStatusResponse::memberId, s -> s));
+        assertThat(byMember.get(full.getId()).status()).isEqualTo(ContributionPeriodStatus.PAID);
+        assertThat(byMember.get(full.getId()).remainingAmount()).isEqualByComparingTo("0");
+        assertThat(byMember.get(partial.getId()).status()).isEqualTo(ContributionPeriodStatus.PARTIAL);
+        assertThat(byMember.get(partial.getId()).validatedAmount()).isEqualByComparingTo("20000");
+        assertThat(byMember.get(partial.getId()).remainingAmount()).isEqualByComparingTo("30000");
+        assertThat(byMember.get(none.getId()).status()).isEqualTo(ContributionPeriodStatus.NOT_PAID);
+        assertThat(byMember.get(none.getId()).dueAmount()).isEqualByComparingTo("50000");
+
+        assertThatThrownBy(() -> definitionService.listParticipantStatuses(
+                period.contributionDefinitionId(), java.util.UUID.randomUUID()))
                 .isInstanceOf(ResponseStatusException.class);
     }
 

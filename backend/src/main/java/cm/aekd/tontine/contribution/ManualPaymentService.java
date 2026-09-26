@@ -34,6 +34,7 @@ public class ManualPaymentService implements PaymentService {
     private final MemberRepository memberRepository;
     private final CurrentUserProvider currentUserProvider;
     private final AuditLogService auditLogService;
+    private final ContributionPeriodStatusService periodStatusService;
 
     public ManualPaymentService(ContributionDefinitionRepository definitionRepository,
                                  ContributionPeriodRepository periodRepository,
@@ -41,7 +42,8 @@ public class ManualPaymentService implements PaymentService {
                                  ContributionTransactionRepository transactionRepository,
                                  MemberRepository memberRepository,
                                  CurrentUserProvider currentUserProvider,
-                                 AuditLogService auditLogService) {
+                                 AuditLogService auditLogService,
+                                 ContributionPeriodStatusService periodStatusService) {
         this.definitionRepository = definitionRepository;
         this.periodRepository = periodRepository;
         this.participantRepository = participantRepository;
@@ -49,6 +51,7 @@ public class ManualPaymentService implements PaymentService {
         this.memberRepository = memberRepository;
         this.currentUserProvider = currentUserProvider;
         this.auditLogService = auditLogService;
+        this.periodStatusService = periodStatusService;
     }
 
     @Override
@@ -75,13 +78,7 @@ public class ManualPaymentService implements PaymentService {
                     "Vous n'êtes pas participant à cette cotisation");
         }
 
-        if (transactionRepository.existsByMemberIdAndContributionPeriodIdAndStatusIn(
-                memberId, period.getId(), ACTIVE_STATUSES)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Un paiement est déjà déclaré ou validé pour cette période");
-        }
-
-        BigDecimal amount = resolveAmount(definition, request.amount());
+        BigDecimal amount = resolveAmount(definition, period, memberId, request.amount());
 
         ContributionTransaction transaction = new ContributionTransaction(
                 member, period, amount, request.operator(), request.transactionReference(),
@@ -95,16 +92,43 @@ public class ManualPaymentService implements PaymentService {
         return ContributionTransactionResponse.from(transaction);
     }
 
-    private BigDecimal resolveAmount(ContributionDefinition definition, BigDecimal requestedAmount) {
+    /**
+     * Montant fixe : paiements partiels autorisés (décision du porteur du projet).
+     * Une seule déclaration en attente à la fois ; le montant déclaré doit être
+     * strictement positif et ne pas dépasser le reste dû (montant - somme validée).
+     * Sans montant fourni, le reste dû est retenu.
+     *
+     * <p>Montant libre : comportement inchangé — une seule déclaration active
+     * (en attente ou validée) par période, montant strictement positif.
+     */
+    private BigDecimal resolveAmount(ContributionDefinition definition, ContributionPeriod period, UUID memberId,
+                                     BigDecimal requestedAmount) {
         if (definition.getAmountMode() == AmountMode.FIXED) {
-            if (requestedAmount != null && requestedAmount.compareTo(definition.getAmount()) != 0) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "Le montant déclaré doit correspondre au montant fixe de la cotisation ("
-                                + definition.getAmount() + ")");
+            if (periodStatusService.hasPending(period, memberId)) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Un paiement est déjà en attente de validation pour cette période");
             }
-            return definition.getAmount();
+            BigDecimal remaining = periodStatusService.remainingAmount(period, memberId);
+            if (remaining.signum() <= 0) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Cette cotisation est déjà entièrement payée pour cette période");
+            }
+            if (requestedAmount == null) {
+                return remaining;
+            }
+            if (requestedAmount.signum() <= 0 || requestedAmount.compareTo(remaining) > 0) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Le montant déclaré doit être positif et ne pas dépasser le reste dû ("
+                                + remaining.toPlainString() + ")");
+            }
+            return requestedAmount;
         }
 
+        if (transactionRepository.existsByMemberIdAndContributionPeriodIdAndStatusIn(
+                memberId, period.getId(), ACTIVE_STATUSES)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Un paiement est déjà déclaré ou validé pour cette période");
+        }
         if (requestedAmount == null || requestedAmount.signum() <= 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Un montant positif est requis pour une cotisation à montant libre");

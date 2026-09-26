@@ -22,6 +22,11 @@ import { PaymentService } from '../payment.service';
 export interface DeclarePaymentData {
   definition: ContributionDefinition;
   period: ContributionPeriod;
+  /**
+   * Reste dû pour un montant fixe (paiements partiels autorisés) ; null ou absent
+   * pour un montant libre. Par défaut : le montant complet de la cotisation.
+   */
+  remaining?: number | null;
 }
 
 @Component({
@@ -47,6 +52,11 @@ export class DeclarePaymentDialog {
   readonly data = inject<DeclarePaymentData>(MAT_DIALOG_DATA);
 
   readonly isFixed = this.data.definition.amountMode === 'FIXED';
+  /** Plafond du montant déclarable (montant fixe) : le reste dû. */
+  readonly remaining: number | null = this.isFixed
+    ? (this.data.remaining ?? this.data.definition.amount)
+    : null;
+  readonly isComplement = this.isFixed && this.remaining !== null && this.remaining < (this.data.definition.amount ?? 0);
   readonly formatFcfa = formatFcfa;
   readonly fromIsoDate = fromIsoDate;
   readonly operators = Object.entries(PAYMENT_OPERATOR_LABELS) as [PaymentOperator, string][];
@@ -61,10 +71,16 @@ export class DeclarePaymentDialog {
   readonly errorMessage = signal<string | null>(null);
 
   readonly form = this.fb.group({
-    // Montant fixe : prérempli et verrouillé (le backend exige qu'il soit égal au montant de la cotisation).
+    // Montant fixe : prérempli avec le reste dû, modifiable à la baisse (paiement partiel),
+    // plafonné au reste dû (même contrôle que le backend).
     amount: [
-      { value: this.isFixed ? this.data.definition.amount : null, disabled: this.isFixed },
-      [Validators.required, Validators.min(1), Validators.pattern(/^\d+$/)],
+      this.remaining as number | null,
+      [
+        Validators.required,
+        Validators.min(1),
+        Validators.pattern(/^\d+$/),
+        ...(this.remaining !== null ? [Validators.max(this.remaining)] : []),
+      ],
     ],
     operator: [null as PaymentOperator | null, Validators.required],
     transactionReference: ['', [Validators.required, Validators.maxLength(100)]],
@@ -95,11 +111,13 @@ export class DeclarePaymentDialog {
           this.saving.set(false);
           this.errorMessage.set(
             error.status === 409
-              ? 'Un paiement est déjà déclaré ou validé pour cette période.'
+              ? 'Un paiement est déjà en attente ou la cotisation est déjà réglée pour cette période.'
               : error.status === 403
                 ? "Vous n'êtes pas participant à cette cotisation."
                 : error.status === 400
-                  ? 'Les informations saisies sont invalides (vérifiez le montant).'
+                  ? this.remaining !== null
+                    ? `Montant invalide : il doit être positif et ne pas dépasser le reste dû (${formatFcfa(this.remaining)}).`
+                    : 'Les informations saisies sont invalides (vérifiez le montant).'
                   : 'Une erreur est survenue. Vérifiez que le serveur est démarré.',
           );
         },

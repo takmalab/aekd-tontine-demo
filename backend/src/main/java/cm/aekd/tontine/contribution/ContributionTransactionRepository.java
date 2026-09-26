@@ -23,6 +23,16 @@ public interface ContributionTransactionRepository extends JpaRepository<Contrib
     List<ContributionTransaction> findByContributionPeriodIdAndStatus(UUID contributionPeriodId,
                                                                         ContributionTransactionStatus status);
 
+    List<ContributionTransaction> findByContributionPeriodIdAndStatusIn(UUID contributionPeriodId,
+                                                                          List<ContributionTransactionStatus> statuses);
+
+    /** Somme des montants d'un membre pour une période, pour un statut donné (paiements partiels). */
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM ContributionTransaction t "
+            + "WHERE t.member.id = :memberId AND t.contributionPeriod.id = :periodId AND t.status = :status")
+    BigDecimal sumAmountByMemberAndPeriodAndStatus(@Param("memberId") UUID memberId,
+                                                    @Param("periodId") UUID periodId,
+                                                    @Param("status") ContributionTransactionStatus status);
+
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM ContributionTransaction t "
             + "WHERE t.status = :status AND t.contributionPeriod.contributionDefinition.fundDestination = :fundDestination")
     BigDecimal sumAmountByStatusAndFundDestination(@Param("status") ContributionTransactionStatus status,

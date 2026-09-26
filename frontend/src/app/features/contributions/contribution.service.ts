@@ -8,6 +8,7 @@ import {
   ContributionMemberLink,
   ContributionPeriod,
   ContributionPeriodRequest,
+  ParticipantPaymentStatus,
 } from './contribution.model';
 
 @Injectable({ providedIn: 'root' })
@@ -56,5 +57,12 @@ export class ContributionService {
 
   addPeriod(id: string, request: ContributionPeriodRequest): Observable<ContributionPeriod> {
     return this.http.post<ContributionPeriod>(`${this.baseUrl}/${id}/periods`, request);
+  }
+
+  /** Situation de paiement de chaque participant pour une période (visibilité de la cotisation). */
+  listParticipantStatuses(id: string, periodId: string): Observable<ParticipantPaymentStatus[]> {
+    return this.http.get<ParticipantPaymentStatus[]>(
+      `${this.baseUrl}/${id}/periods/${periodId}/participant-statuses`,
+    );
   }
 }

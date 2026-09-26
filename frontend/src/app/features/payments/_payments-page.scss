@@ -104,6 +104,12 @@
       border: 1px solid var(--aekd-orange);
     }
 
+    &--partial {
+      background: var(--aekd-brown-soft);
+      color: var(--aekd-brown-dark);
+      border: 1px dashed var(--aekd-brown);
+    }
+
     &--late,
     &--tx-rejected {
       background: var(--aekd-brown);
@@ -155,6 +161,10 @@
 
     &--late::before {
       background: var(--aekd-brown);
+    }
+
+    &--partial::before {
+      background: linear-gradient(180deg, var(--aekd-orange), var(--aekd-brown));
     }
 
     &__main {

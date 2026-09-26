@@ -68,7 +68,9 @@
           [class.contrib--draft]="row.definition.status === 'DRAFT'"
         >
           <div class="contrib__top">
-            <h2 class="contrib__name">{{ row.definition.name }}</h2>
+            <h2 class="contrib__name">
+              <a [routerLink]="['/contributions', row.definition.id]">{{ row.definition.name }}</a>
+            </h2>
             <span [class]="'status status--' + row.definition.status.toLowerCase()">
               {{ statusLabels[row.definition.status] }}
             </span>
@@ -118,6 +120,12 @@
               </span>
             }
           </div>
+
+          <a class="contrib__details" [routerLink]="['/contributions', row.definition.id]">
+            <mat-icon>group</mat-icon>
+            Participants et paiements
+            <mat-icon class="contrib__chevron">chevron_right</mat-icon>
+          </a>
 
           @if (canManage && row.definition.status === 'DRAFT') {
             <div class="contrib__actions">

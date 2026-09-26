@@ -7,8 +7,7 @@ import cm.aekd.tontine.contribution.ContributionParticipant;
 import cm.aekd.tontine.contribution.ContributionParticipantRepository;
 import cm.aekd.tontine.contribution.ContributionPeriod;
 import cm.aekd.tontine.contribution.ContributionPeriodRepository;
-import cm.aekd.tontine.contribution.ContributionTransactionRepository;
-import cm.aekd.tontine.contribution.ContributionTransactionStatus;
+import cm.aekd.tontine.contribution.ContributionPeriodStatusService;
 import cm.aekd.tontine.member.Member;
 import cm.aekd.tontine.member.MemberRepository;
 import cm.aekd.tontine.user.User;
@@ -39,7 +38,7 @@ public class AppliedSanctionService {
     private final AppliedSanctionRepository appliedRepository;
     private final ContributionPeriodRepository periodRepository;
     private final ContributionParticipantRepository participantRepository;
-    private final ContributionTransactionRepository transactionRepository;
+    private final ContributionPeriodStatusService periodStatusService;
     private final MemberRepository memberRepository;
     private final CurrentUserProvider currentUserProvider;
     private final UserRepository userRepository;
@@ -49,7 +48,7 @@ public class AppliedSanctionService {
                                    AppliedSanctionRepository appliedRepository,
                                    ContributionPeriodRepository periodRepository,
                                    ContributionParticipantRepository participantRepository,
-                                   ContributionTransactionRepository transactionRepository,
+                                   ContributionPeriodStatusService periodStatusService,
                                    MemberRepository memberRepository,
                                    CurrentUserProvider currentUserProvider,
                                    UserRepository userRepository,
@@ -58,7 +57,7 @@ public class AppliedSanctionService {
         this.appliedRepository = appliedRepository;
         this.periodRepository = periodRepository;
         this.participantRepository = participantRepository;
-        this.transactionRepository = transactionRepository;
+        this.periodStatusService = periodStatusService;
         this.memberRepository = memberRepository;
         this.currentUserProvider = currentUserProvider;
         this.userRepository = userRepository;
@@ -180,7 +179,9 @@ public class AppliedSanctionService {
         if (LocalDate.now().isBefore(threshold)) {
             return false;
         }
-        return !transactionRepository.existsByMemberIdAndContributionPeriodIdAndStatus(
-                memberId, period.getId(), ContributionTransactionStatus.VALIDATED);
+        // Paiements partiels : seul un règlement complet exclut le membre des candidats.
+        // Décision validée par le porteur du projet (2026-09-25) : un membre partiellement
+        // payé reste candidat à la sanction de retard.
+        return !periodStatusService.isFullyPaid(period, memberId);
     }
 }

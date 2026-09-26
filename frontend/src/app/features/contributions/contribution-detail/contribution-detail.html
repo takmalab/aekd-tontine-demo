@@ -1,0 +1,215 @@
+<section class="detail">
+  <a routerLink="/contributions" class="back">
+    <mat-icon>arrow_back</mat-icon>
+    Cotisations
+  </a>
+
+  @if (loading()) {
+    <div class="state"><mat-spinner diameter="40" /></div>
+  } @else if (notFound()) {
+    <div class="state state--card">
+      <mat-icon class="state__icon state__icon--brown">search_off</mat-icon>
+      <p class="state__title">Cotisation introuvable</p>
+      <p class="state__text">Elle n'existe pas ou ne vous est pas accessible.</p>
+      <a mat-stroked-button routerLink="/contributions">Retour aux cotisations</a>
+    </div>
+  } @else if (error()) {
+    <div class="state state--card">
+      <mat-icon class="state__icon state__icon--brown">cloud_off</mat-icon>
+      <p class="state__title">Impossible de charger la cotisation</p>
+      <p class="state__text">Vérifiez que le serveur est démarré, puis réessayez.</p>
+      <button mat-stroked-button (click)="load()"><mat-icon>refresh</mat-icon> Réessayer</button>
+    </div>
+  } @else if (definition(); as d) {
+    <!-- En-tête -->
+    <header class="hero" [class.hero--optional]="!d.mandatory">
+      <div class="hero__main">
+        <div class="hero__badges">
+          <span [class]="'badge badge--' + d.status.toLowerCase()">{{ statusLabels[d.status] }}</span>
+          <span class="badge badge--outline">{{ d.mandatory ? 'Obligatoire' : 'Facultative' }}</span>
+        </div>
+        <h1 class="hero__title">{{ d.name }}</h1>
+        <div class="hero__amount">
+          @if (d.amountMode === 'FIXED') {
+            {{ formatFcfa(d.amount) }}
+          } @else {
+            Montant libre
+          }
+          <span class="hero__freq">/ {{ frequencyLabels[d.frequency] | lowercase }}</span>
+        </div>
+        @if (d.description) {
+          <p class="hero__desc">{{ d.description }}</p>
+        }
+        <ul class="hero__facts">
+          <li>
+            <mat-icon>{{ d.fundDestination === 'TONTINE_FUND' ? 'account_balance' : 'savings' }}</mat-icon>
+            {{ destinationLabels[d.fundDestination] }}
+          </li>
+          <li>
+            <mat-icon>{{ d.visibility === 'PUBLIC' ? 'public' : 'lock' }}</mat-icon>
+            {{ visibilityLabels[d.visibility] }}
+          </li>
+          <li>
+            <mat-icon>tune</mat-icon>
+            {{ amountModeLabels[d.amountMode] }}
+          </li>
+        </ul>
+      </div>
+
+      @if (canContribute()) {
+        <div class="hero__cta">
+          @if (myRow(); as mine) {
+            @if (mine.shown === 'PARTIAL' && mine.remainingAmount !== null) {
+              <span class="hero__cta-text">Il vous reste {{ formatFcfa(mine.remainingAmount) }} à régler.</span>
+            }
+          }
+          <button mat-flat-button type="button" class="cta" (click)="contribute()">
+            <mat-icon>send_money</mat-icon>
+            Cotiser
+          </button>
+        </div>
+      }
+    </header>
+
+    <!-- Séance -->
+    @if (periods().length === 0) {
+      <div class="state state--card">
+        <mat-icon class="state__icon">event_busy</mat-icon>
+        <p class="state__title">Rattachée à aucune séance</p>
+        <p class="state__text">La situation des participants s'affichera dès que la cotisation sera rattachée à une séance.</p>
+      </div>
+    } @else {
+      <div class="toolbar">
+        @if (periods().length > 1) {
+          <mat-form-field appearance="outline" class="toolbar__select" subscriptSizing="dynamic">
+            <mat-label>Séance</mat-label>
+            <mat-select [value]="selectedPeriodId()" (selectionChange)="selectPeriod($event.value)">
+              @for (o of periods(); track o.period.id) {
+                <mat-option [value]="o.period.id">
+                  {{ o.period.sessionLabel }}
+                  @if (o.session) {
+                    — {{ fromIsoDate(o.session.date) | date: 'd MMM yyyy' }}
+                  }
+                </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        } @else if (selectedPeriod(); as o) {
+          <p class="toolbar__session">
+            <mat-icon>event</mat-icon>
+            <a [routerLink]="['/sessions', o.period.sessionId]">{{ o.period.sessionLabel }}</a>
+            @if (o.session) {
+              <span class="muted">· {{ fromIsoDate(o.session.date) | date: 'd MMM yyyy' }}</span>
+            }
+          </p>
+        }
+        @if (selectedPeriod(); as o) {
+          <p class="toolbar__due">
+            <mat-icon>event_available</mat-icon>
+            @if (o.period.dueDate) {
+              Échéance {{ fromIsoDate(o.period.dueDate) | date: 'd MMM yyyy' }}
+            } @else {
+              Sans échéance
+            }
+          </p>
+        }
+      </div>
+
+      <!-- Participants -->
+      <section class="participants">
+        <div class="participants__head">
+          <h2 class="participants__title">
+            <mat-icon>group</mat-icon>
+            Participants
+            <span class="count">{{ counts().ALL }}</span>
+          </h2>
+          @if (totals(); as t) {
+            <p class="participants__totals">
+              Validé : <strong>{{ formatFcfa(t.collected) }}</strong>
+              @if (t.expected !== null) {
+                sur {{ formatFcfa(t.expected) }} attendus
+              }
+            </p>
+          }
+        </div>
+
+        <div class="filters" role="tablist" aria-label="Filtrer les participants">
+          @for (f of filters; track f.value) {
+            <button
+              type="button"
+              role="tab"
+              [class]="'filter filter--' + f.value.toLowerCase()"
+              [class.filter--active]="filter() === f.value"
+              [attr.aria-selected]="filter() === f.value"
+              (click)="filter.set(f.value)"
+            >
+              {{ f.label }}
+              <span class="filter__count">{{ counts()[f.value] }}</span>
+            </button>
+          }
+        </div>
+        @if (pendingCount() > 0 && filter() === 'ALL') {
+          <p class="hint">
+            <mat-icon>hourglass_top</mat-icon>
+            {{ pendingCount() }} participant{{ pendingCount() > 1 ? 's ont' : ' a' }} un paiement en attente de validation.
+          </p>
+        }
+
+        @if (statusesLoading()) {
+          <div class="state state--compact"><mat-spinner diameter="32" /></div>
+        } @else if (statusesError()) {
+          <div class="state state--card state--compact">
+            <p class="state__text">Impossible de charger la situation des participants.</p>
+            <button mat-stroked-button (click)="loadStatuses()"><mat-icon>refresh</mat-icon> Réessayer</button>
+          </div>
+        } @else if (rows().length === 0) {
+          <div class="state state--card state--compact">
+            <p class="state__text">Aucun participant n'est encore inscrit à cette cotisation.</p>
+          </div>
+        } @else if (visibleRows().length === 0) {
+          <div class="state state--card state--compact">
+            <p class="state__text">Aucun participant dans cette catégorie.</p>
+          </div>
+        } @else {
+          <ul class="list">
+            @for (row of visibleRows(); track row.memberId) {
+              <li [class]="'person person--' + row.shown.toLowerCase()" [class.person--me]="row.isMe">
+                <span class="avatar">{{ initials(row.memberFullName) }}</span>
+                <div class="person__main">
+                  <div class="person__top">
+                    <span class="person__name">
+                      {{ row.memberFullName }}
+                      @if (row.isMe) {
+                        <span class="me">vous</span>
+                      }
+                    </span>
+                    <span [class]="'status status--' + row.shown.toLowerCase()">{{ participantLabels[row.shown] }}</span>
+                  </div>
+                  @if (row.dueAmount !== null) {
+                    <div class="person__progress">
+                      <span class="bar"><span [style.width.%]="percent(row)"></span></span>
+                      <span class="person__amounts">
+                        {{ formatFcfa(row.validatedAmount) }} / {{ formatFcfa(row.dueAmount) }}
+                        @if (row.remainingAmount && row.validatedAmount > 0) {
+                          <span class="muted">· reste {{ formatFcfa(row.remainingAmount) }}</span>
+                        }
+                      </span>
+                    </div>
+                  } @else if (row.validatedAmount > 0) {
+                    <span class="person__amounts">Versé : {{ formatFcfa(row.validatedAmount) }}</span>
+                  }
+                  @if (row.pendingAmount > 0) {
+                    <span class="person__pending">
+                      <mat-icon>hourglass_top</mat-icon>
+                      {{ formatFcfa(row.pendingAmount) }} en attente de validation
+                    </span>
+                  }
+                </div>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    }
+  }
+</section>
