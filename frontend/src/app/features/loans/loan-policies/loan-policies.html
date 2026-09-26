@@ -1,0 +1,88 @@
+<section class="page">
+  <header class="page__header page__header--row">
+    <div>
+      <h1 class="page__title">Politiques de prêt</h1>
+      <p class="page__subtitle">
+        Règles vérifiées à chaque demande de prêt. Une règle non respectée n'empêche pas la demande : elle est
+        expliquée au membre et au trésorier.
+      </p>
+    </div>
+    @if (isAdmin) {
+      <button mat-flat-button class="page__action" (click)="create()">
+        <mat-icon>add</mat-icon>
+        Nouvelle politique
+      </button>
+    }
+  </header>
+
+  @if (loading()) {
+    <div class="state"><mat-spinner diameter="40" /></div>
+  } @else if (error()) {
+    <div class="state state--card">
+      <mat-icon class="state__icon state__icon--brown">cloud_off</mat-icon>
+      <p class="state__title">Impossible de charger les politiques</p>
+      <button mat-stroked-button (click)="load()"><mat-icon>refresh</mat-icon> Réessayer</button>
+    </div>
+  } @else if (policies().length === 0) {
+    <div class="state state--card">
+      <mat-icon class="state__icon">policy</mat-icon>
+      <p class="state__title">Aucune politique de prêt</p>
+      <p class="state__text">
+        @if (isAdmin) {
+          Créez une politique pour permettre les demandes de prêt.
+        } @else {
+          Les demandes de prêt seront possibles dès qu'une politique sera définie par l'administration.
+        }
+      </p>
+    </div>
+  } @else {
+    @if (activeCount() > 1) {
+      <p class="info">
+        <mat-icon>info</mat-icon>
+        <span>{{ activeCount() }} politiques sont actives : la plus récente s'applique aux nouvelles demandes.</span>
+      </p>
+    } @else if (activeCount() === 0) {
+      <p class="info info--warn">
+        <mat-icon>warning</mat-icon>
+        <span>Aucune politique active : les demandes de prêt sont impossibles pour le moment.</span>
+      </p>
+    }
+
+    <div class="grid">
+      @for (p of sorted(); track p.id) {
+        <article class="policy" [class.policy--inactive]="!p.active">
+          <div class="policy__top">
+            <h2 class="policy__name">{{ p.name }}</h2>
+            <span class="badge" [class.badge--active]="p.active">{{ p.active ? 'Active' : 'Inactive' }}</span>
+          </div>
+          @if (p.description) {
+            <p class="policy__desc">{{ p.description }}</p>
+          }
+          @if (terms(p); as t) {
+            @if (t.length === 0) {
+              <p class="policy__none">Aucun critère : toute demande est conforme.</p>
+            } @else {
+              <ul class="terms">
+                @for (term of t; track term.label) {
+                  <li>
+                    <mat-icon>{{ term.icon }}</mat-icon>
+                    <span class="terms__label">{{ term.label }}</span>
+                    <span class="terms__value">{{ term.value }}</span>
+                  </li>
+                }
+              </ul>
+            }
+          }
+          @if (isAdmin && p.active) {
+            <div class="policy__actions">
+              <button mat-button type="button" class="deactivate" (click)="deactivate(p)" [disabled]="busyId() === p.id">
+                <mat-icon>block</mat-icon>
+                Désactiver
+              </button>
+            </div>
+          }
+        </article>
+      }
+    </div>
+  }
+</section>

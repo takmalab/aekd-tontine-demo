@@ -65,6 +65,21 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/payments/pending-payments/pending-payments').then((m) => m.PendingPayments),
       },
+      {
+        path: 'my-loans',
+        loadComponent: () => import('./features/loans/my-loans/my-loans').then((m) => m.MyLoans),
+      },
+      {
+        path: 'loans',
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN', 'TRESORIER'] },
+        loadComponent: () => import('./features/loans/loans-admin/loans-admin').then((m) => m.LoansAdmin),
+      },
+      {
+        path: 'loan-policies',
+        loadComponent: () =>
+          import('./features/loans/loan-policies/loan-policies').then((m) => m.LoanPolicies),
+      },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],
   },

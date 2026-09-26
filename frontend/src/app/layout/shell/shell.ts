@@ -27,7 +27,9 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Paiements', path: '/payments', icon: 'fact_check', roles: ['ADMIN', 'TRESORIER'] },
   { label: 'Membres', path: '/members', icon: 'group', roles: ['ADMIN', 'TRESORIER'] },
   { label: 'Sanctions', path: '/sanctions', icon: 'gavel' },
-  { label: 'Prêts', path: '/loans', icon: 'account_balance' },
+  { label: 'Mes prêts', path: '/my-loans', icon: 'account_balance', roles: ['MEMBRE'] },
+  { label: 'Prêts', path: '/loans', icon: 'account_balance', roles: ['ADMIN', 'TRESORIER'] },
+  { label: 'Politiques de prêt', path: '/loan-policies', icon: 'policy' },
   { label: 'Utilisateurs', path: '/users', icon: 'manage_accounts', roles: ['ADMIN'] },
   { label: "Journal d'audit", path: '/audit', icon: 'history', roles: ['ADMIN'] },
 ];

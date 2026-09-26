@@ -1,0 +1,99 @@
+<div class="head">
+  <span class="head__icon"><mat-icon>policy</mat-icon></span>
+  <div class="head__text">
+    <h2 mat-dialog-title class="head__title">Nouvelle politique de prêt</h2>
+    <p class="head__subtitle">Critères facultatifs : laissez vide ce qui ne doit pas être contrôlé.</p>
+  </div>
+</div>
+
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <mat-dialog-content class="body">
+    <p class="info">
+      <mat-icon>info</mat-icon>
+      <span>La nouvelle politique active s'appliquera aux prochaines demandes (la plus récente active est retenue).</span>
+    </p>
+
+    <mat-form-field appearance="outline" class="full">
+      <mat-label>Nom</mat-label>
+      <input matInput formControlName="name" />
+      @if (form.controls.name.hasError('required')) {
+        <mat-error>Le nom est requis</mat-error>
+      }
+    </mat-form-field>
+    <mat-form-field appearance="outline" class="full">
+      <mat-label>Description (facultative)</mat-label>
+      <textarea matInput formControlName="description" rows="2"></textarea>
+    </mat-form-field>
+
+    <p class="label">Montant et durée</p>
+    <div class="grid">
+      <mat-form-field appearance="outline">
+        <mat-label>Montant minimum</mat-label>
+        <input matInput type="number" min="1" formControlName="minAmount" />
+        <span matTextSuffix>FCFA</span>
+        @if (form.controls.minAmount.invalid) { <mat-error>Entier positif</mat-error> }
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Montant maximum</mat-label>
+        <input matInput type="number" min="1" formControlName="maxAmount" />
+        <span matTextSuffix>FCFA</span>
+        @if (form.controls.maxAmount.invalid) { <mat-error>Entier positif</mat-error> }
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Durée maximale</mat-label>
+        <input matInput type="number" min="1" formControlName="maxDurationMonths" />
+        <span matTextSuffix>mois</span>
+        @if (form.controls.maxDurationMonths.invalid) { <mat-error>Entier positif</mat-error> }
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Taux d'intérêt</mat-label>
+        <input matInput type="number" min="0" step="0.1" formControlName="interestRate" />
+        <span matTextSuffix>%</span>
+        <mat-hint>Indicatif : non appliqué au calcul du solde</mat-hint>
+        @if (form.controls.interestRate.invalid) { <mat-error>Valeur positive</mat-error> }
+      </mat-form-field>
+    </div>
+    @if (form.hasError('minAboveMax')) {
+      <p class="field-error">Le montant minimum ne peut pas dépasser le montant maximum.</p>
+    }
+
+    <p class="label">Conditions d'accès</p>
+    <div class="grid">
+      <mat-form-field appearance="outline">
+        <mat-label>Épargne minimale</mat-label>
+        <input matInput type="number" min="1" formControlName="minSavingsRequired" />
+        <span matTextSuffix>FCFA</span>
+        @if (form.controls.minSavingsRequired.invalid) { <mat-error>Entier positif</mat-error> }
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Ancienneté minimale</mat-label>
+        <input matInput type="number" min="0" formControlName="minSeniorityMonths" />
+        <span matTextSuffix>mois</span>
+        @if (form.controls.minSeniorityMonths.invalid) { <mat-error>Entier positif ou nul</mat-error> }
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Prêts actifs maximum</mat-label>
+        <input matInput type="number" min="1" formControlName="maxActiveLoans" />
+        @if (form.controls.maxActiveLoans.invalid) { <mat-error>Entier positif</mat-error> }
+      </mat-form-field>
+    </div>
+
+    @if (errorMessage(); as message) {
+      <p class="notice" role="alert">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ message }}</span>
+      </p>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="actions">
+    <button mat-button type="button" mat-dialog-close [disabled]="saving()">Annuler</button>
+    <button mat-flat-button type="submit" [disabled]="saving()">
+      @if (saving()) {
+        <mat-spinner diameter="20" />
+      } @else {
+        Créer la politique
+      }
+    </button>
+  </mat-dialog-actions>
+</form>

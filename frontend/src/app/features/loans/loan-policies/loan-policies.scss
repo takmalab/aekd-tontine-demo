@@ -1,0 +1,138 @@
+@use '../../../shared/styles/page' as pg;
+@use '../loans' as loans;
+
+@include pg.page-base;
+@include loans.loans-page;
+
+.info {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--aekd-orange-soft);
+  border-left: 4px solid var(--aekd-orange);
+  font-size: 13.5px;
+
+  mat-icon {
+    flex: none;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: var(--aekd-orange);
+  }
+
+  &--warn {
+    background: var(--aekd-brown-soft);
+    border-left-color: var(--aekd-brown);
+    color: var(--aekd-brown-dark);
+
+    mat-icon {
+      color: var(--aekd-brown);
+    }
+  }
+}
+
+.policy {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid var(--mat-sys-outline-variant);
+  box-shadow: var(--aekd-shadow);
+  border-top: 5px solid var(--aekd-orange);
+
+  &--inactive {
+    border-top-color: #dcd7d2;
+    background: #fcfbfa;
+    opacity: 0.85;
+  }
+
+  &__top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  &__name {
+    margin: 0;
+    font-size: 16.5px;
+    font-weight: 700;
+  }
+
+  &__desc,
+  &__none {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--aekd-gray-muted);
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 8px;
+    border-top: 1px solid var(--mat-sys-outline-variant);
+  }
+}
+
+.terms {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 10px;
+    border-radius: 10px;
+    background: #f6f3f0;
+    font-size: 13.5px;
+  }
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: var(--aekd-orange);
+  }
+
+  &__label {
+    color: var(--aekd-gray-muted);
+  }
+
+  &__value {
+    margin-left: auto;
+    font-weight: 700;
+    color: var(--aekd-gray);
+  }
+}
+
+.badge {
+  flex: none;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #ece8e4;
+  color: var(--aekd-gray-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+
+  &--active {
+    background: var(--aekd-orange);
+    color: #fff;
+  }
+}
+
+.deactivate {
+  color: var(--aekd-brown) !important;
+}

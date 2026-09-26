@@ -1,0 +1,76 @@
+@let loan = data.loan;
+<div class="head">
+  <span class="head__icon" [class.head__icon--brown]="!approving">
+    <mat-icon>{{ approving ? 'task_alt' : 'block' }}</mat-icon>
+  </span>
+  <div class="head__text">
+    <h2 mat-dialog-title class="head__title">{{ approving ? 'Approuver le prêt' : 'Rejeter la demande' }}</h2>
+    <p class="head__subtitle">
+      {{ loan.memberFullName }} · {{ formatFcfa(loan.requestedAmount) }} sur {{ loan.requestedDurationMonths }} mois
+    </p>
+  </div>
+</div>
+
+<mat-dialog-content class="body">
+  <p class="reason">« {{ loan.reason }} »</p>
+
+  <app-rule-checklist [evaluations]="loan.ruleEvaluations" />
+
+  @if (approving) {
+    <form [formGroup]="approveForm" (ngSubmit)="submit()" class="decision" novalidate>
+      <p class="label">Montant et durée approuvés (modifiables)</p>
+      <div class="row">
+        <mat-form-field appearance="outline">
+          <mat-label>Montant approuvé</mat-label>
+          <input matInput type="number" inputmode="numeric" min="1" step="1" formControlName="approvedAmount" />
+          <span matTextSuffix>FCFA</span>
+          @if (approveForm.controls.approvedAmount.invalid) {
+            <mat-error>Montant entier strictement positif</mat-error>
+          }
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Durée approuvée</mat-label>
+          <input matInput type="number" inputmode="numeric" min="1" step="1" formControlName="approvedDurationMonths" />
+          <span matTextSuffix>mois</span>
+          @if (approveForm.controls.approvedDurationMonths.invalid) {
+            <mat-error>Nombre de mois entier et positif</mat-error>
+          }
+        </mat-form-field>
+      </div>
+    </form>
+  } @else {
+    <form [formGroup]="rejectForm" (ngSubmit)="submit()" class="decision" novalidate>
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Motif du rejet</mat-label>
+        <textarea matInput formControlName="rejectionReason" rows="3"></textarea>
+        <mat-hint>Communiqué au membre avec la décision</mat-hint>
+        @if (rejectForm.controls.rejectionReason.hasError('required')) {
+          <mat-error>Le motif est requis</mat-error>
+        }
+      </mat-form-field>
+    </form>
+  }
+
+  <p class="warning">
+    <mat-icon>info</mat-icon>
+    <span>Décision définitive : la demande ne pourra plus être modifiée.</span>
+  </p>
+
+  @if (errorMessage(); as message) {
+    <p class="notice" role="alert">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ message }}</span>
+    </p>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end" class="actions">
+  <button mat-button type="button" mat-dialog-close [disabled]="saving()">Annuler</button>
+  <button mat-flat-button type="button" [class.btn-reject]="!approving" (click)="submit()" [disabled]="saving()">
+    @if (saving()) {
+      <mat-spinner diameter="20" />
+    } @else {
+      {{ approving ? 'Approuver' : 'Rejeter' }}
+    }
+  </button>
+</mat-dialog-actions>

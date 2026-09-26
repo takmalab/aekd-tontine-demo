@@ -1,0 +1,52 @@
+@use '../../../shared/styles/dialog' as dlg;
+
+@include dlg.dialog-base;
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.policy {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #f6f3f0;
+
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13.5px;
+    font-weight: 700;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      color: var(--aekd-orange);
+    }
+  }
+
+  &__terms {
+    margin: 6px 0 0;
+    padding-left: 20px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--aekd-gray-muted);
+  }
+}
+
+.note {
+  margin: 12px 0 0;
+  font-size: 12.5px;
+  color: var(--aekd-gray-muted);
+}
+
+@media (max-width: 599.98px) {
+  .row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}

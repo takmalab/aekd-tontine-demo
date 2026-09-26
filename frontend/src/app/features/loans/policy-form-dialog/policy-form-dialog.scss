@@ -1,0 +1,15 @@
+@use '../../../shared/styles/dialog' as dlg;
+
+@include dlg.dialog-base;
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 12px;
+}
+
+@media (max-width: 599.98px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

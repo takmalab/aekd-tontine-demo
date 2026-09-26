@@ -1,0 +1,66 @@
+<section class="page">
+  <header class="page__header page__header--row">
+    <div>
+      <h1 class="page__title">Prêts</h1>
+      <p class="page__subtitle">
+        Demandes, décisions et remboursements. Chaque demande affiche la vérification des règles de la politique.
+        <a routerLink="/loan-policies">Politiques de prêt</a>
+      </p>
+    </div>
+  </header>
+
+  @if (!isTreasurer) {
+    <p class="readonly">
+      <mat-icon>visibility</mat-icon>
+      <span>Consultation seule : l'approbation, le rejet et les remboursements sont réservés au trésorier.</span>
+    </p>
+  }
+
+  @if (loading()) {
+    <div class="state"><mat-spinner diameter="40" /></div>
+  } @else if (error()) {
+    <div class="state state--card">
+      <mat-icon class="state__icon state__icon--brown">cloud_off</mat-icon>
+      <p class="state__title">Impossible de charger les prêts</p>
+      <p class="state__text">Vérifiez que le serveur est démarré, puis réessayez.</p>
+      <button mat-stroked-button (click)="load()"><mat-icon>refresh</mat-icon> Réessayer</button>
+    </div>
+  } @else {
+    <div class="totals">
+      <span><strong>{{ counts().REQUESTED }}</strong> demande{{ counts().REQUESTED > 1 ? 's' : '' }} à traiter</span>
+      <span>
+        Montant approuvé des prêts en cours : <strong class="totals__amount">{{ formatFcfa(outstanding()) }}</strong>
+      </span>
+    </div>
+
+    <div class="filters" role="tablist" aria-label="Filtrer par statut">
+      @for (f of filters; track f.value) {
+        <button type="button" role="tab" class="filter" [class.filter--active]="filter() === f.value"
+                [attr.aria-selected]="filter() === f.value" (click)="filter.set(f.value)">
+          {{ f.label }}
+          <span class="filter__count">{{ counts()[f.value] }}</span>
+        </button>
+      }
+    </div>
+
+    @if (visibleLoans().length === 0) {
+      <div class="state state--card state--compact">
+        <p class="state__text">Aucun prêt dans cette catégorie.</p>
+      </div>
+    } @else {
+      <div class="grid">
+        @for (loan of visibleLoans(); track loan.id) {
+          <app-loan-card
+            [loan]="loan"
+            [showMember]="true"
+            [canDecide]="isTreasurer"
+            [canRepay]="isTreasurer"
+            (approve)="decide($event, 'approve')"
+            (reject)="decide($event, 'reject')"
+            (repay)="repay($event)"
+          />
+        }
+      </div>
+    }
+  }
+</section>

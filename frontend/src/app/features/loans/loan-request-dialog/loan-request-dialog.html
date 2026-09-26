@@ -1,0 +1,131 @@
+@if (result(); as loan) {
+  <!-- Résultat : demande enregistrée + évaluation des règles -->
+  <div class="head">
+    <span class="head__icon head__icon--success"><mat-icon>check</mat-icon></span>
+    <div class="head__text">
+      <h2 mat-dialog-title class="head__title">Demande envoyée</h2>
+      <p class="head__subtitle">
+        {{ formatFcfa(loan.requestedAmount) }} sur {{ loan.requestedDurationMonths }} mois · {{ loan.loanPolicyName }}
+      </p>
+    </div>
+  </div>
+  <mat-dialog-content class="body">
+    <p class="info">
+      <mat-icon>hourglass_top</mat-icon>
+      <span>
+        Votre demande est <strong>en attente de décision</strong> du trésorier. Voici la vérification des règles de
+        la politique de prêt :
+      </span>
+    </p>
+    <app-rule-checklist [evaluations]="loan.ruleEvaluations" />
+    @if (hasFailedRule(loan)) {
+      <p class="note">
+        Une règle non respectée ne bloque pas la demande : le trésorier en tiendra compte pour sa décision.
+      </p>
+    }
+  </mat-dialog-content>
+  <mat-dialog-actions align="end" class="actions">
+    <button mat-flat-button type="button" (click)="close()">Terminé</button>
+  </mat-dialog-actions>
+} @else {
+  <div class="head">
+    <span class="head__icon"><mat-icon>account_balance</mat-icon></span>
+    <div class="head__text">
+      <h2 mat-dialog-title class="head__title">Demander un prêt</h2>
+      <p class="head__subtitle">Votre demande sera étudiée par le trésorier.</p>
+    </div>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <mat-dialog-content class="body">
+      @if (policy; as p) {
+        <div class="policy">
+          <span class="policy__title"><mat-icon>policy</mat-icon> {{ p.name }}</span>
+          <ul class="policy__terms">
+            @if (p.minAmount !== null || p.maxAmount !== null) {
+              <li>
+                Montant :
+                @if (p.minAmount !== null) { de {{ formatFcfa(p.minAmount) }} }
+                @if (p.maxAmount !== null) { jusqu'à {{ formatFcfa(p.maxAmount) }} }
+              </li>
+            }
+            @if (p.maxDurationMonths !== null) {
+              <li>Durée maximale : {{ p.maxDurationMonths }} mois</li>
+            }
+            @if (p.maxActiveLoans !== null) {
+              <li>Prêts actifs maximum : {{ p.maxActiveLoans }}</li>
+            }
+            @if (p.minSavingsRequired !== null) {
+              <li>Épargne minimale : {{ formatFcfa(p.minSavingsRequired) }}</li>
+            }
+            @if (p.minSeniorityMonths !== null) {
+              <li>Ancienneté minimale : {{ p.minSeniorityMonths }} mois</li>
+            }
+            @if (p.interestRate !== null) {
+              <li>Taux d'intérêt : {{ p.interestRate }} %</li>
+            }
+          </ul>
+        </div>
+      } @else if (data.activePolicies.length > 1) {
+        <p class="info">
+          <mat-icon>policy</mat-icon>
+          <span>Plusieurs politiques sont actives : la plus récente s'appliquera à votre demande.</span>
+        </p>
+      } @else {
+        <p class="notice" role="alert">
+          <mat-icon>warning</mat-icon>
+          <span>Aucune politique de prêt n'est active : la demande sera refusée par le serveur.</span>
+        </p>
+      }
+
+      <div class="row">
+        <mat-form-field appearance="outline">
+          <mat-label>Montant demandé</mat-label>
+          <input matInput type="number" inputmode="numeric" min="1" step="1" formControlName="amount" />
+          <span matTextSuffix>FCFA</span>
+          @if (form.controls.amount.hasError('required')) {
+            <mat-error>Le montant est requis</mat-error>
+          } @else if (form.controls.amount.invalid) {
+            <mat-error>Montant entier strictement positif</mat-error>
+          }
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Durée</mat-label>
+          <input matInput type="number" inputmode="numeric" min="1" step="1" formControlName="durationMonths" />
+          <span matTextSuffix>mois</span>
+          @if (form.controls.durationMonths.hasError('required')) {
+            <mat-error>La durée est requise</mat-error>
+          } @else if (form.controls.durationMonths.invalid) {
+            <mat-error>Nombre de mois entier et positif</mat-error>
+          }
+        </mat-form-field>
+      </div>
+
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Motif</mat-label>
+        <textarea matInput formControlName="reason" rows="3" placeholder="Ex. : frais de scolarité, équipement…"></textarea>
+        @if (form.controls.reason.hasError('required')) {
+          <mat-error>Le motif est requis</mat-error>
+        }
+      </mat-form-field>
+
+      @if (errorMessage(); as message) {
+        <p class="notice" role="alert">
+          <mat-icon>error_outline</mat-icon>
+          <span>{{ message }}</span>
+        </p>
+      }
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end" class="actions">
+      <button mat-button type="button" mat-dialog-close [disabled]="saving()">Annuler</button>
+      <button mat-flat-button type="submit" [disabled]="saving()">
+        @if (saving()) {
+          <mat-spinner diameter="20" />
+        } @else {
+          Envoyer la demande
+        }
+      </button>
+    </mat-dialog-actions>
+  </form>
+}

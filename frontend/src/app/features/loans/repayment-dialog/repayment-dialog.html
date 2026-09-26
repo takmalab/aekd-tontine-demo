@@ -1,0 +1,103 @@
+<div class="head">
+  <span class="head__icon"><mat-icon>payments</mat-icon></span>
+  <div class="head__text">
+    <h2 mat-dialog-title class="head__title">Enregistrer un remboursement</h2>
+    <p class="head__subtitle">
+      {{ data.loan.memberFullName }} · prêt de {{ formatFcfa(data.balance.totalAmount) }}
+    </p>
+  </div>
+</div>
+
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <mat-dialog-content class="body">
+    <div class="figures">
+      <div>
+        <span class="figures__label">Déjà remboursé</span>
+        <span class="figures__value">{{ formatFcfa(data.balance.totalRepaid) }}</span>
+      </div>
+      <div class="figures__remaining">
+        <span class="figures__label">Solde restant</span>
+        <span class="figures__value">{{ formatFcfa(remaining) }}</span>
+      </div>
+    </div>
+
+    <mat-form-field appearance="outline" class="full">
+      <mat-label>Montant remboursé</mat-label>
+      <input matInput type="number" inputmode="numeric" min="1" step="1" [max]="remaining" formControlName="amount" />
+      <span matTextSuffix>FCFA</span>
+      <mat-hint>
+        @if (remainingAfter() !== null) {
+          Solde après ce remboursement : <strong>{{ formatFcfa(remainingAfter()) }}</strong>
+          @if (remainingAfter() === 0) {
+            — le prêt sera soldé
+          }
+        } @else {
+          Maximum : {{ formatFcfa(remaining) }}
+        }
+      </mat-hint>
+      @if (form.controls.amount.hasError('required')) {
+        <mat-error>Le montant est requis</mat-error>
+      } @else if (form.controls.amount.hasError('max')) {
+        <mat-error>Ne peut pas dépasser le solde restant ({{ formatFcfa(remaining) }})</mat-error>
+      } @else if (form.controls.amount.invalid) {
+        <mat-error>Montant entier strictement positif</mat-error>
+      }
+    </mat-form-field>
+    <button mat-button type="button" class="fill" (click)="fillRemaining()">
+      Solder le prêt ({{ formatFcfa(remaining) }})
+    </button>
+
+    <p class="label">Moyen de paiement</p>
+    <div class="operators" role="radiogroup" aria-label="Moyen de paiement">
+      @for (op of operators; track op[0]) {
+        <label class="operator" [class.operator--selected]="form.controls.operator.value === op[0]">
+          <input type="radio" formControlName="operator" [value]="op[0]" />
+          <mat-icon>{{ operatorIcons[op[0]] }}</mat-icon>
+          <span>{{ op[1] }}</span>
+        </label>
+      }
+    </div>
+    @if (form.controls.operator.invalid && form.controls.operator.touched) {
+      <p class="field-error">Choisissez le moyen de paiement.</p>
+    }
+
+    <div class="row">
+      <mat-form-field appearance="outline">
+        <mat-label>Référence</mat-label>
+        <input matInput formControlName="reference" />
+        @if (form.controls.reference.hasError('required')) {
+          <mat-error>La référence est requise</mat-error>
+        }
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Date du remboursement</mat-label>
+        <input matInput [matDatepicker]="picker" formControlName="paymentDate" (click)="picker.open()" />
+        <mat-datepicker-toggle matIconSuffix [for]="picker" />
+        <mat-datepicker #picker />
+        @if (form.controls.paymentDate.hasError('matDatepickerParse')) {
+          <mat-error>Date invalide (JJ/MM/AAAA)</mat-error>
+        } @else if (form.controls.paymentDate.hasError('required')) {
+          <mat-error>La date est requise</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    @if (errorMessage(); as message) {
+      <p class="notice" role="alert">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ message }}</span>
+      </p>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="actions">
+    <button mat-button type="button" mat-dialog-close [disabled]="saving()">Annuler</button>
+    <button mat-flat-button type="submit" [disabled]="saving()">
+      @if (saving()) {
+        <mat-spinner diameter="20" />
+      } @else {
+        Enregistrer
+      }
+    </button>
+  </mat-dialog-actions>
+</form>

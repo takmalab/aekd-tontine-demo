@@ -1,0 +1,5 @@
+@use '../../../shared/styles/page' as pg;
+@use '../loans' as loans;
+
+@include pg.page-base;
+@include loans.loans-page;

@@ -1,0 +1,124 @@
+// Styles communs aux pages du module prêts.
+@mixin loans-page {
+  .page__header--row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+
+    a {
+      color: var(--aekd-brown);
+      font-weight: 600;
+    }
+  }
+
+  .page__action {
+    flex: none;
+    height: 44px;
+    border-radius: 12px;
+    box-shadow: 0 6px 16px rgba(232, 110, 9, 0.3);
+  }
+
+  .group-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 4px 0 12px;
+    font-size: 17px;
+    font-weight: 700;
+
+    mat-icon {
+      color: var(--aekd-orange);
+    }
+  }
+
+  .count {
+    display: inline-grid;
+    place-items: center;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 7px;
+    border-radius: 999px;
+    background: var(--aekd-gray);
+    color: #fff;
+    font-size: 12px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+    align-items: start;
+  }
+
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+
+  .filter {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 36px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1px solid var(--mat-sys-outline-variant);
+    background: #fff;
+    color: var(--aekd-gray);
+    font: inherit;
+    font-weight: 600;
+    font-size: 13.5px;
+    cursor: pointer;
+
+    &:hover {
+      border-color: var(--aekd-orange);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--aekd-orange);
+      outline-offset: 2px;
+    }
+
+    &__count {
+      display: inline-grid;
+      place-items: center;
+      min-width: 22px;
+      height: 22px;
+      padding: 0 6px;
+      border-radius: 999px;
+      background: #ece8e4;
+      font-size: 12px;
+    }
+
+    &--active {
+      background: var(--aekd-gray);
+      border-color: var(--aekd-gray);
+      color: #fff;
+
+      .filter__count {
+        background: var(--aekd-orange);
+        color: #fff;
+      }
+    }
+  }
+
+  @media (max-width: 599.98px) {
+    .page__header--row {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .page__action {
+      width: 100%;
+    }
+
+    .grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+  }
+}

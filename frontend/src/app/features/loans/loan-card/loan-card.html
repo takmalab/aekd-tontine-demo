@@ -1,0 +1,137 @@
+@let l = loan();
+<article [class]="'card card--' + l.status.toLowerCase()">
+  <div class="card__top">
+    <div class="card__heading">
+      @if (showMember()) {
+        <span class="card__member">{{ l.memberFullName }}</span>
+      }
+      <span class="card__amount">
+        {{ formatFcfa(l.approvedAmount ?? l.requestedAmount) }}
+        <span class="card__duration">· {{ l.approvedDurationMonths ?? l.requestedDurationMonths }} mois</span>
+      </span>
+      @if (approvedDiffers()) {
+        <span class="card__requested">
+          Demandé : {{ formatFcfa(l.requestedAmount) }} sur {{ l.requestedDurationMonths }} mois
+        </span>
+      }
+    </div>
+    <span [class]="'status status--' + l.status.toLowerCase()">{{ statusLabels[l.status] }}</span>
+  </div>
+
+  <p class="card__reason">« {{ l.reason }} »</p>
+
+  <ul class="card__meta">
+    <li><mat-icon>schedule</mat-icon> Demandé le {{ l.requestedAt | date: 'd MMM yyyy' }}</li>
+    <li><mat-icon>policy</mat-icon> {{ l.loanPolicyName }}</li>
+    @if (l.decisionDate) {
+      <li>
+        <mat-icon>{{ l.status === 'REJECTED' ? 'block' : 'task_alt' }}</mat-icon>
+        {{ l.status === 'REJECTED' ? 'Rejeté' : 'Approuvé' }} le {{ l.decisionDate | date: 'd MMM yyyy' }}
+        @if (l.decisionByEmail) {
+          par {{ l.decisionByEmail }}
+        }
+      </li>
+    }
+  </ul>
+
+  @if (l.status === 'REJECTED' && l.rejectionReason) {
+    <p class="card__rejection">
+      <mat-icon>info</mat-icon>
+      <span><strong>Motif du rejet :</strong> {{ l.rejectionReason }}</span>
+    </p>
+  }
+
+  <!-- Règles de la politique -->
+  <div class="section">
+    <button type="button" class="section__toggle" (click)="rulesOpen.set(!rulesOpen())" [attr.aria-expanded]="rulesOpen()">
+      <mat-icon>rule</mat-icon>
+      Vérification des règles
+      @if (failedRules() > 0) {
+        <span class="pill pill--ko">{{ failedRules() }} ✗</span>
+      } @else if (l.ruleEvaluations.length > 0) {
+        <span class="pill">✓</span>
+      }
+      <mat-icon class="section__chevron">{{ rulesOpen() ? 'expand_less' : 'expand_more' }}</mat-icon>
+    </button>
+    @if (rulesOpen()) {
+      <app-rule-checklist [evaluations]="l.ruleEvaluations" />
+    }
+  </div>
+
+  <!-- Solde et remboursements -->
+  @if (hasBalance()) {
+    <div class="money">
+      @if (moneyLoading() && !balance()) {
+        <div class="money__loading"><mat-spinner diameter="24" /></div>
+      } @else if (moneyError()) {
+        <p class="money__error">
+          Solde indisponible.
+          <button mat-button type="button" (click)="loadMoney()">Réessayer</button>
+        </p>
+      } @else if (balance(); as b) {
+        <div class="money__figures">
+          <div>
+            <span class="money__label">Montant du prêt</span>
+            <span class="money__value">{{ formatFcfa(b.totalAmount) }}</span>
+          </div>
+          <div>
+            <span class="money__label">Remboursé</span>
+            <span class="money__value">{{ formatFcfa(b.totalRepaid) }}</span>
+          </div>
+          <div class="money__remaining">
+            <span class="money__label">Solde restant</span>
+            <span class="money__value">{{ formatFcfa(b.remainingBalance) }}</span>
+          </div>
+        </div>
+        <span class="bar" role="progressbar" [attr.aria-valuenow]="repaidPercent()" aria-valuemin="0" aria-valuemax="100">
+          <span [style.width.%]="repaidPercent()"></span>
+        </span>
+
+        @if (repayments().length > 0) {
+          <button type="button" class="section__toggle" (click)="historyOpen.set(!historyOpen())" [attr.aria-expanded]="historyOpen()">
+            <mat-icon>history</mat-icon>
+            Remboursements ({{ repayments().length }})
+            <mat-icon class="section__chevron">{{ historyOpen() ? 'expand_less' : 'expand_more' }}</mat-icon>
+          </button>
+          @if (historyOpen()) {
+            <ul class="history">
+              @for (r of repayments(); track r.id) {
+                <li>
+                  <span class="history__amount">{{ formatFcfa(r.amount) }}</span>
+                  <span class="history__meta">
+                    {{ fromIsoDate(r.paymentDate) | date: 'd MMM yyyy' }} · {{ operatorLabels[r.operator] }} · réf.
+                    {{ r.reference }}
+                  </span>
+                </li>
+              }
+            </ul>
+          }
+        } @else {
+          <p class="money__none">Aucun remboursement enregistré.</p>
+        }
+      }
+    </div>
+  }
+
+  <!-- Actions -->
+  @if ((canDecide() && l.status === 'REQUESTED') || (canRepay() && (l.status === 'APPROVED' || l.status === 'IN_PROGRESS'))) {
+    <div class="actions">
+      @if (canDecide() && l.status === 'REQUESTED') {
+        <button mat-button type="button" class="reject" (click)="reject.emit(l)">
+          <mat-icon>block</mat-icon>
+          Rejeter
+        </button>
+        <button mat-flat-button type="button" (click)="approve.emit(l)">
+          <mat-icon>task_alt</mat-icon>
+          Approuver
+        </button>
+      }
+      @if (canRepay() && (l.status === 'APPROVED' || l.status === 'IN_PROGRESS')) {
+        <button mat-flat-button type="button" (click)="emitRepay()" [disabled]="!balance()">
+          <mat-icon>payments</mat-icon>
+          Enregistrer un remboursement
+        </button>
+      }
+    </div>
+  }
+</article>
