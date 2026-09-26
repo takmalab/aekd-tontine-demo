@@ -3,9 +3,9 @@ spring:
     name: tontine-backend
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/aekd_tontine
-    username: aekd
-    password: aekd_dev_password
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/aekd_tontine}
+    username: ${SPRING_DATASOURCE_USERNAME:aekd}
+    password: ${SPRING_DATASOURCE_PASSWORD:aekd_dev_password}
 
   jpa:
     hibernate:
@@ -22,15 +22,13 @@ spring:
       max-request-size: 10MB
 
 server:
-  port: 8080
+  port: ${PORT:8080}
 
 app:
   jwt:
-    # Valeur de developpement uniquement, a definir via la variable d'environnement
-    # APP_JWT_SECRET pour tout environnement partage/production.
     secret: ${APP_JWT_SECRET:dev-only-secret-please-change-me-aekd-tontine-mvp}
     expiration-minutes: ${APP_JWT_EXPIRATION_MINUTES:60}
+
   storage:
     local:
-      # Chemin de stockage local des justificatifs (MVP, CLAUDE.md §16).
       root: ${APP_STORAGE_ROOT:./storage}
