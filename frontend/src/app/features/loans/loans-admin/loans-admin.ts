@@ -39,7 +39,7 @@ export class LoansAdmin implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
 
-  /** Décisions et remboursements : TRESORIER uniquement (pas l'ADMIN). */
+  /** Décisions et remboursements : TRESORIER et ADMIN (docs/decisions.md n° 40). */
   readonly isTreasurer = this.authService.hasRole('TRESORIER');
 
   readonly loading = signal(true);

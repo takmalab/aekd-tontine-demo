@@ -73,13 +73,13 @@ export interface LoanRequest {
   reason: string;
 }
 
-/** Miroir de LoanApprovalRequest (backend) — TRESORIER uniquement. */
+/** Miroir de LoanApprovalRequest (backend) — TRESORIER et ADMIN (décision n° 40). */
 export interface LoanApprovalRequest {
   approvedAmount: number;
   approvedDurationMonths: number;
 }
 
-/** Miroir de LoanRepaymentRequest (backend) — TRESORIER uniquement. */
+/** Miroir de LoanRepaymentRequest (backend) — TRESORIER et ADMIN (décision n° 40). */
 export interface LoanRepaymentRequest {
   amount: number;
   paymentDate: string;

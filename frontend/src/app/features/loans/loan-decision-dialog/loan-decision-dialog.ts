@@ -87,7 +87,7 @@ export class LoanDecisionDialog {
           error.status === 400
             ? "Ce prêt n'est plus en attente de décision, ou les informations sont invalides."
             : error.status === 403
-              ? 'Action réservée au trésorier.'
+              ? "Action réservée au trésorier et à l'administrateur."
               : 'Une erreur est survenue. Vérifiez que le serveur est démarré.',
         );
       },

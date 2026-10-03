@@ -18,7 +18,7 @@ import {
  * Prêts (CLAUDE.md §20-§24). Rôles côté backend :
  * - politiques : lecture ouverte, création/désactivation ADMIN uniquement ;
  * - demande : tout membre ; liste complète : ADMIN et TRESORIER ;
- * - approbation, rejet, saisie d'un remboursement reçu : TRESORIER uniquement ;
+ * - approbation, rejet, saisie d'un remboursement reçu : TRESORIER et ADMIN (décision n° 40) ;
  * - le membre déclare le remboursement de son prêt, validé ensuite par le TRESORIER.
  */
 @Injectable({ providedIn: 'root' })

@@ -41,7 +41,7 @@ export class PendingPayments implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
 
-  /** Validation/rejet : TRESORIER uniquement (pas l'ADMIN). */
+  /** Validation/rejet : TRESORIER et ADMIN (docs/decisions.md n° 40). */
   readonly canDecide = this.authService.hasRole('TRESORIER');
   readonly formatFcfa = formatFcfa;
   readonly fromIsoDate = fromIsoDate;
@@ -220,7 +220,7 @@ export class PendingPayments implements OnInit {
               err.status === 400
                 ? 'Ce paiement a déjà été traité.'
                 : err.status === 403
-                  ? 'Action non autorisée (réservée au trésorier).'
+                  ? "Action non autorisée (réservée au trésorier et à l'administrateur)."
                   : "L'opération a échoué. Vérifiez que le serveur est démarré.";
             this.snackBar.open(message, 'OK', { duration: 6000 });
             if (err.status === 400) {

@@ -18,9 +18,9 @@ import java.util.UUID;
 
 /**
  * CLAUDE.md §6 : "configurer les sanctions" est permis à ADMIN et
- * TRESORIER. L'application/annulation réelle est réservée au TRESORIER
- * uniquement, par analogie avec la validation des paiements (seul rôle
- * explicitement chargé des actions opérationnelles de séance).
+ * TRESORIER. L'application/annulation réelle est réservée au TRESORIER,
+ * par analogie avec la validation des paiements ; l'ADMIN, qui a tous les
+ * droits du TRESORIER, le peut aussi (docs/decisions.md n° 40).
  */
 @RestController
 @RequestMapping("/api/sanctions")

@@ -4,6 +4,7 @@ import cm.aekd.tontine.member.Member;
 import cm.aekd.tontine.member.MemberRepository;
 import cm.aekd.tontine.user.User;
 import cm.aekd.tontine.user.UserRepository;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -17,17 +18,21 @@ import java.util.stream.Collectors;
  * Résout l'utilisateur courant à partir du contexte de sécurité
  * (JwtAuthenticationFilter y place l'email comme principal). Utilisé
  * par les services pour appliquer les règles de visibilité par rôle
- * (CLAUDE.md §6, §11).
+ * (CLAUDE.md §6, §11). Les rôles sont évalués selon la hiérarchie
+ * déclarée dans SecurityConfig (l'ADMIN a les droits du TRESORIER).
  */
 @Component
 public class CurrentUserProvider {
 
     private final UserRepository userRepository;
     private final MemberRepository memberRepository;
+    private final RoleHierarchy roleHierarchy;
 
-    public CurrentUserProvider(UserRepository userRepository, MemberRepository memberRepository) {
+    public CurrentUserProvider(UserRepository userRepository, MemberRepository memberRepository,
+                               RoleHierarchy roleHierarchy) {
         this.userRepository = userRepository;
         this.memberRepository = memberRepository;
+        this.roleHierarchy = roleHierarchy;
     }
 
     public boolean hasAnyRole(String... roles) {
@@ -38,7 +43,7 @@ public class CurrentUserProvider {
         Set<String> wanted = Set.of(roles).stream()
                 .map(role -> "ROLE_" + role)
                 .collect(Collectors.toSet());
-        return authentication.getAuthorities().stream()
+        return roleHierarchy.getReachableGrantedAuthorities(authentication.getAuthorities()).stream()
                 .anyMatch(authority -> wanted.contains(authority.getAuthority()));
     }
 

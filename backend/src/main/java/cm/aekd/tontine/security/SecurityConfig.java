@@ -7,6 +7,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -44,6 +46,19 @@ public class SecurityConfig {
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+    }
+
+    /**
+     * Décision du 2026-10-03 (docs/decisions.md n° 40) : l'ADMIN a tous les droits,
+     * y compris ceux du TRESORIER. Toute règle {@code hasRole('TRESORIER')} accepte
+     * donc aussi l'ADMIN. L'ADMIN ne devient pas MEMBRE pour autant : l'espace
+     * personnel dépend du profil membre, pas du rôle. Bean statique, comme le
+     * recommande Spring Security pour qu'il soit pris en compte par
+     * {@code @EnableMethodSecurity}.
+     */
+    @Bean
+    static RoleHierarchy roleHierarchy() {
+        return RoleHierarchyImpl.fromHierarchy("ROLE_ADMIN > ROLE_TRESORIER");
     }
 
     @Bean

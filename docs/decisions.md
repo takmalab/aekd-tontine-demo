@@ -962,3 +962,41 @@ Validée par le propriétaire du projet le 2026-10-03.
   inclut les versements libres validés.
 * Interface : pages « Mon épargne » (membre) et « Épargnes » (ADMIN, TRESORIER).
 
+---
+
+# 40. L'administrateur a tous les droits
+
+## Question
+
+L'administrateur peut-il effectuer les actions réservées au trésorier
+(validation des paiements, décisions de prêt, remboursements, sanctions,
+versements d'épargne) ?
+
+## Statut
+
+```text
+DÉCIDÉ
+```
+
+## Décision
+
+Validée par le propriétaire du projet le 2026-10-03 : l'**ADMIN a tous les
+droits**, y compris ceux du TRESORIER. Cela remplace la répartition initiale de
+CLAUDE.md §6, où l'ADMIN ne faisait que consulter les paiements et les prêts.
+
+* La règle « personne ne valide ni ne décide pour lui-même » reste valable : un
+  administrateur qui est aussi membre ne valide pas ses propres paiements,
+  remboursements ou versements d'épargne.
+* L'ADMIN ne devient pas MEMBRE : « Mes cotisations », « Mes prêts » et « Mon
+  épargne » restent liés à l'existence d'un profil membre.
+* Le TRESORIER ne gagne aucun droit d'ADMIN (utilisateurs, journal d'audit,
+  politiques de prêt…).
+
+## Conséquence technique
+
+* Backend : hiérarchie de rôles Spring Security `ROLE_ADMIN > ROLE_TRESORIER`
+  (`SecurityConfig.roleHierarchy`), appliquée aux `@PreAuthorize` et à
+  `CurrentUserProvider.hasAnyRole`. Toute future règle « TRESORIER » inclut
+  automatiquement l'ADMIN.
+* Frontend : même hiérarchie dans `AuthService.hasRole` / `hasAnyRole`.
+

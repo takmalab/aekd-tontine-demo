@@ -12,6 +12,19 @@ import {
 } from '../models/auth.model';
 
 const TOKEN_KEY = 'aekd_token';
+
+/**
+ * Hiérarchie des rôles, miroir de SecurityConfig.roleHierarchy (backend) :
+ * l'ADMIN a tous les droits du TRESORIER (docs/decisions.md n° 40). Il ne
+ * devient pas MEMBRE : l'espace personnel dépend du profil membre.
+ */
+const IMPLIED_ROLES: Partial<Record<RoleName, RoleName[]>> = {
+  ADMIN: ['TRESORIER'],
+};
+
+function effectiveRoles(roles: RoleName[]): Set<RoleName> {
+  return new Set(roles.flatMap((role) => [role, ...(IMPLIED_ROLES[role] ?? [])]));
+}
 const USER_KEY = 'aekd_user';
 
 @Injectable({ providedIn: 'root' })
@@ -44,7 +57,8 @@ export class AuthService {
   }
 
   hasRole(role: RoleName): boolean {
-    return this.currentUserSignal()?.roles.includes(role) ?? false;
+    const current = this.currentUserSignal();
+    return current ? effectiveRoles(current.roles).has(role) : false;
   }
 
   hasAnyRole(roles: RoleName[]): boolean {
@@ -52,7 +66,8 @@ export class AuthService {
     if (!current) {
       return false;
     }
-    return roles.some((role) => current.roles.includes(role));
+    const effective = effectiveRoles(current.roles);
+    return roles.some((role) => effective.has(role));
   }
 
   private setSession(response: LoginResponse): void {

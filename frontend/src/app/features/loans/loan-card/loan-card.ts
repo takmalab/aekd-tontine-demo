@@ -43,9 +43,9 @@ export class LoanCard {
   readonly loan = input.required<Loan>();
   /** Affiche le nom du membre (vue trésorier/admin). */
   readonly showMember = input(false);
-  /** Approuver / rejeter (TRESORIER uniquement). */
+  /** Approuver / rejeter (TRESORIER et ADMIN (décision n° 40)). */
   readonly canDecide = input(false);
-  /** Enregistrer un remboursement reçu (TRESORIER uniquement). */
+  /** Enregistrer un remboursement reçu (TRESORIER et ADMIN (décision n° 40)). */
   readonly canRepay = input(false);
   /**
    * Vue du membre emprunteur : bouton « Rembourser » (déclaration en attente de

@@ -38,7 +38,7 @@ interface CandidatesState {
 /**
  * Sanctions, vue ADMIN et TRESORIER (CLAUDE.md §18-§19), par cotisation :
  * règles (création ADMIN + TRESORIER, cotisation obligatoire uniquement),
- * candidats et application / annulation (TRESORIER uniquement), sanctions appliquées.
+ * candidats et application / annulation (TRESORIER et ADMIN (décision n° 40)), sanctions appliquées.
  */
 @Component({
   selector: 'app-staff-sanctions',
@@ -66,7 +66,7 @@ export class StaffSanctions implements OnInit {
   /** Paramètre de requête `?contribution=<id>` (lien depuis le détail d'une cotisation). */
   readonly contribution = input<string | undefined>();
 
-  /** Candidats, application et annulation : TRESORIER uniquement (pas l'ADMIN). */
+  /** Candidats, application et annulation : TRESORIER et ADMIN (docs/decisions.md n° 40). */
   readonly isTreasurer = this.authService.hasRole('TRESORIER');
   readonly typeLabels = SANCTION_TYPE_LABELS;
   readonly statusLabels = APPLIED_STATUS_LABELS;

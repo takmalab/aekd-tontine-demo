@@ -53,12 +53,12 @@ export class PaymentService {
     return this.http.get<ContributionTransaction[]>(`${this.baseUrl}/payments/pending`);
   }
 
-  /** TRESORIER uniquement (l'ADMIN ne fait que consulter — CLAUDE.md §6). */
+  /** TRESORIER et ADMIN (docs/decisions.md n° 40). */
   validate(id: string): Observable<ContributionTransaction> {
     return this.http.put<ContributionTransaction>(`${this.baseUrl}/payments/${id}/validate`, {});
   }
 
-  /** TRESORIER uniquement. */
+  /** TRESORIER et ADMIN (décision n° 40). */
   reject(id: string): Observable<ContributionTransaction> {
     return this.http.put<ContributionTransaction>(`${this.baseUrl}/payments/${id}/reject`, {});
   }

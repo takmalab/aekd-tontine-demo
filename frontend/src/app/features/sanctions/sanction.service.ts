@@ -7,7 +7,7 @@ import { AppliedSanction, SanctionCandidate, SanctionRule, SanctionRuleRequest }
 /**
  * Sanctions (CLAUDE.md §18-§19). Rôles côté backend :
  * - règles : lecture et création ADMIN + TRESORIER (uniquement sur une cotisation obligatoire) ;
- * - candidats, application, annulation : TRESORIER uniquement ;
+ * - candidats, application, annulation : TRESORIER et ADMIN (décision n° 40) ;
  * - sanctions appliquées : toutes pour ADMIN + TRESORIER, les siennes pour un membre.
  */
 @Injectable({ providedIn: 'root' })

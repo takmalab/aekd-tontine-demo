@@ -62,7 +62,7 @@ export class SavingsAdmin implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
 
-  /** Validation / rejet : TRESORIER uniquement. */
+  /** Validation / rejet : TRESORIER et ADMIN (décision n° 40). */
   readonly canDecide = this.authService.hasRole('TRESORIER');
   readonly formatFcfa = formatFcfa;
   readonly fromIsoDate = fromIsoDate;
