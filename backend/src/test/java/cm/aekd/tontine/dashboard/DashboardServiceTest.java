@@ -14,6 +14,14 @@ import cm.aekd.tontine.contribution.MemberRefRequest;
 import cm.aekd.tontine.contribution.PaymentOperator;
 import cm.aekd.tontine.contribution.PaymentService;
 import cm.aekd.tontine.contribution.Visibility;
+import cm.aekd.tontine.loan.LoanApprovalRequest;
+import cm.aekd.tontine.loan.LoanPolicyRequest;
+import cm.aekd.tontine.loan.LoanPolicyService;
+import cm.aekd.tontine.loan.LoanRequest;
+import cm.aekd.tontine.loan.LoanResponse;
+import cm.aekd.tontine.loan.LoanService;
+import cm.aekd.tontine.repayment.LoanRepaymentRequest;
+import cm.aekd.tontine.repayment.LoanRepaymentService;
 import cm.aekd.tontine.member.Member;
 import cm.aekd.tontine.member.MemberRepository;
 import cm.aekd.tontine.security.RoleName;
@@ -57,6 +65,15 @@ class DashboardServiceTest {
 
     @Autowired
     private DashboardService dashboardService;
+
+    @Autowired
+    private LoanPolicyService policyService;
+
+    @Autowired
+    private LoanService loanService;
+
+    @Autowired
+    private LoanRepaymentService repaymentService;
 
     @Autowired
     private RoleRepository roleRepository;
@@ -220,5 +237,71 @@ class DashboardServiceTest {
         assertThat(dashboard.paymentsValidated()).isEqualTo(1);
         assertThat(dashboard.amountCollected()).isEqualByComparingTo(new BigDecimal(15000));
         assertThat(dashboard.tontineFundBalance()).isGreaterThanOrEqualTo(new BigDecimal(15000));
+    }
+
+    @Test
+    void membersOverviewSummarizesEachMember() {
+        Member admin = createMember(RoleName.ADMIN, "dashadmin6");
+        Member treasurer = createMember(RoleName.TRESORIER, "dashtreso6");
+        Member member = createMember(RoleName.MEMBRE, "dashmember6");
+        Member other = createMember(RoleName.MEMBRE, "dashother6");
+
+        Session session = sessionRepository.save(
+                new Session("Séance membres", LocalDate.now().minusDays(1), null, null));
+
+        loginAsMember(treasurer, RoleName.TRESORIER);
+        ContributionDefinitionResponse mandatory = definitionService.create(new ContributionDefinitionRequest(
+                "Obligatoire membres", null, new BigDecimal(10000), AmountMode.FIXED, ContributionFrequency.MONTHLY,
+                true, Visibility.PUBLIC, FundDestination.TONTINE_FUND));
+        definitionService.addParticipant(mandatory.id(), new MemberRefRequest(member.getId()));
+        definitionService.activate(mandatory.id());
+        ContributionPeriodResponse mandatoryPeriod = definitionService.addPeriod(mandatory.id(),
+                new ContributionPeriodRequest(session.getId(), LocalDate.now().plusDays(5)));
+
+        ContributionDefinitionResponse savings = definitionService.create(new ContributionDefinitionRequest(
+                "Épargne membres", null, null, AmountMode.VOLUNTARY, ContributionFrequency.MONTHLY,
+                false, Visibility.PUBLIC, FundDestination.INDIVIDUAL_SAVINGS));
+        definitionService.addParticipant(savings.id(), new MemberRefRequest(member.getId()));
+        definitionService.activate(savings.id());
+        ContributionPeriodResponse savingsPeriod = definitionService.addPeriod(savings.id(),
+                new ContributionPeriodRequest(session.getId(), null));
+
+        loginAsMember(member, RoleName.MEMBRE);
+        var paid = paymentService.declare(mandatory.id(), new ContributionTransactionRequest(
+                mandatoryPeriod.id(), new BigDecimal(10000), PaymentOperator.CASH, "REF-M6", LocalDate.now(), null));
+        var saved = paymentService.declare(savings.id(), new ContributionTransactionRequest(
+                savingsPeriod.id(), new BigDecimal(25000), PaymentOperator.CASH, "REF-S6", LocalDate.now(), null));
+
+        loginAsMember(treasurer, RoleName.TRESORIER);
+        transactionService.validate(paid.id());
+        transactionService.validate(saved.id());
+
+        loginAsMember(admin, RoleName.ADMIN);
+        policyService.create(new LoanPolicyRequest("Politique membres", null, null, null, null, null, null, null, null));
+
+        loginAsMember(member, RoleName.MEMBRE);
+        LoanResponse requested = loanService.request(new LoanRequest(new BigDecimal(100000), 3, "Motif"));
+
+        loginAsMember(treasurer, RoleName.TRESORIER);
+        loanService.approve(requested.id(), new LoanApprovalRequest(new BigDecimal(100000), 3));
+        repaymentService.record(requested.id(),
+                new LoanRepaymentRequest(new BigDecimal(30000), LocalDate.now(), PaymentOperator.CASH, "REMB-M6"));
+
+        MembersOverviewResponse overview = dashboardService.membersOverview();
+        assertThat(overview.currentSession().id()).isEqualTo(session.getId());
+
+        MemberSummaryResponse summary = overview.members().stream()
+                .filter(s -> s.memberId().equals(member.getId())).findFirst().orElseThrow();
+        assertThat(summary.mandatoryContributionsCount()).isEqualTo(1);
+        assertThat(summary.paidContributionsCount()).isEqualTo(1);
+        assertThat(summary.individualSavings()).isEqualByComparingTo(new BigDecimal(25000));
+        assertThat(summary.activeLoansCount()).isEqualTo(1);
+        assertThat(summary.outstandingLoanBalance()).isEqualByComparingTo(new BigDecimal(70000));
+
+        MemberSummaryResponse otherSummary = overview.members().stream()
+                .filter(s -> s.memberId().equals(other.getId())).findFirst().orElseThrow();
+        assertThat(otherSummary.mandatoryContributionsCount()).isZero();
+        assertThat(otherSummary.individualSavings()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(otherSummary.outstandingLoanBalance()).isEqualByComparingTo(BigDecimal.ZERO);
     }
 }

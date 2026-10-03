@@ -8,8 +8,17 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { Member } from '../member.model';
+import { formatFcfa } from '../../../shared/utils/format';
+import { Member, MemberSummary } from '../member.model';
 import { MemberService } from '../member.service';
+
+/**
+ * `data: member` → modification ; `data: { member, readonly: true }` → consultation
+ * seule (« Voir »), avec en option la situation du membre (`summary`).
+ */
+export type MemberEditDialogData =
+  | Member
+  | { member: Member; readonly: true; summary?: MemberSummary | null; sessionLabel?: string | null };
 
 /**
  * Édition d'un membre (CLAUDE.md §6) — réservée à l'ADMIN côté backend
@@ -35,7 +44,13 @@ export class MemberEditDialog {
   private readonly fb = inject(FormBuilder);
   private readonly memberService = inject(MemberService);
   private readonly dialogRef = inject<MatDialogRef<MemberEditDialog, Member>>(MatDialogRef);
-  readonly member = inject<Member>(MAT_DIALOG_DATA);
+  private readonly raw = inject<MemberEditDialogData>(MAT_DIALOG_DATA);
+
+  readonly member: Member = 'readonly' in this.raw ? this.raw.member : this.raw;
+  readonly readonlyMode = 'readonly' in this.raw && this.raw.readonly;
+  readonly summary: MemberSummary | null = 'readonly' in this.raw ? (this.raw.summary ?? null) : null;
+  readonly sessionLabel: string | null = 'readonly' in this.raw ? (this.raw.sessionLabel ?? null) : null;
+  readonly formatFcfa = formatFcfa;
 
   readonly saving = signal(false);
   readonly errorMessage = signal<string | null>(null);
@@ -45,6 +60,12 @@ export class MemberEditDialog {
     phone: [this.member.phone ?? ''],
     active: [this.member.active],
   });
+
+  constructor() {
+    if (this.readonlyMode) {
+      this.form.disable();
+    }
+  }
 
   submit(): void {
     if (this.form.invalid) {

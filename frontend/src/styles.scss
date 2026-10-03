@@ -1,10 +1,19 @@
 // AEKD brand theme.
 //
-// The palette is exclusively:
+// Brand palette:
 //   Orange  #E86E09 — primary + accent
 //   Marron  #AB583A — secondary
 //   Gris    #36353A — text, navigation, structural elements
 // plus neutral (white / warm gray) surfaces.
+//
+// Complementary semantic palette (cards, charts, statuses, filters…), never
+// used for Material system tokens so the brand identity stays orange/brown:
+//   Bleu    #2563EB — information, neutral KPIs, loans
+//   Vert    #16A34A — success, active, paid
+//   Rouge   #DC2626 — danger, suspended, late
+//   Violet  #7C3AED — savings, secondary highlights
+// Each color has a `-dark` (text on soft background, hover) and a `-soft`
+// (tinted background) shade, exposed as `--aekd-<color>[-dark|-soft]`.
 //
 // `mat.theme()` generates the full set of Material 3 system tokens from a tonal
 // palette; since no built-in palette reproduces the exact brand hexes, every
@@ -24,6 +33,20 @@ $gray: #36353a;
 $gray-dark: #2a292d;
 $gray-muted: #6b6a70;
 $surface: #faf8f6;
+
+// Complementary semantic colors (see header).
+$blue: #2563eb;
+$blue-dark: #1d4ed8;
+$blue-soft: #e8effd;
+$green: #16a34a;
+$green-dark: #15803d;
+$green-soft: #e3f5e9;
+$red: #dc2626;
+$red-dark: #b91c1c;
+$red-soft: #fdeaea;
+$violet: #7c3aed;
+$violet-dark: #6d28d9;
+$violet-soft: #f1eafd;
 
 html {
   height: 100%;
@@ -115,6 +138,27 @@ html {
   --aekd-gray-dark: #{$gray-dark};
   --aekd-gray-muted: #{$gray-muted};
   --aekd-surface: #{$surface};
+  --aekd-blue: #{$blue};
+  --aekd-blue-dark: #{$blue-dark};
+  --aekd-blue-soft: #{$blue-soft};
+  --aekd-green: #{$green};
+  --aekd-green-dark: #{$green-dark};
+  --aekd-green-soft: #{$green-soft};
+  --aekd-red: #{$red};
+  --aekd-red-dark: #{$red-dark};
+  --aekd-red-soft: #{$red-soft};
+  --aekd-violet: #{$violet};
+  --aekd-violet-dark: #{$violet-dark};
+  --aekd-violet-soft: #{$violet-soft};
+  // Semantic aliases — prefer these when the meaning matters more than the hue.
+  --aekd-success: var(--aekd-green);
+  --aekd-success-soft: var(--aekd-green-soft);
+  --aekd-info: var(--aekd-blue);
+  --aekd-info-soft: var(--aekd-blue-soft);
+  --aekd-danger: var(--aekd-red);
+  --aekd-danger-soft: var(--aekd-red-soft);
+  --aekd-warning: var(--aekd-orange);
+  --aekd-warning-soft: var(--aekd-orange-soft);
   --aekd-radius: 14px;
   --aekd-shadow: 0 1px 2px rgba(54, 53, 58, 0.06), 0 4px 16px rgba(54, 53, 58, 0.06);
   --aekd-shadow-lg: 0 12px 40px rgba(54, 53, 58, 0.16);

@@ -1,5 +1,6 @@
 package cm.aekd.tontine.dashboard;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -21,5 +22,12 @@ public class DashboardController {
     @GetMapping("/api/dashboard")
     public Object dashboard() {
         return dashboardService.currentDashboard();
+    }
+
+    /** Situation de chaque membre pour la page Membres — même périmètre que `GET /api/members`. */
+    @GetMapping("/api/dashboard/members")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TRESORIER')")
+    public MembersOverviewResponse membersOverview() {
+        return dashboardService.membersOverview();
     }
 }

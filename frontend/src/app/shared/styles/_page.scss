@@ -120,6 +120,32 @@
       background: #ece8e4;
       color: var(--aekd-gray);
     }
+
+    // Variantes sémantiques (palette complémentaire, voir src/styles.scss).
+    &--success {
+      background: var(--aekd-green-soft);
+      color: var(--aekd-green-dark);
+    }
+
+    &--warning {
+      background: var(--aekd-orange-soft);
+      color: var(--aekd-orange-dark);
+    }
+
+    &--danger {
+      background: var(--aekd-red-soft);
+      color: var(--aekd-red-dark);
+    }
+
+    &--info {
+      background: var(--aekd-blue-soft);
+      color: var(--aekd-blue-dark);
+    }
+
+    &--violet {
+      background: var(--aekd-violet-soft);
+      color: var(--aekd-violet-dark);
+    }
   }
 
   .list {

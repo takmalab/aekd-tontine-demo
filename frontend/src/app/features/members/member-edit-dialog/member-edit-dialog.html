@@ -1,13 +1,49 @@
 <div class="head">
   <span class="head__icon"><mat-icon>person</mat-icon></span>
   <div class="head__text">
-    <h2 mat-dialog-title class="head__title">Modifier le membre</h2>
+    <h2 mat-dialog-title class="head__title">{{ readonlyMode ? 'Profil du membre' : 'Modifier le membre' }}</h2>
     <p class="head__subtitle">{{ member.email }}</p>
   </div>
 </div>
 
 <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
   <mat-dialog-content class="body">
+    @if (readonlyMode && summary; as s) {
+      <p class="summary-caption">
+        Cotisations obligatoires — {{ sessionLabel ?? 'aucune séance en cours' }}
+      </p>
+      <div class="summary">
+        <div class="summary__tile summary__tile--green">
+          <mat-icon>task_alt</mat-icon>
+          <span class="summary__value">{{ s.paidContributionsCount }} / {{ s.mandatoryContributionsCount }}</span>
+          <span class="summary__label">Payées</span>
+        </div>
+        <div class="summary__tile" [class.summary__tile--red]="s.lateContributionsCount > 0">
+          <mat-icon>schedule</mat-icon>
+          <span class="summary__value">{{ s.lateContributionsCount }}</span>
+          <span class="summary__label">En retard</span>
+        </div>
+        <div class="summary__tile summary__tile--violet">
+          <mat-icon>savings</mat-icon>
+          <span class="summary__value">{{ formatFcfa(s.individualSavings) }}</span>
+          <span class="summary__label">Épargne</span>
+        </div>
+        <div class="summary__tile summary__tile--blue">
+          <mat-icon>account_balance</mat-icon>
+          <span class="summary__value">{{ formatFcfa(s.outstandingLoanBalance) }}</span>
+          <span class="summary__label">Encours ({{ s.activeLoansCount }} prêt{{ s.activeLoansCount > 1 ? 's' : '' }})</span>
+        </div>
+      </div>
+      @if (s.activeSanctionsCount > 0) {
+        <p class="summary-alert">
+          <mat-icon>gavel</mat-icon>
+          {{ s.activeSanctionsCount }} sanction{{ s.activeSanctionsCount > 1 ? 's' : '' }} appliquée{{
+            s.activeSanctionsCount > 1 ? 's' : ''
+          }}
+        </p>
+      }
+    }
+
     <mat-form-field appearance="outline" class="full">
       <mat-label>Nom complet</mat-label>
       <input matInput formControlName="fullName" />
@@ -38,13 +74,17 @@
   </mat-dialog-content>
 
   <mat-dialog-actions align="end" class="actions">
-    <button mat-button type="button" mat-dialog-close [disabled]="saving()">Annuler</button>
-    <button mat-flat-button type="submit" [disabled]="saving()">
-      @if (saving()) {
-        <mat-spinner diameter="20" />
-      } @else {
-        Enregistrer
-      }
-    </button>
+    @if (readonlyMode) {
+      <button mat-flat-button type="button" mat-dialog-close cdkFocusInitial>Fermer</button>
+    } @else {
+      <button mat-button type="button" mat-dialog-close [disabled]="saving()">Annuler</button>
+      <button mat-flat-button type="submit" [disabled]="saving()">
+        @if (saving()) {
+          <mat-spinner diameter="20" />
+        } @else {
+          Enregistrer
+        }
+      </button>
+    }
   </mat-dialog-actions>
 </form>

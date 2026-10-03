@@ -4,7 +4,17 @@ import { Component, input } from '@angular/core';
  * Variantes disponibles via la classe globale `.status--<variant>`
  * (voir `shared/styles/_page.scss`, incluse globalement dans `src/styles.scss`).
  */
-export type StatusVariant = 'paid' | 'pending' | 'partial' | 'late' | 'not_paid';
+export type StatusVariant =
+  | 'paid'
+  | 'pending'
+  | 'partial'
+  | 'late'
+  | 'not_paid'
+  | 'success'
+  | 'warning'
+  | 'danger'
+  | 'info'
+  | 'violet';
 
 /**
  * Badge de statut réutilisable, pour remplacer les `[class.status--xxx]`

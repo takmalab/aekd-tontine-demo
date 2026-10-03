@@ -1,15 +1,29 @@
 <section class="page">
   <header class="page__header page__header--row">
-    <div>
-      <h1 class="page__title">Membres</h1>
-      <p class="page__subtitle">
-        Membres de l'amicale liés à un compte utilisateur.
-        @if (!isAdmin) {
-          Consultation seule : la modification est réservée à l'administrateur.
-        }
-      </p>
+    <div class="page__heading">
+      <span class="page__icon"><mat-icon>group</mat-icon></span>
+      <div>
+        <h1 class="page__title">Membres</h1>
+        <p class="page__subtitle">
+          Gestion de tous les membres de la tontine
+          @if (currentSession(); as session) {
+            · <span class="session-pill"><mat-icon>event</mat-icon>{{ session.label }}</span>
+          }
+        </p>
+      </div>
     </div>
-    <app-export-menu filename="membres" [rows]="exportRows()" />
+    <div class="header-actions">
+      <button mat-stroked-button type="button" (click)="exportList()" [disabled]="loading() || filtered().length === 0">
+        <mat-icon>download</mat-icon>
+        Exporter
+      </button>
+      @if (isAdmin) {
+        <button mat-flat-button type="button" class="page__action" (click)="createMember()">
+          <mat-icon>add</mat-icon>
+          Nouveau membre
+        </button>
+      }
+    </div>
   </header>
 
   @if (loading()) {
@@ -18,64 +32,440 @@
     <app-page-state state="error" icon="cloud_off" title="Impossible de charger les membres">
       <button mat-stroked-button (click)="load()"><mat-icon>refresh</mat-icon> Réessayer</button>
     </app-page-state>
-  } @else if (members().length === 0) {
-    <app-page-state state="empty" icon="group" title="Aucun membre" />
   } @else {
-    <p class="info">
-      <mat-icon>group</mat-icon>
-      <span>{{ activeCount() }} membre{{ activeCount() > 1 ? 's' : '' }} actif{{ activeCount() > 1 ? 's' : '' }} sur {{ members().length }}.</span>
-    </p>
+    @if (summariesUnavailable()) {
+      <p class="notice-bar" role="status">
+        <mat-icon>info</mat-icon>
+        <span>La situation financière des membres (cotisations, épargne, prêts) est momentanément indisponible.</span>
+        <button type="button" class="link-btn" (click)="load()">Réessayer</button>
+      </p>
+    }
 
-    <div class="toolbar">
-      <app-search-bar label="Rechercher un membre" placeholder="Nom, email, téléphone…" (valueChange)="onSearch($event)" />
-      <mat-form-field appearance="outline" class="sort">
-        <mat-label>Trier par</mat-label>
-        <mat-select [value]="sortBy()" (selectionChange)="onSortChange($event.value)">
-          <mat-option value="name">Nom</mat-option>
-          <mat-option value="joinDate">Date d'adhésion (récent)</mat-option>
-        </mat-select>
-      </mat-form-field>
+    <div class="stats-grid">
+      <app-member-stat-card
+        icon="groups"
+        title="Total des membres"
+        [value]="totalCount()"
+        [hint]="membersWithLoan() + ' avec un prêt en cours'"
+        tone="blue"
+      />
+      <app-member-stat-card
+        icon="verified"
+        title="Membres actifs"
+        [value]="activeCount()"
+        [hint]="percentOf(activeCount()) + ' des membres'"
+        [percent]="ratioOf(activeCount())"
+        tone="green"
+      />
+      <app-member-stat-card
+        icon="hourglass_top"
+        title="Membres en attente"
+        [value]="pendingCount()"
+        [hint]="isAdmin ? percentOf(pendingCount()) + ' des membres' : 'Visible par l’administrateur'"
+        [percent]="ratioOf(pendingCount())"
+        tone="orange"
+      />
+      <app-member-stat-card
+        icon="block"
+        title="Membres suspendus"
+        [value]="suspendedCount()"
+        [hint]="percentOf(suspendedCount()) + ' des membres'"
+        [percent]="ratioOf(suspendedCount())"
+        tone="red"
+      />
     </div>
 
-    @if (filtered().length === 0) {
-      <app-page-state state="empty" icon="search_off" title="Aucun résultat" text="Aucun membre ne correspond à votre recherche." />
-    } @else {
-      <div class="list">
-        @for (m of paged(); track m.id) {
-          <article class="item" [class.item--inactive]="!m.active">
-            <div class="item__main">
-              <div class="item__top">
-                <h3 class="item__name">{{ m.fullName }}</h3>
-                <app-status-badge [variant]="m.active ? 'paid' : 'not_paid'" [label]="m.active ? 'Actif' : 'Inactif'" />
-              </div>
-              <div class="item__meta">
-                <span class="item__due"><mat-icon>mail</mat-icon> {{ m.email }}</span>
-                @if (m.phone) {
-                  <span class="item__due"><mat-icon>call</mat-icon> {{ m.phone }}</span>
-                }
-                <span class="item__due"><mat-icon>event</mat-icon> Adhésion le {{ fromIsoDate(m.joinDate) | date: 'd MMM yyyy' }}</span>
-              </div>
+    <div class="layout">
+      <div class="layout__main">
+        <div class="card table-card" id="members-table">
+          <div class="table-card__head">
+            <div>
+              <h2 class="table-card__title">Liste des membres</h2>
+              <p class="table-card__subtitle">
+                Cotisations obligatoires de
+                {{ currentSession()?.label ?? 'la séance actuelle (aucune séance tenue)' }}
+              </p>
+            </div>
+            <app-search-bar label="Rechercher" placeholder="Nom, téléphone ou e-mail…" (valueChange)="onSearch($event)" />
+          </div>
+
+          <div class="toolbar">
+            <div class="chips" role="tablist" aria-label="Filtrer par statut">
+              @for (f of statusFilters(); track f.value) {
+                <button
+                  type="button"
+                  role="tab"
+                  class="chip-filter"
+                  [class]="'chip-filter chip-filter--' + f.tone"
+                  [class.chip-filter--active]="statusFilter() === f.value"
+                  [attr.aria-selected]="statusFilter() === f.value"
+                  (click)="onStatusFilter(f.value)"
+                >
+                  <span class="chip-filter__dot"></span>
+                  {{ f.label }}
+                  <span class="chip-filter__count">{{ f.count }}</span>
+                </button>
+              }
             </div>
 
-            @if (isAdmin) {
-              <div class="item__actions">
-                <button mat-stroked-button type="button" (click)="edit(m)">
-                  <mat-icon>edit</mat-icon>
-                  Modifier
+            <div class="toolbar__selects">
+              <mat-form-field appearance="outline" class="compact-select" subscriptSizing="dynamic">
+                <mat-icon matPrefix>filter_list</mat-icon>
+                <mat-select
+                  [value]="situationFilter()"
+                  (selectionChange)="onSituationFilter($event.value)"
+                  aria-label="Filtrer par situation"
+                >
+                  <mat-option value="ALL">Toutes situations</mat-option>
+                  <mat-option value="UP_TO_DATE">Cotisations à jour</mat-option>
+                  <mat-option value="LATE">Cotisations en retard</mat-option>
+                  <mat-option value="WITH_LOAN">Avec prêt en cours</mat-option>
+                  <mat-option value="WITH_SANCTION">Avec sanction</mat-option>
+                </mat-select>
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="compact-select" subscriptSizing="dynamic">
+                <mat-icon matPrefix>sort</mat-icon>
+                <mat-select [value]="sort()" (selectionChange)="onSort($event.value)" aria-label="Trier">
+                  <mat-option value="name">Nom (A → Z)</mat-option>
+                  <mat-option value="recent">Plus récents</mat-option>
+                  <mat-option value="savings">Épargne la plus élevée</mat-option>
+                  <mat-option value="loans">Encours de prêt le plus élevé</mat-option>
+                </mat-select>
+              </mat-form-field>
+            </div>
+          </div>
+
+          @if (filtered().length === 0) {
+            <app-page-state state="empty" icon="search_off" title="Aucun résultat" text="Aucun membre ne correspond à ces critères.">
+              @if (hasActiveFilters()) {
+                <button mat-stroked-button type="button" (click)="resetFilters()">
+                  <mat-icon>filter_alt_off</mat-icon> Réinitialiser les filtres
                 </button>
-              </div>
-            }
-          </article>
-        }
+              }
+            </app-page-state>
+          } @else {
+            <div class="table-scroll">
+              <table class="members-table">
+                <thead>
+                  <tr>
+                    <th class="col-avatar"></th>
+                    <th>Membre</th>
+                    <th>Téléphone</th>
+                    <th>Statut</th>
+                    <th>Cotisations</th>
+                    <th class="num">Épargne</th>
+                    <th class="num">Encours prêts</th>
+                    <th class="col-actions">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of paged(); track row.member.id) {
+                    <tr [class.row--suspended]="row.statusUi === 'SUSPENDED'">
+                      <td class="col-avatar">
+                        <span class="avatar" [class]="'avatar avatar--' + row.avatarTone">{{ row.initials }}</span>
+                      </td>
+                      <td>
+                        <div class="cell-name">
+                          <span class="cell-name__main">
+                            {{ row.member.fullName }}
+                            @if (row.summary && row.summary.activeSanctionsCount > 0) {
+                              <span
+                                class="tag tag--red"
+                                [matTooltip]="row.summary.activeSanctionsCount + ' sanction(s) appliquée(s)'"
+                              >
+                                <mat-icon>gavel</mat-icon>{{ row.summary.activeSanctionsCount }}
+                              </span>
+                            }
+                          </span>
+                          <span class="cell-name__sub">
+                            {{ row.member.email }} · depuis {{ fromIsoDate(row.member.joinDate) | date: 'MMM yyyy' }}
+                          </span>
+                        </div>
+                      </td>
+                      <td class="muted nowrap">{{ row.member.phone ?? '—' }}</td>
+                      <td><app-status-badge [variant]="badgeVariant[row.statusUi]" [label]="statusLabels[row.statusUi]" /></td>
+                      <td>
+                        @if (row.contributionState === 'NONE') {
+                          <span class="muted small">{{ row.summary ? 'Aucune' : '—' }}</span>
+                        } @else {
+                          <div class="progress-cell" [class]="'progress-cell progress-cell--' + contributionTone[row.contributionState]">
+                            <span class="progress-cell__label">
+                              {{ row.summary!.paidContributionsCount }} / {{ row.summary!.mandatoryContributionsCount }}
+                              <span class="progress-cell__state">{{ contributionLabels[row.contributionState] }}</span>
+                            </span>
+                            <span class="progress-cell__bar"><span [style.width.%]="contributionPercent(row)"></span></span>
+                          </div>
+                        }
+                      </td>
+                      <td class="num">
+                        <span class="amount amount--violet" [class.amount--zero]="!row.summary?.individualSavings">
+                          {{ row.summary ? formatFcfa(row.summary.individualSavings) : '—' }}
+                        </span>
+                      </td>
+                      <td class="num">
+                        @if (row.summary && row.summary.outstandingLoanBalance > 0) {
+                          <span class="amount amount--blue">{{ formatFcfa(row.summary.outstandingLoanBalance) }}</span>
+                        } @else {
+                          <span class="muted">—</span>
+                        }
+                      </td>
+                      <td class="col-actions">
+                        <div class="row-actions">
+                          <button mat-icon-button type="button" (click)="view(row)" matTooltip="Voir" aria-label="Voir le membre">
+                            <mat-icon>visibility</mat-icon>
+                          </button>
+                          @if (isAdmin) {
+                            <button mat-icon-button type="button" (click)="edit(row)" matTooltip="Modifier" aria-label="Modifier le membre">
+                              <mat-icon>edit</mat-icon>
+                            </button>
+                          }
+                          <app-action-menu [actions]="rowActions(row)" (selected)="onRowAction($event, row)" />
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+
+            <div class="member-cards">
+              @for (row of paged(); track row.member.id) {
+                <article class="member-card" [class]="'member-card member-card--' + statusTone(row.statusUi)">
+                  <div class="member-card__top">
+                    <span class="avatar" [class]="'avatar avatar--' + row.avatarTone">{{ row.initials }}</span>
+                    <div class="member-card__id">
+                      <span class="member-card__name">{{ row.member.fullName }}</span>
+                      <span class="member-card__sub">{{ row.member.phone ?? row.member.email }}</span>
+                    </div>
+                    <app-status-badge [variant]="badgeVariant[row.statusUi]" [label]="statusLabels[row.statusUi]" />
+                  </div>
+                  <div class="member-card__stats">
+                    <div class="mini mini--violet">
+                      <mat-icon>savings</mat-icon>
+                      <span>{{ row.summary ? formatFcfa(row.summary.individualSavings) : '—' }}</span>
+                    </div>
+                    <div class="mini mini--blue">
+                      <mat-icon>account_balance</mat-icon>
+                      <span>{{ row.summary ? formatFcfa(row.summary.outstandingLoanBalance) : '—' }}</span>
+                    </div>
+                    @if (row.summary && row.summary.activeSanctionsCount > 0) {
+                      <div class="mini mini--red">
+                        <mat-icon>gavel</mat-icon>
+                        <span>{{ row.summary.activeSanctionsCount }} sanction{{ row.summary.activeSanctionsCount > 1 ? 's' : '' }}</span>
+                      </div>
+                    }
+                  </div>
+                  @if (row.contributionState !== 'NONE') {
+                    <div class="progress-cell" [class]="'progress-cell progress-cell--' + contributionTone[row.contributionState]">
+                      <span class="progress-cell__label">
+                        Cotisations {{ row.summary!.paidContributionsCount }} / {{ row.summary!.mandatoryContributionsCount }}
+                        <span class="progress-cell__state">{{ contributionLabels[row.contributionState] }}</span>
+                      </span>
+                      <span class="progress-cell__bar"><span [style.width.%]="contributionPercent(row)"></span></span>
+                    </div>
+                  }
+                  <div class="member-card__actions">
+                    <button mat-stroked-button type="button" (click)="view(row)">
+                      <mat-icon>visibility</mat-icon>
+                      Voir
+                    </button>
+                    @if (isAdmin) {
+                      <button mat-stroked-button type="button" (click)="edit(row)">
+                        <mat-icon>edit</mat-icon>
+                        Modifier
+                      </button>
+                    }
+                    <app-action-menu [actions]="rowActions(row)" (selected)="onRowAction($event, row)" />
+                  </div>
+                </article>
+              }
+            </div>
+
+            <div class="table-footer">
+              <span class="table-footer__summary">{{ rangeLabel() }}</span>
+              @if (pageCountValue() > 1) {
+                <div class="pager">
+                  <button
+                    mat-icon-button
+                    type="button"
+                    [disabled]="pageIndex() === 0"
+                    (click)="pageIndex.set(pageIndex() - 1)"
+                    aria-label="Page précédente"
+                  >
+                    <mat-icon>chevron_left</mat-icon>
+                  </button>
+                  @for (n of pageNumbers(); track n) {
+                    <button type="button" class="pager__num" [class.pager__num--active]="n === pageIndex()" (click)="pageIndex.set(n)">
+                      {{ n + 1 }}
+                    </button>
+                  }
+                  <button
+                    mat-icon-button
+                    type="button"
+                    [disabled]="pageIndex() >= pageCountValue() - 1"
+                    (click)="pageIndex.set(pageIndex() + 1)"
+                    aria-label="Page suivante"
+                  >
+                    <mat-icon>chevron_right</mat-icon>
+                  </button>
+                </div>
+              }
+            </div>
+          }
+        </div>
       </div>
 
-      <app-pagination
-        [total]="filtered().length"
-        [pageIndex]="pageIndex()"
-        [pageSize]="pageSize()"
-        (pageIndexChange)="pageIndex.set($event)"
-        (pageSizeChange)="pageSize.set($event); pageIndex.set(0)"
-      />
-    }
+      <aside class="layout__side">
+        <div class="card side-card">
+          <h2 class="side-card__title">Répartition par statut</h2>
+          <div class="donut-wrap">
+            <svg viewBox="0 0 120 120" class="donut" role="img" [attr.aria-label]="totalCount() + ' membres'">
+              <g class="donut__arcs">
+                <circle class="donut__track" cx="60" cy="60" r="54" />
+                @for (arc of donutArcs(); track $index) {
+                  <circle
+                    [attr.class]="'donut__arc donut__arc--' + arc.tone"
+                    cx="60"
+                    cy="60"
+                    r="54"
+                    [attr.stroke-dasharray]="arc.dashArray"
+                    [attr.stroke-dashoffset]="arc.dashOffset"
+                  />
+                }
+              </g>
+              <text x="60" y="58" text-anchor="middle" class="donut__value">{{ totalCount() }}</text>
+              <text x="60" y="75" text-anchor="middle" class="donut__label">membres</text>
+            </svg>
+            <ul class="legend">
+              @for (f of statusFilters().slice(1); track f.value) {
+                <li>
+                  <button type="button" class="legend__btn" (click)="onStatusFilter(f.value)">
+                    <span class="dot" [class]="'dot dot--' + f.tone"></span>
+                    <span class="legend__label">{{ f.label }}</span>
+                    <strong>{{ f.count }}</strong>
+                    <span class="muted small">{{ percentOf(f.count) }}</span>
+                  </button>
+                </li>
+              }
+            </ul>
+          </div>
+        </div>
+
+        @if (!summariesUnavailable()) {
+          <div class="card side-card">
+            <h2 class="side-card__title">Situation financière</h2>
+            <div class="fin-tiles">
+              <div class="fin-tile fin-tile--violet">
+                <mat-icon>savings</mat-icon>
+                <span class="fin-tile__label">Épargne totale</span>
+                <span class="fin-tile__value">{{ formatFcfa(totalSavings()) }}</span>
+              </div>
+              <button type="button" class="fin-tile fin-tile--blue" (click)="showSituation('WITH_LOAN')">
+                <mat-icon>account_balance</mat-icon>
+                <span class="fin-tile__label">Encours des prêts</span>
+                <span class="fin-tile__value">{{ formatFcfa(totalOutstanding()) }}</span>
+              </button>
+            </div>
+
+            <h3 class="side-card__subtitle">Cotisations de la séance</h3>
+            @if (contributionStack().total === 0) {
+              <p class="muted small">Aucune cotisation obligatoire pour la séance actuelle.</p>
+            } @else {
+              <div class="stack" role="img" aria-label="Répartition des cotisations obligatoires">
+                @for (seg of contributionStack().segments; track seg.label) {
+                  @if (seg.count > 0) {
+                    <span
+                      [class]="'stack__seg stack__seg--' + seg.tone"
+                      [style.width.%]="seg.percent"
+                      [matTooltip]="seg.label + ' : ' + seg.count"
+                    ></span>
+                  }
+                }
+              </div>
+              <ul class="legend legend--grid">
+                @for (seg of contributionStack().segments; track seg.label) {
+                  <li>
+                    <span class="dot" [class]="'dot dot--' + seg.tone"></span>
+                    <span class="legend__label">{{ seg.label }}</span>
+                    <strong>{{ seg.count }}</strong>
+                  </li>
+                }
+              </ul>
+              <div class="situation-links">
+                <button type="button" class="situation-link situation-link--green" (click)="showSituation('UP_TO_DATE')">
+                  <mat-icon>check_circle</mat-icon>
+                  {{ upToDateCount() }} / {{ concernedCount() }} membres à jour
+                </button>
+                <button
+                  type="button"
+                  class="situation-link situation-link--red"
+                  [disabled]="lateCount() === 0"
+                  (click)="showSituation('LATE')"
+                >
+                  <mat-icon>warning</mat-icon>
+                  {{ lateCount() }} membre{{ lateCount() > 1 ? 's' : '' }} en retard
+                </button>
+                @if (membersWithSanction() > 0) {
+                  <button type="button" class="situation-link situation-link--orange" (click)="showSituation('WITH_SANCTION')">
+                    <mat-icon>gavel</mat-icon>
+                    {{ membersWithSanction() }} membre{{ membersWithSanction() > 1 ? 's' : '' }} sanctionné{{
+                      membersWithSanction() > 1 ? 's' : ''
+                    }}
+                  </button>
+                }
+              </div>
+            }
+          </div>
+        }
+
+        <div class="card side-card">
+          <h2 class="side-card__title">Actions rapides</h2>
+          <div class="quick-actions">
+            @if (isAdmin) {
+              <button type="button" class="quick-action quick-action--green" (click)="createMember()">
+                <mat-icon>person_add</mat-icon>
+                <span>Ajouter un membre</span>
+              </button>
+            }
+            <button type="button" class="quick-action quick-action--orange" (click)="navigate('/payments')">
+              <mat-icon>pending_actions</mat-icon>
+              <span>Paiements en attente</span>
+            </button>
+            <button type="button" class="quick-action quick-action--blue" (click)="navigate('/loans')">
+              <mat-icon>account_balance</mat-icon>
+              <span>Gérer les prêts</span>
+            </button>
+            <button type="button" class="quick-action quick-action--violet" (click)="exportList()">
+              <mat-icon>download</mat-icon>
+              <span>Exporter la liste</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="card side-card">
+          <div class="side-card__head">
+            <h2 class="side-card__title">Derniers inscrits</h2>
+            <button type="button" class="link-btn" (click)="goToTable()">
+              Voir tout
+              <mat-icon>arrow_forward</mat-icon>
+            </button>
+          </div>
+          <ul class="recent-list">
+            @for (row of recentMembers(); track row.member.id) {
+              <li>
+                <button type="button" class="recent-list__btn" (click)="view(row)">
+                  <span class="avatar avatar--sm" [class]="'avatar avatar--sm avatar--' + row.avatarTone">{{ row.initials }}</span>
+                  <span class="recent-list__body">
+                    <span class="recent-list__name">{{ row.member.fullName }}</span>
+                    <span class="recent-list__date">Inscrit le {{ fromIsoDate(row.member.joinDate) | date: 'd MMM yyyy' }}</span>
+                  </span>
+                  <app-status-badge [variant]="badgeVariant[row.statusUi]" [label]="statusLabels[row.statusUi]" />
+                </button>
+              </li>
+            }
+          </ul>
+        </div>
+      </aside>
+    </div>
   }
 </section>

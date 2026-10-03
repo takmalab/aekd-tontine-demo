@@ -12,6 +12,7 @@ import cm.aekd.tontine.contribution.ContributionTransaction;
 import cm.aekd.tontine.contribution.ContributionTransactionRepository;
 import cm.aekd.tontine.contribution.ContributionTransactionStatus;
 import cm.aekd.tontine.fund.FundService;
+import cm.aekd.tontine.loan.Loan;
 import cm.aekd.tontine.loan.LoanRepository;
 import cm.aekd.tontine.loan.LoanStatus;
 import cm.aekd.tontine.member.MemberRepository;
@@ -137,18 +138,77 @@ public class DashboardService {
                         "Aucun profil membre associé à ce compte"));
 
         Session currentSession = currentSession().orElse(null);
-        List<ContributionPeriod> myPeriods = activePeriodsOf(currentSession).stream()
-                .filter(period -> participantRepository.existsByContributionDefinitionIdAndMemberId(
-                        period.getContributionDefinition().getId(), memberId))
+        ContributionCounts counts = contributionCountsOf(activePeriodsOf(currentSession), memberId);
+
+        return new MemberDashboardResponse(
+                currentSession != null ? SessionSummaryResponse.from(currentSession) : null,
+                counts.mandatory(),
+                counts.paid(),
+                counts.pending(),
+                counts.late(),
+                counts.optional(),
+                fundService.individualSavingsOf(memberId),
+                loanRepository.countByMemberIdAndStatusIn(memberId, IN_PROGRESS_STATUSES),
+                loanRepository.countByMemberIdAndStatusIn(memberId, List.of(LoanStatus.REQUESTED)),
+                loanRepaymentRepository.sumAmountByLoanMemberId(memberId),
+                appliedSanctionRepository.countByMemberIdAndStatus(memberId, AppliedSanctionStatus.APPLIED)
+        );
+    }
+
+    /**
+     * Situation de chaque membre (page Membres, ADMIN/TRESORIER) : cotisations
+     * obligatoires de la séance actuelle, épargne validée, encours de prêts et
+     * sanctions appliquées. Agrégé à la volée comme le reste du tableau de bord.
+     */
+    public MembersOverviewResponse membersOverview() {
+        Session currentSession = currentSession().orElse(null);
+        List<ContributionPeriod> activePeriods = activePeriodsOf(currentSession);
+
+        List<MemberSummaryResponse> summaries = memberRepository.findAll().stream()
+                .map(member -> {
+                    UUID memberId = member.getId();
+                    ContributionCounts counts = contributionCountsOf(activePeriods, memberId);
+                    List<Loan> activeLoans = loanRepository.findByMemberId(memberId).stream()
+                            .filter(loan -> IN_PROGRESS_STATUSES.contains(loan.getStatus()))
+                            .toList();
+                    BigDecimal outstanding = activeLoans.stream()
+                            .map(this::remainingBalance)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+                    return new MemberSummaryResponse(
+                            memberId,
+                            counts.mandatory(),
+                            counts.paid(),
+                            counts.pending(),
+                            counts.late(),
+                            fundService.individualSavingsOf(memberId),
+                            activeLoans.size(),
+                            outstanding,
+                            appliedSanctionRepository.countByMemberIdAndStatus(memberId, AppliedSanctionStatus.APPLIED)
+                    );
+                })
                 .toList();
 
+        return new MembersOverviewResponse(
+                currentSession != null ? SessionSummaryResponse.from(currentSession) : null,
+                summaries);
+    }
+
+    private record ContributionCounts(long mandatory, long paid, long pending, long late, long optional) {
+    }
+
+    /** Compte, parmi les périodes données, celles auxquelles le membre participe, par statut. */
+    private ContributionCounts contributionCountsOf(List<ContributionPeriod> periods, UUID memberId) {
         long mandatoryCount = 0;
         long paidCount = 0;
         long pendingCount = 0;
         long lateCount = 0;
         long optionalCount = 0;
 
-        for (ContributionPeriod period : myPeriods) {
+        for (ContributionPeriod period : periods) {
+            if (!participantRepository.existsByContributionDefinitionIdAndMemberId(
+                    period.getContributionDefinition().getId(), memberId)) {
+                continue;
+            }
             if (period.getContributionDefinition().isMandatory()) {
                 mandatoryCount++;
                 ContributionPeriodStatus status = periodStatusService.resolve(period, memberId);
@@ -159,20 +219,15 @@ public class DashboardService {
                 optionalCount++;
             }
         }
+        return new ContributionCounts(mandatoryCount, paidCount, pendingCount, lateCount, optionalCount);
+    }
 
-        return new MemberDashboardResponse(
-                currentSession != null ? SessionSummaryResponse.from(currentSession) : null,
-                mandatoryCount,
-                paidCount,
-                pendingCount,
-                lateCount,
-                optionalCount,
-                fundService.individualSavingsOf(memberId),
-                loanRepository.countByMemberIdAndStatusIn(memberId, IN_PROGRESS_STATUSES),
-                loanRepository.countByMemberIdAndStatusIn(memberId, List.of(LoanStatus.REQUESTED)),
-                loanRepaymentRepository.sumAmountByLoanMemberId(memberId),
-                appliedSanctionRepository.countByMemberIdAndStatus(memberId, AppliedSanctionStatus.APPLIED)
-        );
+    /** Même calcul que LoanRepaymentService : principal approuvé moins remboursements. */
+    private BigDecimal remainingBalance(Loan loan) {
+        if (loan.getApprovedAmount() == null) {
+            return BigDecimal.ZERO;
+        }
+        return loan.getApprovedAmount().subtract(loanRepaymentRepository.sumAmountByLoanId(loan.getId()));
     }
 
     private Optional<Session> currentSession() {

@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { Member, MemberUpdateRequest } from './member.model';
+import { Member, MemberUpdateRequest, MembersOverview } from './member.model';
 
 /**
  * Gestion des membres (CLAUDE.md §6). `/api/members` (liste, détail) et la
@@ -21,6 +21,11 @@ export class MemberService {
   /** Profil membre de l'utilisateur connecté (ouvert à tout utilisateur ayant un profil membre). */
   mine(): Observable<Member> {
     return this.http.get<Member>(`${environment.apiUrl}/members/mine`);
+  }
+
+  /** Situation de chaque membre (cotisations de la séance actuelle, épargne, prêts, sanctions) — ADMIN/TRESORIER. */
+  overview(): Observable<MembersOverview> {
+    return this.http.get<MembersOverview>(`${environment.apiUrl}/dashboard/members`);
   }
 
   update(id: string, request: MemberUpdateRequest): Observable<Member> {
