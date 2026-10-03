@@ -3,9 +3,8 @@
   <div class="head__text">
     <h2 mat-dialog-title class="head__title">Justificatif</h2>
     <p class="head__subtitle">
-      {{ transaction.memberFullName }} · {{ transaction.contributionDefinitionName }} ·
-      {{ formatFcfa(transaction.amount) }} · {{ operatorLabels[transaction.operator] }} · réf.
-      {{ transaction.transactionReference }}
+      {{ subject.member }} · {{ subject.label }} · {{ formatFcfa(subject.amount) }} ·
+      {{ operatorLabels[subject.operator] }} · réf. {{ subject.reference }}
     </p>
   </div>
 </div>
@@ -31,7 +30,7 @@
       <div class="viewer__center">
         <mat-icon class="viewer__icon">image_not_supported</mat-icon>
         <p class="viewer__title">Aucun justificatif joint</p>
-        <p>Le membre n'a pas transmis de justificatif pour ce paiement.</p>
+        <p>Le membre n'a pas transmis de justificatif pour ce {{ noun }}.</p>
       </div>
     }
     @case ('error') {

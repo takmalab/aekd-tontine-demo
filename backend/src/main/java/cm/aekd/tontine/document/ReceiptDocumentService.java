@@ -8,6 +8,7 @@ import cm.aekd.tontine.contribution.ContributionTransactionStatus;
 import cm.aekd.tontine.loan.Loan;
 import cm.aekd.tontine.repayment.LoanRepayment;
 import cm.aekd.tontine.repayment.LoanRepaymentRepository;
+import cm.aekd.tontine.repayment.LoanRepaymentStatus;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -97,9 +98,14 @@ public class ReceiptDocumentService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Remboursement introuvable"));
         Loan loan = repayment.getLoan();
         access.checkStaffOrMember(loan.getMember().getId(), "Remboursement introuvable");
+        if (repayment.getStatus() != LoanRepaymentStatus.VALIDATED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Un reçu n'est disponible que pour un remboursement validé.");
+        }
 
-        // Situation du prêt juste après ce remboursement (remboursements antérieurs ou égaux).
+        // Situation du prêt juste après ce remboursement (remboursements validés antérieurs ou égaux).
         List<LoanRepayment> history = repaymentRepository.findByLoanId(loan.getId()).stream()
+                .filter(r -> r.getStatus() == LoanRepaymentStatus.VALIDATED)
                 .sorted(Comparator.comparing(LoanRepayment::getCreatedAt))
                 .toList();
         BigDecimal repaidSoFar = BigDecimal.ZERO;

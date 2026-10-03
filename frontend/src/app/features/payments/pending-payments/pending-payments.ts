@@ -1,6 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { forkJoin } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
@@ -13,13 +14,16 @@ import { ExportMenu } from '../../../shared/components/export-menu/export-menu';
 import { formatFcfa, fromIsoDate } from '../../../shared/utils/format';
 import { ContributionTransaction, PAYMENT_OPERATOR_LABELS } from '../../contributions/contribution.model';
 import { PaymentService } from '../payment.service';
+import { LoanRepayment } from '../../loans/loan.model';
+import { LoanService } from '../../loans/loan.service';
 import { ProofViewerDialog } from '../proof-viewer-dialog/proof-viewer-dialog';
 
 type Decision = 'validate' | 'reject';
 
 /**
- * Paiements en attente (CLAUDE.md §33 étapes 6-7). Consultables par ADMIN et
- * TRESORIER ; seul le TRESORIER peut valider ou rejeter (§6 — l'ADMIN consulte).
+ * Paiements de cotisations (CLAUDE.md §33 étapes 6-7) et remboursements de prêts
+ * (docs/decisions.md n° 38) déclarés par les membres, en attente. Consultables par
+ * ADMIN et TRESORIER ; seul le TRESORIER peut valider ou rejeter (§6).
  */
 @Component({
   selector: 'app-pending-payments',
@@ -29,6 +33,7 @@ type Decision = 'validate' | 'reject';
 })
 export class PendingPayments implements OnInit {
   private readonly paymentService = inject(PaymentService);
+  private readonly loanService = inject(LoanService);
   private readonly authService = inject(AuthService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
@@ -42,9 +47,11 @@ export class PendingPayments implements OnInit {
   readonly loading = signal(true);
   readonly error = signal(false);
   readonly payments = signal<ContributionTransaction[]>([]);
+  readonly repayments = signal<LoanRepayment[]>([]);
   readonly busyId = signal<string | null>(null);
 
   readonly total = computed(() => this.payments().reduce((sum, p) => sum + p.amount, 0));
+  readonly repaymentsTotal = computed(() => this.repayments().reduce((sum, r) => sum + r.amount, 0));
 
   private readonly documents = inject(DocumentService);
 
@@ -67,10 +74,11 @@ export class PendingPayments implements OnInit {
   load(): void {
     this.loading.set(true);
     this.error.set(false);
-    this.paymentService.pending().subscribe({
-      next: (payments) => {
+    forkJoin({ payments: this.paymentService.pending(), repayments: this.loanService.pendingRepayments() }).subscribe({
+      next: ({ payments, repayments }) => {
         // Les plus anciennes déclarations d'abord.
         this.payments.set([...payments].sort((a, b) => a.paymentDate.localeCompare(b.paymentDate)));
+        this.repayments.set([...repayments].sort((a, b) => a.paymentDate.localeCompare(b.paymentDate)));
         this.loading.set(false);
       },
       error: () => {
@@ -82,11 +90,79 @@ export class PendingPayments implements OnInit {
 
   viewProof(payment: ContributionTransaction): void {
     this.dialog.open(ProofViewerDialog, {
-      data: payment,
+      data: { transaction: payment },
       width: '760px',
       maxWidth: 'calc(100vw - 24px)',
       autoFocus: false,
     });
+  }
+
+  viewRepaymentProof(repayment: LoanRepayment): void {
+    this.dialog.open(ProofViewerDialog, {
+      data: { repayment },
+      width: '760px',
+      maxWidth: 'calc(100vw - 24px)',
+      autoFocus: false,
+    });
+  }
+
+  /** Seul un remboursement validé réduit le solde du prêt (docs/decisions.md n° 38). */
+  decideRepayment(repayment: LoanRepayment, decision: Decision): void {
+    const amount = formatFcfa(repayment.amount);
+    const data: ConfirmDialogData =
+      decision === 'validate'
+        ? {
+            title: 'Valider ce remboursement ?',
+            message: `${amount} de ${repayment.memberFullName} sera considéré comme encaissé et déduit du solde de son prêt. Cette action est définitive.`,
+            confirmLabel: 'Valider',
+            icon: 'task_alt',
+          }
+        : {
+            title: 'Rejeter ce remboursement ?',
+            message: `Le remboursement de ${amount} déclaré par ${repayment.memberFullName} ne sera pas déduit du solde. Le membre pourra en déclarer un nouveau.`,
+            confirmLabel: 'Rejeter',
+            icon: 'block',
+          };
+    this.dialog
+      .open(ConfirmDialog, { data, width: '440px', maxWidth: 'calc(100vw - 32px)' })
+      .afterClosed()
+      .subscribe((confirmed) => {
+        if (!confirmed) {
+          return;
+        }
+        this.busyId.set(repayment.id);
+        const call =
+          decision === 'validate'
+            ? this.loanService.validateRepayment(repayment.id)
+            : this.loanService.rejectRepayment(repayment.id);
+        call.subscribe({
+          next: () => {
+            this.busyId.set(null);
+            this.repayments.update((list) => list.filter((r) => r.id !== repayment.id));
+            if (decision === 'validate') {
+              this.snackBar
+                .open('Remboursement validé : solde du prêt mis à jour', 'Reçu PDF', { duration: 8000 })
+                .onAction()
+                .subscribe(() => this.documents.repaymentReceipt(repayment.id));
+            } else {
+              this.snackBar.open('Remboursement rejeté', 'OK', { duration: 4000 });
+            }
+          },
+          error: (err: HttpErrorResponse) => {
+            this.busyId.set(null);
+            this.snackBar.open(
+              err.status === 400 || err.status === 403
+                ? err.error?.message || "L'opération a été refusée."
+                : "L'opération a échoué. Vérifiez que le serveur est démarré.",
+              'OK',
+              { duration: 7000 },
+            );
+            if (err.status === 400) {
+              this.load();
+            }
+          },
+        });
+      });
   }
 
   decide(payment: ContributionTransaction, decision: Decision): void {

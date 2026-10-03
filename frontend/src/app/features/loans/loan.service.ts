@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -18,7 +18,8 @@ import {
  * Prêts (CLAUDE.md §20-§24). Rôles côté backend :
  * - politiques : lecture ouverte, création/désactivation ADMIN uniquement ;
  * - demande : tout membre ; liste complète : ADMIN et TRESORIER ;
- * - approbation, rejet, remboursement : TRESORIER uniquement.
+ * - approbation, rejet, saisie d'un remboursement reçu : TRESORIER uniquement ;
+ * - le membre déclare le remboursement de son prêt, validé ensuite par le TRESORIER.
  */
 @Injectable({ providedIn: 'root' })
 export class LoanService {
@@ -88,7 +89,35 @@ export class LoanService {
     return this.http.get<LoanBalance>(`${this.api}/loans/${loanId}/balance`);
   }
 
+  /** Trésorier : remboursement reçu, comptabilisé immédiatement. */
   recordRepayment(loanId: string, request: LoanRepaymentRequest): Observable<LoanRepayment> {
     return this.http.post<LoanRepayment>(`${this.api}/loans/${loanId}/repayments`, request);
+  }
+
+  /** Membre : déclare un remboursement de son prêt (en attente de validation). */
+  declareRepayment(loanId: string, request: LoanRepaymentRequest): Observable<LoanRepayment> {
+    return this.http.post<LoanRepayment>(`${this.api}/loans/${loanId}/repayments/declare`, request);
+  }
+
+  pendingRepayments(): Observable<LoanRepayment[]> {
+    return this.http.get<LoanRepayment[]>(`${this.api}/loans/repayments/pending`);
+  }
+
+  validateRepayment(id: string): Observable<LoanRepayment> {
+    return this.http.put<LoanRepayment>(`${this.api}/loans/repayments/${id}/validate`, {});
+  }
+
+  rejectRepayment(id: string): Observable<LoanRepayment> {
+    return this.http.put<LoanRepayment>(`${this.api}/loans/repayments/${id}/reject`, {});
+  }
+
+  uploadRepaymentProof(id: string, file: File): Observable<LoanRepayment> {
+    const body = new FormData();
+    body.append('file', file);
+    return this.http.post<LoanRepayment>(`${this.api}/loans/repayments/${id}/proof`, body);
+  }
+
+  downloadRepaymentProof(id: string): Observable<HttpResponse<Blob>> {
+    return this.http.get(`${this.api}/loans/repayments/${id}/proof`, { observe: 'response', responseType: 'blob' });
   }
 }

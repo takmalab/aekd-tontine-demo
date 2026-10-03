@@ -5,6 +5,7 @@ import cm.aekd.tontine.contribution.ContributionTransactionStatus;
 import cm.aekd.tontine.contribution.FundDestination;
 import cm.aekd.tontine.contribution.PaymentOperator;
 import cm.aekd.tontine.loan.LoanStatus;
+import cm.aekd.tontine.repayment.LoanRepaymentStatus;
 import cm.aekd.tontine.sanction.AppliedSanctionStatus;
 import cm.aekd.tontine.sanction.SanctionType;
 
@@ -124,6 +125,14 @@ public final class DocumentFormat {
             case IN_PROGRESS -> "En remboursement";
             case REJECTED -> "Rejeté";
             case REPAID -> "Remboursé";
+        };
+    }
+
+    public static String repaymentStatus(LoanRepaymentStatus status) {
+        return switch (status) {
+            case PENDING -> "En attente";
+            case VALIDATED -> "Validé";
+            case REJECTED -> "Rejeté";
         };
     }
 

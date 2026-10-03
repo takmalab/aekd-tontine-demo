@@ -59,17 +59,48 @@ public class LoanRepayment {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    private LoanRepaymentStatus status = LoanRepaymentStatus.VALIDATED;
+
+    /** Trésorier ayant validé ou rejeté le remboursement. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "validated_by")
+    private User validatedBy;
+
+    @Column(name = "validated_at")
+    private Instant validatedAt;
+
+    @Column(name = "proof_storage_key", length = 500)
+    private String proofStorageKey;
+
+    @Column(name = "proof_original_filename", length = 255)
+    private String proofOriginalFilename;
+
+    @Column(name = "proof_content_type", length = 100)
+    private String proofContentType;
+
+    @Column(name = "proof_file_size")
+    private Long proofFileSize;
+
     protected LoanRepayment() {
     }
 
+    /** Remboursement saisi par le trésorier : VALIDATED dès sa création. */
     public LoanRepayment(Loan loan, BigDecimal amount, LocalDate paymentDate, PaymentOperator operator,
                           String reference, User recordedBy) {
+        this(loan, amount, paymentDate, operator, reference, recordedBy, LoanRepaymentStatus.VALIDATED);
+    }
+
+    public LoanRepayment(Loan loan, BigDecimal amount, LocalDate paymentDate, PaymentOperator operator,
+                          String reference, User recordedBy, LoanRepaymentStatus status) {
         this.loan = loan;
         this.amount = amount;
         this.paymentDate = paymentDate;
         this.operator = operator;
         this.reference = reference;
         this.recordedBy = recordedBy;
+        this.status = status;
     }
 
     @PrePersist
@@ -107,6 +138,57 @@ public class LoanRepayment {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public LoanRepaymentStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(LoanRepaymentStatus status) {
+        this.status = status;
+    }
+
+    public User getValidatedBy() {
+        return validatedBy;
+    }
+
+    public void setValidatedBy(User validatedBy) {
+        this.validatedBy = validatedBy;
+    }
+
+    public Instant getValidatedAt() {
+        return validatedAt;
+    }
+
+    public void setValidatedAt(Instant validatedAt) {
+        this.validatedAt = validatedAt;
+    }
+
+    public boolean hasProof() {
+        return proofStorageKey != null;
+    }
+
+    public String getProofStorageKey() {
+        return proofStorageKey;
+    }
+
+    public String getProofOriginalFilename() {
+        return proofOriginalFilename;
+    }
+
+    public String getProofContentType() {
+        return proofContentType;
+    }
+
+    public Long getProofFileSize() {
+        return proofFileSize;
+    }
+
+    public void attachProof(String storageKey, String originalFilename, String contentType, long size) {
+        this.proofStorageKey = storageKey;
+        this.proofOriginalFilename = originalFilename;
+        this.proofContentType = contentType;
+        this.proofFileSize = size;
     }
 
     @Override

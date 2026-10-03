@@ -1,7 +1,9 @@
 <div class="head">
   <span class="head__icon"><mat-icon>payments</mat-icon></span>
   <div class="head__text">
-    <h2 mat-dialog-title class="head__title">Enregistrer un remboursement</h2>
+    <h2 mat-dialog-title class="head__title">
+      {{ declaring ? 'Rembourser mon prêt' : 'Enregistrer un remboursement' }}
+    </h2>
     <p class="head__subtitle">
       {{ data.loan.memberFullName }} · prêt de {{ formatFcfa(data.balance.totalAmount) }}
     </p>
@@ -10,6 +12,16 @@
 
 <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
   <mat-dialog-content class="body">
+    @if (declaring) {
+      <p class="info">
+        <mat-icon>info</mat-icon>
+        <span>
+          Effectuez d'abord le versement (Mobile Money, virement, espèces), puis déclarez-le ici. Il sera
+          déduit de votre solde après <strong>validation par le trésorier</strong>. Vous pourrez joindre un
+          justificatif juste après.
+        </span>
+      </p>
+    }
     <div class="figures">
       <div>
         <span class="figures__label">Déjà remboursé</span>
@@ -17,9 +29,16 @@
       </div>
       <div class="figures__remaining">
         <span class="figures__label">Solde restant</span>
-        <span class="figures__value">{{ formatFcfa(remaining) }}</span>
+        <span class="figures__value">{{ formatFcfa(data.balance.remainingBalance) }}</span>
       </div>
     </div>
+    @if (declaring && data.balance.pendingAmount > 0) {
+      <p class="pending-note">
+        <mat-icon>hourglass_top</mat-icon>
+        {{ formatFcfa(data.balance.pendingAmount) }} déjà déclaré(s), en attente de validation : vous pouvez encore
+        déclarer jusqu'à {{ formatFcfa(remaining) }}.
+      </p>
+    }
 
     <mat-form-field appearance="outline" class="full">
       <mat-label>Montant remboursé</mat-label>
@@ -27,7 +46,8 @@
       <span matTextSuffix>FCFA</span>
       <mat-hint>
         @if (remainingAfter() !== null) {
-          Solde après ce remboursement : <strong>{{ formatFcfa(remainingAfter()) }}</strong>
+          Solde après {{ declaring ? 'validation' : 'ce remboursement' }} :
+          <strong>{{ formatFcfa(remainingAfter()) }}</strong>
           @if (remainingAfter() === 0) {
             — le prêt sera soldé
           }
@@ -38,13 +58,13 @@
       @if (form.controls.amount.hasError('required')) {
         <mat-error>Le montant est requis</mat-error>
       } @else if (form.controls.amount.hasError('max')) {
-        <mat-error>Ne peut pas dépasser le solde restant ({{ formatFcfa(remaining) }})</mat-error>
+        <mat-error>Ne peut pas dépasser {{ formatFcfa(remaining) }}</mat-error>
       } @else if (form.controls.amount.invalid) {
         <mat-error>Montant entier strictement positif</mat-error>
       }
     </mat-form-field>
     <button mat-button type="button" class="fill" (click)="fillRemaining()">
-      Solder le prêt ({{ formatFcfa(remaining) }})
+      {{ declaring ? 'Tout rembourser' : 'Solder le prêt' }} ({{ formatFcfa(remaining) }})
     </button>
 
     <p class="label">Moyen de paiement</p>
@@ -63,7 +83,7 @@
 
     <div class="row">
       <mat-form-field appearance="outline">
-        <mat-label>Référence</mat-label>
+        <mat-label>{{ declaring ? 'Référence de la transaction' : 'Référence' }}</mat-label>
         <input matInput formControlName="reference" />
         @if (form.controls.reference.hasError('required')) {
           <mat-error>La référence est requise</mat-error>
@@ -96,7 +116,7 @@
       @if (saving()) {
         <mat-spinner diameter="20" />
       } @else {
-        Enregistrer
+        {{ declaring ? 'Déclarer le remboursement' : 'Enregistrer' }}
       }
     </button>
   </mat-dialog-actions>

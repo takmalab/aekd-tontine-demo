@@ -3,8 +3,8 @@
     <div>
       <h1 class="page__title">Paiements à valider</h1>
       <p class="page__subtitle">
-        Paiements déclarés par les membres, en attente de vérification. Seul un paiement validé est comptabilisé dans
-        les fonds.
+        Paiements de cotisations et remboursements de prêts déclarés par les membres, en attente de vérification.
+        Seule une opération validée est comptabilisée (fonds, solde des prêts).
       </p>
     </div>
     <app-export-menu filename="paiements-en-attente" title="Paiements à valider" [rows]="exportRows()" />
@@ -26,61 +26,123 @@
       <p class="state__text">Vérifiez que le serveur est démarré, puis réessayez.</p>
       <button mat-stroked-button (click)="load()"><mat-icon>refresh</mat-icon> Réessayer</button>
     </div>
-  } @else if (payments().length === 0) {
-    <div class="state state--card">
-      <mat-icon class="state__icon">task_alt</mat-icon>
-      <p class="state__title">Aucun paiement en attente</p>
-      <p class="state__text">Toutes les déclarations ont été traitées.</p>
-    </div>
   } @else {
-    <div class="totals">
-      <span><strong>{{ payments().length }}</strong> paiement{{ payments().length > 1 ? 's' : '' }} en attente</span>
-      <span class="totals__amount">{{ formatFcfa(total()) }}</span>
-    </div>
+    @if (payments().length === 0 && repayments().length === 0) {
+      <div class="state state--card">
+        <mat-icon class="state__icon">task_alt</mat-icon>
+        <p class="state__title">Rien à valider</p>
+        <p class="state__text">Tous les paiements de cotisations et remboursements de prêts déclarés ont été traités.</p>
+      </div>
+    }
 
-    <div class="list">
-      @for (p of payments(); track p.id) {
-        <article class="item item--pending">
-          <div class="item__main">
-            <div class="item__top">
-              <h3 class="item__name">{{ p.memberFullName }}</h3>
-              <span class="status status--tx-pending">En attente</span>
-            </div>
-            <div class="item__meta">
-              <span class="item__amount">{{ formatFcfa(p.amount) }}</span>
-              <span>{{ p.contributionDefinitionName }}</span>
-              <span class="item__due"><mat-icon>event</mat-icon> {{ p.sessionLabel }}</span>
-            </div>
-            <p class="item__tx">
-              <mat-icon>payments</mat-icon>
-              <span>
-                {{ operatorLabels[p.operator] }} · réf. <strong>{{ p.transactionReference }}</strong> · payé le
-                {{ fromIsoDate(p.paymentDate) | date: 'd MMM yyyy' }}
-              </span>
-            </p>
-            @if (p.observation) {
-              <p class="item__obs">« {{ p.observation }} »</p>
-            }
-          </div>
+    @if (payments().length > 0) {
+      <h2 class="section-title"><mat-icon>receipt_long</mat-icon> Cotisations</h2>
+      <div class="totals">
+        <span><strong>{{ payments().length }}</strong> paiement{{ payments().length > 1 ? 's' : '' }} en attente</span>
+        <span class="totals__amount">{{ formatFcfa(total()) }}</span>
+      </div>
 
-          <div class="item__actions">
-            <button mat-stroked-button type="button" (click)="viewProof(p)">
-              <mat-icon>receipt_long</mat-icon>
-              Justificatif
-            </button>
-            @if (canDecide) {
-              <button mat-button type="button" class="reject" (click)="decide(p, 'reject')" [disabled]="busyId() === p.id">
-                <mat-icon>block</mat-icon>
-                Rejeter
+      <div class="list">
+        @for (p of payments(); track p.id) {
+          <article class="item item--pending">
+            <div class="item__main">
+              <div class="item__top">
+                <h3 class="item__name">{{ p.memberFullName }}</h3>
+                <span class="status status--tx-pending">En attente</span>
+              </div>
+              <div class="item__meta">
+                <span class="item__amount">{{ formatFcfa(p.amount) }}</span>
+                <span>{{ p.contributionDefinitionName }}</span>
+                <span class="item__due"><mat-icon>event</mat-icon> {{ p.sessionLabel }}</span>
+              </div>
+              <p class="item__tx">
+                <mat-icon>payments</mat-icon>
+                <span>
+                  {{ operatorLabels[p.operator] }} · réf. <strong>{{ p.transactionReference }}</strong> · payé le
+                  {{ fromIsoDate(p.paymentDate) | date: 'd MMM yyyy' }}
+                </span>
+              </p>
+              @if (p.observation) {
+                <p class="item__obs">« {{ p.observation }} »</p>
+              }
+            </div>
+
+            <div class="item__actions">
+              <button mat-stroked-button type="button" (click)="viewProof(p)">
+                <mat-icon>receipt_long</mat-icon>
+                Justificatif
               </button>
-              <button mat-flat-button type="button" (click)="decide(p, 'validate')" [disabled]="busyId() === p.id">
-                <mat-icon>task_alt</mat-icon>
-                Valider
+              @if (canDecide) {
+                <button mat-button type="button" class="reject" (click)="decide(p, 'reject')" [disabled]="busyId() === p.id">
+                  <mat-icon>block</mat-icon>
+                  Rejeter
+                </button>
+                <button mat-flat-button type="button" (click)="decide(p, 'validate')" [disabled]="busyId() === p.id">
+                  <mat-icon>task_alt</mat-icon>
+                  Valider
+                </button>
+              }
+            </div>
+          </article>
+        }
+      </div>
+    }
+
+    @if (repayments().length > 0) {
+      <h2 class="section-title"><mat-icon>account_balance</mat-icon> Remboursements de prêts</h2>
+      <div class="totals">
+        <span>
+          <strong>{{ repayments().length }}</strong> remboursement{{ repayments().length > 1 ? 's' : '' }} en attente
+        </span>
+        <span class="totals__amount">{{ formatFcfa(repaymentsTotal()) }}</span>
+      </div>
+
+      <div class="list">
+        @for (r of repayments(); track r.id) {
+          <article class="item item--pending">
+            <div class="item__main">
+              <div class="item__top">
+                <h3 class="item__name">{{ r.memberFullName }}</h3>
+                <span class="status status--tx-pending">En attente</span>
+              </div>
+              <div class="item__meta">
+                <span class="item__amount">{{ formatFcfa(r.amount) }}</span>
+                <span>Remboursement de prêt</span>
+              </div>
+              <p class="item__tx">
+                <mat-icon>payments</mat-icon>
+                <span>
+                  {{ operatorLabels[r.operator] }} · réf. <strong>{{ r.reference }}</strong> · payé le
+                  {{ fromIsoDate(r.paymentDate) | date: 'd MMM yyyy' }}
+                </span>
+              </p>
+            </div>
+
+            <div class="item__actions">
+              <button mat-stroked-button type="button" (click)="viewRepaymentProof(r)">
+                <mat-icon>receipt_long</mat-icon>
+                Justificatif
               </button>
-            }
-          </div>
-        </article>
-      }
-    </div>
+              @if (canDecide) {
+                <button
+                  mat-button
+                  type="button"
+                  class="reject"
+                  (click)="decideRepayment(r, 'reject')"
+                  [disabled]="busyId() === r.id"
+                >
+                  <mat-icon>block</mat-icon>
+                  Rejeter
+                </button>
+                <button mat-flat-button type="button" (click)="decideRepayment(r, 'validate')" [disabled]="busyId() === r.id">
+                  <mat-icon>task_alt</mat-icon>
+                  Valider
+                </button>
+              }
+            </div>
+          </article>
+        }
+      </div>
+    }
   }
 </section>

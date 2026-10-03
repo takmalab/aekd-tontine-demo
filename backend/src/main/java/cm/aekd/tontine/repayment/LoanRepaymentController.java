@@ -15,9 +15,11 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * CLAUDE.md §6 : "enregistrer les remboursements" est réservé au
- * TRESORIER. La consultation est ouverte au membre propriétaire du prêt
- * et à ADMIN/TRESORIER (contrôlé dans LoanRepaymentService).
+ * CLAUDE.md §6 : le TRESORIER enregistre les remboursements reçus
+ * (comptabilisés immédiatement) ; le membre déclare ceux de son propre prêt,
+ * qui restent en attente de validation (docs/decisions.md n° 38). La
+ * consultation est ouverte au membre propriétaire du prêt et à
+ * ADMIN/TRESORIER (contrôlé dans LoanRepaymentService).
  */
 @RestController
 @RequestMapping("/api/loans/{loanId}")
@@ -34,6 +36,13 @@ public class LoanRepaymentController {
     public ResponseEntity<LoanRepaymentResponse> record(@PathVariable UUID loanId,
                                                           @Valid @RequestBody LoanRepaymentRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(repaymentService.record(loanId, request));
+    }
+
+    /** Le membre déclare un remboursement de son propre prêt (en attente de validation). */
+    @PostMapping("/repayments/declare")
+    public ResponseEntity<LoanRepaymentResponse> declare(@PathVariable UUID loanId,
+                                                           @Valid @RequestBody LoanRepaymentRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(repaymentService.declare(loanId, request));
     }
 
     @GetMapping("/repayments")

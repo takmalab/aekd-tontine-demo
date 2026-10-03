@@ -12,6 +12,7 @@ import cm.aekd.tontine.member.Member;
 import cm.aekd.tontine.member.MemberRepository;
 import cm.aekd.tontine.repayment.LoanRepayment;
 import cm.aekd.tontine.repayment.LoanRepaymentRepository;
+import cm.aekd.tontine.repayment.LoanRepaymentStatus;
 import cm.aekd.tontine.sanction.AppliedSanction;
 import cm.aekd.tontine.sanction.AppliedSanctionRepository;
 import cm.aekd.tontine.sanction.AppliedSanctionStatus;
@@ -158,11 +159,12 @@ public class MemberStatementDocumentService {
                         Cell.of("PRE-" + DocumentFormat.shortRef(r.getLoan().getId())),
                         Cell.of(DocumentFormat.operator(r.getOperator())),
                         Cell.of(r.getReference()),
-                        Cell.of(fcfa(r.getAmount()))
+                        Cell.of(fcfa(r.getAmount())),
+                        Cell.colored(DocumentFormat.repaymentStatus(r.getStatus()), repaymentColor(r.getStatus()))
                 })
                 .toList();
-        pdf.table(new String[]{"Date", "Prêt", "Opérateur", "Référence", "Montant"},
-                new float[]{1.3f, 1.4f, 1.8f, 2.4f, 1.5f}, repaymentRows, 4);
+        pdf.table(new String[]{"Date", "Prêt", "Opérateur", "Référence", "Montant", "Statut"},
+                new float[]{1.3f, 1.4f, 1.8f, 2.2f, 1.5f, 1.2f}, repaymentRows, 4);
 
         pdf.section("Sanctions");
         List<Cell[]> sanctionRows = new ArrayList<>();
@@ -187,8 +189,20 @@ public class MemberStatementDocumentService {
         return new GeneratedDocument("releve-" + DocumentFormat.slug(member.getFullName()) + ".pdf", pdf.finish());
     }
 
+    /** Seuls les remboursements validés réduisent le solde (docs/decisions.md n° 38). */
     private static BigDecimal repaid(List<LoanRepayment> repayments) {
-        return repayments.stream().map(LoanRepayment::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+        return repayments.stream()
+                .filter(r -> r.getStatus() == LoanRepaymentStatus.VALIDATED)
+                .map(LoanRepayment::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private static Color repaymentColor(LoanRepaymentStatus status) {
+        return switch (status) {
+            case VALIDATED -> AekdPdf.GREEN;
+            case PENDING -> AekdPdf.ORANGE;
+            case REJECTED -> AekdPdf.RED;
+        };
     }
 
     private static BigDecimal remaining(Loan loan, List<LoanRepayment> repayments) {

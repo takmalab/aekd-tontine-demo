@@ -42,7 +42,7 @@
       <h2 class="group-title"><mat-icon>pending_actions</mat-icon> En cours <span class="count">{{ ongoing().length }}</span></h2>
       <div class="grid">
         @for (loan of ongoing(); track loan.id) {
-          <app-loan-card [loan]="loan" />
+          <app-loan-card [loan]="loan" [canDeclare]="true" />
         }
       </div>
     }
@@ -50,7 +50,7 @@
       <h2 class="group-title"><mat-icon>inventory_2</mat-icon> Terminés <span class="count">{{ closed().length }}</span></h2>
       <div class="grid">
         @for (loan of closed(); track loan.id) {
-          <app-loan-card [loan]="loan" />
+          <app-loan-card [loan]="loan" [canDeclare]="true" />
         }
       </div>
     }

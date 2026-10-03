@@ -292,10 +292,66 @@
     color: var(--aekd-gray-muted);
   }
 
-  &__receipt {
-    margin: -8px -6px -8px auto;
-    color: var(--aekd-brown);
+  &__item--muted {
+    opacity: 0.6;
   }
+
+  &__status {
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+
+    &--pending {
+      background: var(--aekd-orange-soft);
+      color: var(--aekd-brown-dark);
+    }
+
+    &--validated {
+      background: var(--aekd-green-soft);
+      color: var(--aekd-green-dark);
+    }
+
+    &--rejected {
+      background: var(--aekd-red-soft);
+      color: var(--aekd-red-dark);
+    }
+  }
+
+  &__actions {
+    display: inline-flex;
+    margin: -8px -6px -8px auto;
+
+    button {
+      color: var(--aekd-brown);
+    }
+  }
+}
+
+.money__pending {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--aekd-orange-soft);
+  color: var(--aekd-gray);
+  font-size: 13px;
+
+  mat-icon {
+    flex: none;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: var(--aekd-orange);
+  }
+}
+
+.actions__note {
+  align-self: center;
+  color: var(--aekd-gray-muted);
+  font-size: 13px;
 }
 
 .actions {

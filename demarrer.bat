@@ -58,9 +58,10 @@ if not errorlevel 1 (
 rem --- 1. Compilation du backend ----------------------------------------------
 if "%SKIP_BUILD%"=="1" goto :find_jar
 "%WHERE%" mvn >nul 2>&1 || (echo [ERREUR] Maven ^(mvn^) est introuvable. & goto :fail)
-echo [1/4] Compilation du backend ^(1 a 2 minutes^)...
+echo [1/4] Compilation du backend ^(1 a 3 minutes^)...
 pushd backend
-call mvn -q package -DskipTests
+rem "clean" garantit que le jar correspond au code source actuel.
+call mvn -q clean package -DskipTests
 if errorlevel 1 (
     popd
     echo [ERREUR] La compilation du backend a echoue.

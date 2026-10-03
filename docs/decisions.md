@@ -860,3 +860,47 @@ Premiers documents :
 * Frontend : `DocumentService` (téléchargement, nom de fichier lu dans
   `Content-Disposition`) et menu d'export CSV/PDF partagé (`ExportMenu`).
 
+---
+
+# 38. Remboursement d'un prêt par le membre
+
+## Question
+
+Le membre peut-il rembourser lui-même son prêt depuis « Mes prêts », et ce
+remboursement est-il comptabilisé immédiatement ?
+
+## Statut
+
+```text
+DÉCIDÉ
+```
+
+## Décision
+
+Validée par le propriétaire du projet le 2026-10-03.
+
+* Le membre peut **déclarer** un remboursement de son propre prêt, **partiel ou
+  total** (montant, opérateur, référence, date), avec un **justificatif
+  facultatif** (JPG, JPEG, PNG, PDF).
+* Le remboursement déclaré est **en attente** : il n'est déduit du solde qu'après
+  **validation par le trésorier**, qui peut aussi le rejeter. Comme pour les
+  cotisations, personne ne valide le remboursement de son propre prêt.
+* Le montant déclaré ne peut pas dépasser le solde restant diminué des
+  remboursements déjà en attente.
+* Le trésorier peut toujours enregistrer directement un remboursement reçu : il
+  est alors comptabilisé immédiatement.
+* Un reçu PDF n'est disponible que pour un remboursement validé.
+
+## Conséquence technique
+
+* Migration V13 : colonnes `status`, `validated_by`, `validated_at` et
+  justificatif sur `loan_repayment` ; les remboursements existants (saisis par le
+  trésorier) sont marqués validés.
+* API : `POST /api/loans/{loanId}/repayments/declare` (membre emprunteur),
+  `GET /api/loans/repayments/pending`, `PUT /api/loans/repayments/{id}/validate`
+  et `/reject` (TRESORIER), `POST|GET /api/loans/repayments/{id}/proof`.
+* Le solde et les totaux (tableaux de bord, relevés, reçus) ne comptent que les
+  remboursements validés. Audit : `LOAN_REPAYMENT_DECLARED`, `_VALIDATED`, `_REJECTED`.
+* Interface : bouton « Rembourser » sur les cartes de « Mes prêts » ; section
+  « Remboursements de prêts » sur la page « Paiements à valider ».
+

@@ -83,6 +83,12 @@
             <span class="money__value">{{ formatFcfa(b.remainingBalance) }}</span>
           </div>
         </div>
+        @if (b.pendingAmount > 0) {
+          <p class="money__pending">
+            <mat-icon>hourglass_top</mat-icon>
+            {{ formatFcfa(b.pendingAmount) }} en attente de validation par le trésorier (non déduit du solde).
+          </p>
+        }
         <span class="bar" role="progressbar" [attr.aria-valuenow]="repaidPercent()" aria-valuemin="0" aria-valuemax="100">
           <span [style.width.%]="repaidPercent()"></span>
         </span>
@@ -96,22 +102,43 @@
           @if (historyOpen()) {
             <ul class="history">
               @for (r of repayments(); track r.id) {
-                <li>
+                <li [class.history__item--muted]="r.status === 'REJECTED'">
                   <span class="history__amount">{{ formatFcfa(r.amount) }}</span>
+                  <span [class]="'history__status history__status--' + r.status.toLowerCase()">
+                    {{ repaymentStatusLabels[r.status] }}
+                  </span>
                   <span class="history__meta">
                     {{ fromIsoDate(r.paymentDate) | date: 'd MMM yyyy' }} · {{ operatorLabels[r.operator] }} · réf.
                     {{ r.reference }}
                   </span>
-                  <button
-                    mat-icon-button
-                    type="button"
-                    class="history__receipt"
-                    aria-label="Télécharger le reçu de ce remboursement"
-                    [disabled]="documents.busy() !== null"
-                    (click)="documents.repaymentReceipt(r.id)"
-                  >
-                    <mat-icon>receipt_long</mat-icon>
-                  </button>
+                  <span class="history__actions">
+                    @if (canDeclare() && r.status === 'PENDING') {
+                      <button
+                        mat-icon-button
+                        type="button"
+                        [attr.aria-label]="r.hasProof ? 'Remplacer le justificatif' : 'Joindre un justificatif'"
+                        (click)="attachProof(r)"
+                      >
+                        <mat-icon>attach_file</mat-icon>
+                      </button>
+                    }
+                    @if (r.hasProof) {
+                      <button mat-icon-button type="button" aria-label="Voir le justificatif" (click)="viewProof(r)">
+                        <mat-icon>visibility</mat-icon>
+                      </button>
+                    }
+                    @if (r.status === 'VALIDATED') {
+                      <button
+                        mat-icon-button
+                        type="button"
+                        aria-label="Télécharger le reçu de ce remboursement"
+                        [disabled]="documents.busy() !== null"
+                        (click)="documents.repaymentReceipt(r.id)"
+                      >
+                        <mat-icon>receipt_long</mat-icon>
+                      </button>
+                    }
+                  </span>
                 </li>
               }
             </ul>
@@ -124,7 +151,7 @@
   }
 
   <!-- Actions -->
-  @if ((canDecide() && l.status === 'REQUESTED') || (canRepay() && (l.status === 'APPROVED' || l.status === 'IN_PROGRESS'))) {
+  @if ((canDecide() && l.status === 'REQUESTED') || ((canRepay() || canDeclare()) && repayable())) {
     <div class="actions">
       @if (canDecide() && l.status === 'REQUESTED') {
         <button mat-button type="button" class="reject" (click)="reject.emit(l)">
@@ -136,11 +163,21 @@
           Approuver
         </button>
       }
-      @if (canRepay() && (l.status === 'APPROVED' || l.status === 'IN_PROGRESS')) {
+      @if (canRepay() && repayable()) {
         <button mat-flat-button type="button" (click)="emitRepay()" [disabled]="!balance()">
           <mat-icon>payments</mat-icon>
           Enregistrer un remboursement
         </button>
+      }
+      @if (canDeclare() && repayable()) {
+        @if (balance() && declarable() === 0) {
+          <span class="actions__note">Remboursement intégral déjà déclaré, en attente de validation.</span>
+        } @else {
+          <button mat-flat-button type="button" (click)="declareRepayment()" [disabled]="!balance()">
+            <mat-icon>send_money</mat-icon>
+            Rembourser
+          </button>
+        }
       }
     </div>
   }

@@ -12,9 +12,19 @@ public interface LoanRepaymentRepository extends JpaRepository<LoanRepayment, UU
 
     List<LoanRepayment> findByLoanId(UUID loanId);
 
-    @Query("SELECT COALESCE(SUM(r.amount), 0) FROM LoanRepayment r WHERE r.loan.id = :loanId")
+    /** Total remboursé d'un prêt : remboursements VALIDÉS uniquement (docs/decisions.md n° 38). */
+    @Query("SELECT COALESCE(SUM(r.amount), 0) FROM LoanRepayment r WHERE r.loan.id = :loanId "
+            + "AND r.status = cm.aekd.tontine.repayment.LoanRepaymentStatus.VALIDATED")
     BigDecimal sumAmountByLoanId(@Param("loanId") UUID loanId);
 
-    @Query("SELECT COALESCE(SUM(r.amount), 0) FROM LoanRepayment r WHERE r.loan.member.id = :memberId")
+    /** Remboursements déclarés par le membre, en attente de validation. */
+    @Query("SELECT COALESCE(SUM(r.amount), 0) FROM LoanRepayment r WHERE r.loan.id = :loanId "
+            + "AND r.status = cm.aekd.tontine.repayment.LoanRepaymentStatus.PENDING")
+    BigDecimal sumPendingAmountByLoanId(@Param("loanId") UUID loanId);
+
+    List<LoanRepayment> findByStatusOrderByCreatedAtAsc(LoanRepaymentStatus status);
+
+    @Query("SELECT COALESCE(SUM(r.amount), 0) FROM LoanRepayment r WHERE r.loan.member.id = :memberId "
+            + "AND r.status = cm.aekd.tontine.repayment.LoanRepaymentStatus.VALIDATED")
     BigDecimal sumAmountByLoanMemberId(@Param("memberId") UUID memberId);
 }

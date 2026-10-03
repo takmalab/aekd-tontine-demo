@@ -53,3 +53,21 @@
 .reject {
   color: var(--aekd-brown) !important;
 }
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 24px 0 12px;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--aekd-gray);
+
+  mat-icon {
+    color: var(--aekd-orange);
+  }
+
+  &:first-of-type {
+    margin-top: 4px;
+  }
+}

@@ -4,11 +4,14 @@
   </span>
   <div class="head__text">
     <h2 mat-dialog-title class="head__title">
-      {{ data.justDeclared ? 'Paiement déclaré' : 'Justificatif du paiement' }}
+      @if (data.justDeclared) {
+        {{ noun === 'paiement' ? 'Paiement déclaré' : 'Remboursement déclaré' }}
+      } @else {
+        Justificatif du {{ noun }}
+      }
     </h2>
     <p class="head__subtitle">
-      {{ data.transaction.contributionDefinitionName }} · {{ formatFcfa(data.transaction.amount) }} ·
-      {{ operatorLabels[data.transaction.operator] }}
+      {{ subject.label }} · {{ formatFcfa(subject.amount) }} · {{ operatorLabels[subject.operator] }}
     </p>
   </div>
 </div>
@@ -18,7 +21,7 @@
     <p class="info">
       <mat-icon>hourglass_top</mat-icon>
       <span>
-        Votre paiement est <strong>en attente de validation</strong> par le trésorier. Il n'est pas encore
+        Votre {{ noun }} est <strong>en attente de validation</strong> par le trésorier. Il n'est pas encore
         comptabilisé.
       </span>
     </p>

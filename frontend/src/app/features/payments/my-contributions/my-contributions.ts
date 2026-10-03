@@ -242,7 +242,7 @@ export class MyContributions implements OnInit {
 
   viewProof(transaction: ContributionTransaction): void {
     this.dialog.open(ProofViewerDialog, {
-      data: transaction,
+      data: { transaction: transaction },
       width: '760px',
       maxWidth: 'calc(100vw - 24px)',
       autoFocus: false,

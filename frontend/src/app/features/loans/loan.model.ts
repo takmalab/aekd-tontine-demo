@@ -87,23 +87,45 @@ export interface LoanRepaymentRequest {
   reference: string;
 }
 
+/**
+ * Remboursement déclaré par le membre : PENDING jusqu'à la décision du trésorier ;
+ * seul un remboursement VALIDATED réduit le solde (docs/decisions.md n° 38).
+ */
+export type LoanRepaymentStatus = 'PENDING' | 'VALIDATED' | 'REJECTED';
+
+export const REPAYMENT_STATUS_LABELS: Record<LoanRepaymentStatus, string> = {
+  PENDING: 'En attente de validation',
+  VALIDATED: 'Validé',
+  REJECTED: 'Rejeté',
+};
+
 /** Miroir de LoanRepaymentResponse (backend). */
 export interface LoanRepayment {
   id: string;
   loanId: string;
+  memberId: string;
+  memberFullName: string;
   amount: number;
   paymentDate: string;
   operator: PaymentOperator;
   reference: string;
   recordedByEmail: string;
   createdAt: string;
+  status: LoanRepaymentStatus;
+  validatedByEmail: string | null;
+  validatedAt: string | null;
+  hasProof: boolean;
 }
 
-/** Miroir de LoanBalanceResponse (backend) : montant approuvé - total remboursé = solde restant (§23). */
+/**
+ * Miroir de LoanBalanceResponse (backend) : montant approuvé - total remboursé (validé) = solde
+ * restant (§23). `pendingAmount` : remboursements déclarés, en attente de validation.
+ */
 export interface LoanBalance {
   totalAmount: number;
   totalRepaid: number;
   remainingBalance: number;
+  pendingAmount: number;
 }
 
 /** Statuts pour lesquels un solde et un historique de remboursements existent. */

@@ -2,6 +2,7 @@ package cm.aekd.tontine.contribution;
 
 import cm.aekd.tontine.common.CurrentUserProvider;
 import cm.aekd.tontine.storage.FileStorageService;
+import cm.aekd.tontine.storage.ProofFiles;
 import cm.aekd.tontine.storage.StoredFile;
 import cm.aekd.tontine.user.User;
 import cm.aekd.tontine.user.UserRepository;
@@ -13,7 +14,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -26,11 +26,6 @@ import java.util.UUID;
 @Service
 @Transactional
 public class PaymentProofService {
-
-    private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of("image/jpeg", "image/png", "application/pdf");
-    private static final Set<String> ALLOWED_EXTENSIONS = Set.of("jpg", "jpeg", "png", "pdf");
-    // Limite technique anti-abus (pas une règle métier CLAUDE.md) : 10 Mo.
-    private static final long MAX_FILE_SIZE_BYTES = 10L * 1024 * 1024;
 
     private final ContributionTransactionRepository transactionRepository;
     private final PaymentProofRepository proofRepository;
@@ -65,7 +60,7 @@ public class PaymentProofService {
                     "Ce paiement a déjà été traité, le justificatif ne peut plus être modifié");
         }
 
-        validateFile(file);
+        ProofFiles.validate(file);
 
         User uploader = currentUserProvider.currentUserId()
                 .flatMap(userRepository::findById)
@@ -114,31 +109,6 @@ public class PaymentProofService {
         if (currentMemberId == null || !currentMemberId.equals(transaction.getMember().getId())) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Paiement introuvable");
         }
-    }
-
-    private void validateFile(MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Aucun fichier fourni");
-        }
-        if (file.getSize() > MAX_FILE_SIZE_BYTES) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Le fichier dépasse la taille maximale autorisée (10 Mo)");
-        }
-        String contentType = file.getContentType();
-        String extension = extractExtension(file.getOriginalFilename());
-        if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType.toLowerCase())
-                || !ALLOWED_EXTENSIONS.contains(extension)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Format de fichier non autorisé. Formats acceptés : JPG, JPEG, PNG, PDF");
-        }
-    }
-
-    private String extractExtension(String filename) {
-        if (filename == null) {
-            return "";
-        }
-        int dot = filename.lastIndexOf('.');
-        return dot >= 0 && dot < filename.length() - 1 ? filename.substring(dot + 1).toLowerCase() : "";
     }
 
     private void deleteQuietly(String storageKey) {

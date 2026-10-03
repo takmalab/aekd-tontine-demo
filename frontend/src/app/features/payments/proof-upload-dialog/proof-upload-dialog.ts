@@ -1,5 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
+import { Observable } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
@@ -10,17 +11,22 @@ import {
   PAYMENT_OPERATOR_LABELS,
   PaymentProof,
 } from '../../contributions/contribution.model';
+import { LoanRepayment } from '../../loans/loan.model';
+import { LoanService } from '../../loans/loan.service';
 import { PROOF_ACCEPT, PaymentService, checkProofFile } from '../payment.service';
 
+/** Un paiement de cotisation OU un remboursement de prêt (un seul des deux). */
 export interface ProofUploadData {
-  transaction: ContributionTransaction;
+  transaction?: ContributionTransaction;
+  repayment?: LoanRepayment;
   /** Ouvert juste après la déclaration : affiche la confirmation de déclaration. */
   justDeclared?: boolean;
 }
 
 /**
- * Ajout (ou remplacement) du justificatif d'un paiement encore en attente.
- * Se ferme avec le PaymentProof enregistré, ou undefined si l'utilisateur passe.
+ * Ajout (ou remplacement) du justificatif d'un paiement ou d'un remboursement
+ * encore en attente. Se ferme avec la réponse du serveur, ou undefined si
+ * l'utilisateur passe.
  */
 @Component({
   selector: 'app-proof-upload-dialog',
@@ -30,8 +36,19 @@ export interface ProofUploadData {
 })
 export class ProofUploadDialog {
   private readonly paymentService = inject(PaymentService);
-  private readonly dialogRef = inject<MatDialogRef<ProofUploadDialog, PaymentProof>>(MatDialogRef);
+  private readonly loanService = inject(LoanService);
+  private readonly dialogRef = inject<MatDialogRef<ProofUploadDialog, PaymentProof | LoanRepayment>>(MatDialogRef);
   readonly data = inject<ProofUploadData>(MAT_DIALOG_DATA);
+
+  /** « paiement » ou « remboursement », pour les libellés. */
+  readonly noun = this.data.repayment ? 'remboursement' : 'paiement';
+  readonly subject = this.data.repayment
+    ? { label: 'Remboursement de prêt', amount: this.data.repayment.amount, operator: this.data.repayment.operator }
+    : {
+        label: this.data.transaction!.contributionDefinitionName,
+        amount: this.data.transaction!.amount,
+        operator: this.data.transaction!.operator,
+      };
 
   readonly accept = PROOF_ACCEPT;
   readonly formatFcfa = formatFcfa;
@@ -79,17 +96,20 @@ export class ProofUploadDialog {
     }
     this.uploading.set(true);
     this.errorMessage.set(null);
-    this.paymentService.uploadProof(this.data.transaction.id, file).subscribe({
+    const upload$: Observable<PaymentProof | LoanRepayment> = this.data.repayment
+      ? this.loanService.uploadRepaymentProof(this.data.repayment.id, file)
+      : this.paymentService.uploadProof(this.data.transaction!.id, file);
+    upload$.subscribe({
       next: (proof) => this.dialogRef.close(proof),
       error: (error: HttpErrorResponse) => {
         this.uploading.set(false);
         this.errorMessage.set(
           error.status === 400
-            ? 'Justificatif refusé : format non accepté, fichier trop volumineux, ou paiement déjà traité.'
+            ? `Justificatif refusé : format non accepté, fichier trop volumineux, ou ${this.noun} déjà traité.`
             : error.status === 413
               ? 'Fichier trop volumineux (10 Mo maximum).'
               : error.status === 403
-                ? 'Vous ne pouvez joindre un justificatif qu\'à vos propres paiements.'
+                ? `Vous ne pouvez joindre un justificatif qu'à vos propres ${this.noun}s.`
                 : "L'envoi a échoué. Vérifiez que le serveur est démarré.",
         );
       },
