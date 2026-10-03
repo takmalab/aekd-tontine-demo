@@ -41,7 +41,7 @@ public record AppliedSanctionResponse(
                 sanction.getAmount(),
                 sanction.getDescription(),
                 sanction.getStatus(),
-                sanction.getAppliedBy().getEmail(),
+                sanction.getAppliedBy() != null ? sanction.getAppliedBy().getEmail() : null,
                 sanction.getCreatedAt()
         );
     }

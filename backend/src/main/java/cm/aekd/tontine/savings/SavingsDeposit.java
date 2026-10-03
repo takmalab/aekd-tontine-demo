@@ -59,7 +59,7 @@ public class SavingsDeposit {
     private SavingsDepositStatus status = SavingsDepositStatus.PENDING;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "declared_by", nullable = false)
+    @JoinColumn(name = "declared_by")
     private User declaredBy;
 
     /** Trésorier ayant validé ou rejeté le versement. */

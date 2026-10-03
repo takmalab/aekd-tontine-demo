@@ -42,7 +42,7 @@ public final class SavingsDtos {
                                String createdByEmail, Instant createdAt) {
         static RateResponse from(SavingsInterestRate rate) {
             return new RateResponse(rate.getId(), rate.getMonthlyRate(), rate.getEffectiveFrom(), rate.getNote(),
-                    rate.getCreatedBy().getEmail(), rate.getCreatedAt());
+                    rate.getCreatedBy() != null ? rate.getCreatedBy().getEmail() : null, rate.getCreatedAt());
         }
     }
 

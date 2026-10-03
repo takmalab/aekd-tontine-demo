@@ -19,7 +19,7 @@ public record PaymentProofResponse(
                 proof.getOriginalFilename(),
                 proof.getContentType(),
                 proof.getFileSize(),
-                proof.getUploadedBy().getEmail(),
+                proof.getUploadedBy() != null ? proof.getUploadedBy().getEmail() : null,
                 proof.getUploadedAt()
         );
     }

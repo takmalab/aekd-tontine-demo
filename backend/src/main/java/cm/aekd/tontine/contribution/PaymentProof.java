@@ -47,7 +47,7 @@ public class PaymentProof {
     private long fileSize;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "uploaded_by", nullable = false)
+    @JoinColumn(name = "uploaded_by")
     private User uploadedBy;
 
     @Column(name = "uploaded_at", nullable = false)

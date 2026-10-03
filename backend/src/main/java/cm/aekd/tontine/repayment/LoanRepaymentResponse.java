@@ -38,7 +38,7 @@ public record LoanRepaymentResponse(
                 repayment.getPaymentDate(),
                 repayment.getOperator(),
                 repayment.getReference(),
-                repayment.getRecordedBy().getEmail(),
+                repayment.getRecordedBy() != null ? repayment.getRecordedBy().getEmail() : null,
                 repayment.getCreatedAt(),
                 repayment.getStatus(),
                 repayment.getValidatedBy() != null ? repayment.getValidatedBy().getEmail() : null,

@@ -7,6 +7,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { AuthService } from '../../../core/services/auth.service';
 import { ConfirmDialog, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog';
 import { ExportMenu } from '../../../shared/components/export-menu/export-menu';
 import { FilterChips, FilterOption } from '../../../shared/components/filter-chips/filter-chips';
@@ -16,6 +17,7 @@ import { SearchBar } from '../../../shared/components/search-bar/search-bar';
 import { StatusBadge, StatusVariant } from '../../../shared/components/status-badge/status-badge';
 import { paginate } from '../../../shared/utils/pagination';
 import { UserCreateDialog } from '../user-create-dialog/user-create-dialog';
+import { UserDeleteDialog } from '../user-delete-dialog/user-delete-dialog';
 import { UserEditDialog } from '../user-edit-dialog/user-edit-dialog';
 import { AppUser, ROLE_LABELS, USER_STATUS_LABELS, UserStatus } from '../user.model';
 import { UserService } from '../user.service';
@@ -57,6 +59,10 @@ export class UsersList implements OnInit {
   private readonly userService = inject(UserService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly authService = inject(AuthService);
+
+  /** On ne supprime pas son propre compte (refusé aussi par le backend). */
+  readonly currentEmail = this.authService.currentUser()?.email ?? null;
 
   readonly roleLabels = ROLE_LABELS;
   readonly statusLabels = USER_STATUS_LABELS;
@@ -174,6 +180,19 @@ export class UsersList implements OnInit {
           this.users.update((list) => list.map((u) => (u.id === updated.id ? updated : u)));
           this.snackBar.open('Compte mis à jour', 'OK', { duration: 4000 });
         }
+      });
+  }
+
+  remove(user: AppUser): void {
+    this.dialog
+      .open(UserDeleteDialog, { data: user, width: '560px', maxWidth: 'calc(100vw - 24px)', autoFocus: false })
+      .afterClosed()
+      .subscribe((deleted?: boolean) => {
+        if (!deleted) {
+          return;
+        }
+        this.snackBar.open(`Compte ${user.email} supprimé avec tout son historique`, 'OK', { duration: 5000 });
+        this.load();
       });
   }
 

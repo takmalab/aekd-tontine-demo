@@ -53,7 +53,7 @@ public class LoanRepayment {
     private String reference;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "recorded_by", nullable = false)
+    @JoinColumn(name = "recorded_by")
     private User recordedBy;
 
     @Column(name = "created_at", nullable = false, updatable = false)

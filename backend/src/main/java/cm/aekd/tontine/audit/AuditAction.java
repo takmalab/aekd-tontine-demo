@@ -39,5 +39,6 @@ public enum AuditAction {
     USER_CREATED,
     USER_REGISTERED,
     USER_APPROVED,
-    USER_UPDATED
+    USER_UPDATED,
+    USER_DELETED
 }

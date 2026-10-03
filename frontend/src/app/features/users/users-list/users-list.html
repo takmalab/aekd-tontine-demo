@@ -67,6 +67,12 @@
                   Valider
                 </button>
               }
+              @if (u.email !== currentEmail) {
+                <button mat-stroked-button type="button" class="delete" (click)="remove(u)">
+                  <mat-icon>delete</mat-icon>
+                  Supprimer
+                </button>
+              }
             </div>
           </article>
         }

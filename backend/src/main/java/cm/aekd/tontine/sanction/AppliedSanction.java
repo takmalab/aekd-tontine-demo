@@ -59,7 +59,7 @@ public class AppliedSanction {
     private AppliedSanctionStatus status = AppliedSanctionStatus.APPLIED;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "applied_by", nullable = false)
+    @JoinColumn(name = "applied_by")
     private User appliedBy;
 
     @Column(name = "created_at", nullable = false, updatable = false)

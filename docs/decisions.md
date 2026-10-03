@@ -1000,3 +1000,42 @@ CLAUDE.md §6, où l'ADMIN ne faisait que consulter les paiements et les prêts.
   automatiquement l'ADMIN.
 * Frontend : même hiérarchie dans `AuthService.hasRole` / `hasAnyRole`.
 
+---
+
+# 41. Suppression d'un compte utilisateur
+
+## Question
+
+L'administrateur peut-il supprimer un compte, et que deviennent ses données ?
+
+## Statut
+
+```text
+DÉCIDÉ
+```
+
+## Décision
+
+Validée par le propriétaire du projet le 2026-10-03 : l'ADMIN peut supprimer
+définitivement un compte. La suppression efface **le compte, son profil membre et
+tout son historique** : paiements et justificatifs, participations, prêts et
+remboursements, sanctions, versements d'épargne. Les fonds et totaux sont
+recalculés sans ces opérations. Action irréversible.
+
+* Les données des **autres** membres sont conservées : là où le compte supprimé
+  apparaît comme auteur (validation, enregistrement, sanction appliquée, taux…),
+  l'auteur est effacé et affiché « utilisateur supprimé ».
+* L'entrée d'audit `USER_DELETED` décrit ce qui a été supprimé ; les anciennes
+  entrées d'audit du compte sont conservées sans auteur.
+* Garde-fous : on ne supprime ni son propre compte, ni le dernier administrateur.
+* Alternative non destructive toujours disponible : désactiver le compte.
+
+## Conséquence technique
+
+* Migration V15 : colonnes « auteur » facultatives avec `ON DELETE SET NULL`
+  (validated_by, decision_by, recorded_by, applied_by, uploaded_by, declared_by,
+  created_by, audit_log.user_id).
+* API : `GET /api/users/{id}/deletion-impact` et `DELETE /api/users/{id}` (ADMIN).
+* Interface : bouton « Supprimer » sur la page Utilisateurs ; la fenêtre affiche
+  ce qui sera effacé et exige de retaper l'e-mail du compte.
+

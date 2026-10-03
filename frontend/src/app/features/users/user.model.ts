@@ -46,3 +46,18 @@ export const ROLE_LABELS: Record<RoleName, string> = {
   TRESORIER: 'Trésorier',
   MEMBRE: 'Membre',
 };
+
+/** Miroir de UserDeletionService.DeletionImpact : ce que la suppression effacerait. */
+export interface UserDeletionImpact {
+  userId: string;
+  email: string;
+  memberFullName: string | null;
+  contributionPayments: number;
+  participations: number;
+  loans: number;
+  loanRepayments: number;
+  savingsDeposits: number;
+  appliedSanctions: number;
+  /** Opérations sur les données d'autres membres (conservées, auteur effacé). */
+  actionsAsAuthor: number;
+}
