@@ -39,6 +39,21 @@ export class ContributionService {
     return this.http.put<ContributionDefinition>(`${this.baseUrl}/${id}/activate`, {});
   }
 
+  /** Les champs financiers sont refusés (409) si des paiements existent. */
+  update(id: string, request: ContributionDefinitionRequest): Observable<ContributionDefinition> {
+    return this.http.put<ContributionDefinition>(`${this.baseUrl}/${id}`, request);
+  }
+
+  /** Refusé (409) si des paiements ou des sanctions existent : désactiver à la place. */
+  delete(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  }
+
+  /** ACTIVE -> INACTIVE (réactivable via activate). */
+  deactivate(id: string): Observable<ContributionDefinition> {
+    return this.http.put<ContributionDefinition>(`${this.baseUrl}/${id}/deactivate`, {});
+  }
+
   addParticipant(id: string, memberId: string): Observable<ContributionMemberLink> {
     return this.http.post<ContributionMemberLink>(`${this.baseUrl}/${id}/participants`, { memberId });
   }

@@ -1,0 +1,112 @@
+<div class="dialog-head">
+  <span class="dialog-head__icon"><mat-icon>edit</mat-icon></span>
+  <div>
+    <h2 mat-dialog-title class="dialog-head__title">Modifier la cotisation</h2>
+    <p class="dialog-head__subtitle">{{ data.definition.name }}</p>
+  </div>
+</div>
+
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <mat-dialog-content class="dialog-body">
+    @if (locked) {
+      <p class="notice notice--info">
+        <mat-icon>lock</mat-icon>
+        <span>
+          Des paiements existent déjà : le montant, le mode de montant, le caractère obligatoire et
+          la destination des fonds ne peuvent plus être modifiés.
+        </span>
+      </p>
+    }
+
+    <mat-form-field appearance="outline" class="full">
+      <mat-label>Nom</mat-label>
+      <input matInput formControlName="name" cdkFocusInitial />
+      @if (form.controls.name.hasError('required') && form.controls.name.touched) {
+        <mat-error>Le nom est requis</mat-error>
+      }
+      @if (form.controls.name.hasError('maxlength')) {
+        <mat-error>150 caractères maximum</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full">
+      <mat-label>Description</mat-label>
+      <textarea matInput formControlName="description" rows="2"></textarea>
+    </mat-form-field>
+
+    <div class="row">
+      <mat-form-field appearance="outline" [class.span]="!isFixed">
+        <mat-label>Mode de montant</mat-label>
+        <mat-select formControlName="amountMode">
+          @for (mode of amountModes; track mode[0]) {
+            <mat-option [value]="mode[0]">{{ mode[1] }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      @if (isFixed) {
+        <mat-form-field appearance="outline">
+          <mat-label>Montant (FCFA)</mat-label>
+          <input matInput type="number" min="1" formControlName="amount" />
+          @if (form.controls.amount.hasError('positive')) {
+            <mat-error>Montant strictement positif requis</mat-error>
+          }
+        </mat-form-field>
+      }
+    </div>
+
+    <div class="row">
+      <mat-form-field appearance="outline">
+        <mat-label>Fréquence</mat-label>
+        <mat-select formControlName="frequency">
+          @for (f of frequencies; track f[0]) {
+            <mat-option [value]="f[0]">{{ f[1] }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Caractère</mat-label>
+        <mat-select formControlName="mandatory">
+          <mat-option [value]="true">Obligatoire</mat-option>
+          <mat-option [value]="false">Facultative</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <div class="row">
+      <mat-form-field appearance="outline">
+        <mat-label>Visibilité</mat-label>
+        <mat-select formControlName="visibility">
+          @for (v of visibilities; track v[0]) {
+            <mat-option [value]="v[0]">{{ v[1] }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Destination des fonds</mat-label>
+        <mat-select formControlName="fundDestination">
+          @for (d of destinations; track d[0]) {
+            <mat-option [value]="d[0]">{{ d[1] }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    @if (errorMessage(); as message) {
+      <p class="notice notice--error" role="alert">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ message }}</span>
+      </p>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="dialog-actions">
+    <button mat-button type="button" mat-dialog-close [disabled]="saving()">Annuler</button>
+    <button mat-flat-button type="submit" [disabled]="saving()">
+      @if (saving()) {
+        <mat-spinner diameter="20" />
+      } @else {
+        Enregistrer
+      }
+    </button>
+  </mat-dialog-actions>
+</form>

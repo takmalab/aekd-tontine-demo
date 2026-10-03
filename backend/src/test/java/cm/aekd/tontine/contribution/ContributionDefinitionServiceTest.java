@@ -52,6 +52,15 @@ class ContributionDefinitionServiceTest {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private ContributionDefinitionRepository definitionRepository;
+
+    @Autowired
+    private ContributionPeriodRepository periodRepository;
+
+    @Autowired
+    private ContributionTransactionRepository transactionRepository;
+
     private Member createMember(RoleName roleName, String emailPrefix) {
         Role role = roleRepository.findByName(roleName).orElseThrow();
         User user = new User(emailPrefix + "@test.aekd.cm", passwordEncoder.encode("x"));
@@ -186,5 +195,90 @@ class ContributionDefinitionServiceTest {
                 ContributionFrequency.MONTHLY, false, Visibility.PUBLIC, FundDestination.INDIVIDUAL_SAVINGS));
 
         assertThat(def.amount()).isNull();
+    }
+
+    private ContributionDefinitionRequest fixedRequest(String name, long amount) {
+        return new ContributionDefinitionRequest(name, null, new BigDecimal(amount), AmountMode.FIXED,
+                ContributionFrequency.MONTHLY, true, Visibility.PUBLIC, FundDestination.TONTINE_FUND);
+    }
+
+    /** Rattache la cotisation à une nouvelle séance et y enregistre un paiement en attente. */
+    private void addPayment(ContributionDefinitionResponse def, String emailPrefix) {
+        Member member = createMember(RoleName.MEMBRE, emailPrefix);
+        Session session = sessionRepository.save(new Session("Séance " + emailPrefix, LocalDate.of(2026, 10, 1), null, null));
+        ContributionPeriod period = periodRepository.save(new ContributionPeriod(
+                definitionRepository.findById(def.id()).orElseThrow(), session, null));
+        transactionRepository.saveAndFlush(new ContributionTransaction(member, period, new BigDecimal(1000),
+                PaymentOperator.CASH, "REF-" + emailPrefix, LocalDate.of(2026, 10, 1), null));
+    }
+
+    @Test
+    void updateWithoutPaymentsAllowsAllFields() {
+        loginAs(RoleName.TRESORIER);
+        ContributionDefinitionResponse def = service.create(fixedRequest("Cotisation 10 000", 10000));
+
+        ContributionDefinitionResponse updated = service.update(def.id(), new ContributionDefinitionRequest(
+                "Cotisation 12 000", "Nouveau montant", new BigDecimal(12000), AmountMode.FIXED,
+                ContributionFrequency.MONTHLY, false, Visibility.PRIVATE, FundDestination.INDIVIDUAL_SAVINGS));
+
+        assertThat(updated.name()).isEqualTo("Cotisation 12 000");
+        assertThat(updated.amount()).isEqualByComparingTo("12000");
+        assertThat(updated.mandatory()).isFalse();
+        assertThat(updated.visibility()).isEqualTo(Visibility.PRIVATE);
+        assertThat(updated.fundDestination()).isEqualTo(FundDestination.INDIVIDUAL_SAVINGS);
+        assertThat(updated.hasPayments()).isFalse();
+    }
+
+    @Test
+    void updateWithPaymentsLocksFinancialFieldsOnly() {
+        loginAs(RoleName.TRESORIER);
+        ContributionDefinitionResponse def = service.create(fixedRequest("Cotisation 50 000", 50000));
+        addPayment(def, "lock1");
+
+        assertThat(service.findById(def.id()).hasPayments()).isTrue();
+        assertThatThrownBy(() -> service.update(def.id(), fixedRequest("Cotisation 50 000", 60000)))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("montant");
+        assertThatThrownBy(() -> service.update(def.id(), new ContributionDefinitionRequest(
+                "Cotisation 50 000", null, new BigDecimal(50000), AmountMode.FIXED,
+                ContributionFrequency.MONTHLY, false, Visibility.PUBLIC, FundDestination.TONTINE_FUND)))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("obligatoire");
+
+        ContributionDefinitionResponse renamed = service.update(def.id(), new ContributionDefinitionRequest(
+                "Cotisation mensuelle", "Renommée", new BigDecimal("50000.00"), AmountMode.FIXED,
+                ContributionFrequency.MONTHLY, true, Visibility.PRIVATE, FundDestination.TONTINE_FUND));
+        assertThat(renamed.name()).isEqualTo("Cotisation mensuelle");
+        assertThat(renamed.visibility()).isEqualTo(Visibility.PRIVATE);
+    }
+
+    @Test
+    void deleteRemovesContributionWithoutPayments() {
+        loginAs(RoleName.TRESORIER);
+        Member member = createMember(RoleName.MEMBRE, "del1");
+        ContributionDefinitionResponse def = service.create(fixedRequest("À supprimer", 2000));
+        service.addParticipant(def.id(), new MemberRefRequest(member.getId()));
+
+        service.delete(def.id());
+
+        assertThat(definitionRepository.findById(def.id())).isEmpty();
+    }
+
+    @Test
+    void deleteIsRefusedWhenPaymentsExistButDeactivationWorks() {
+        loginAs(RoleName.TRESORIER);
+        ContributionDefinitionResponse def = service.create(fixedRequest("Cotisation payée", 2000));
+        service.activate(def.id());
+        addPayment(def, "del2");
+
+        assertThatThrownBy(() -> service.delete(def.id()))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("Désactivez");
+
+        ContributionDefinitionResponse deactivated = service.deactivate(def.id());
+        assertThat(deactivated.status()).isEqualTo(ContributionStatus.INACTIVE);
+        assertThatThrownBy(() -> service.deactivate(def.id()))
+                .isInstanceOf(ResponseStatusException.class);
+        assertThat(service.activate(def.id()).status()).isEqualTo(ContributionStatus.ACTIVE);
     }
 }

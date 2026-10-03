@@ -1,16 +1,13 @@
 import { DatePipe, LowerCasePipe } from '@angular/common';
-import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { catchError, forkJoin, map, of, switchMap } from 'rxjs';
+import { catchError, finalize, forkJoin, map, of, switchMap } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
-import { ConfirmDialog, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog';
+import { ActionMenu, MenuAction } from '../../../shared/components/action-menu/action-menu';
 import { FilterChips, FilterOption } from '../../../shared/components/filter-chips/filter-chips';
 import { PageState } from '../../../shared/components/page-state/page-state';
 import { SearchBar } from '../../../shared/components/search-bar/search-bar';
@@ -24,6 +21,7 @@ import {
   FREQUENCY_LABELS,
   FUND_DESTINATION_LABELS,
 } from '../contribution.model';
+import { ContributionActions } from '../contribution-actions';
 import { ContributionService } from '../contribution.service';
 
 interface ContributionRow {
@@ -33,6 +31,7 @@ interface ContributionRow {
 
 type StatusFilter = 'ALL' | ContributionStatus;
 type SortKey = 'default' | 'name' | 'amount';
+type RowAction = 'edit' | 'activate' | 'deactivate' | 'delete';
 
 @Component({
   selector: 'app-contributions-list',
@@ -47,6 +46,7 @@ type SortKey = 'default' | 'name' | 'amount';
     PageState,
     SearchBar,
     FilterChips,
+    ActionMenu,
   ],
   templateUrl: './contributions-list.html',
   styleUrl: './contributions-list.scss',
@@ -54,8 +54,7 @@ type SortKey = 'default' | 'name' | 'amount';
 export class ContributionsList implements OnInit {
   private readonly contributionService = inject(ContributionService);
   private readonly authService = inject(AuthService);
-  private readonly dialog = inject(MatDialog);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly actions = inject(ContributionActions);
 
   readonly canManage = this.authService.hasAnyRole(['ADMIN', 'TRESORIER']);
   readonly statusLabels = CONTRIBUTION_STATUS_LABELS;
@@ -152,38 +151,47 @@ export class ContributionsList implements OnInit {
       });
   }
 
-  activate(row: ContributionRow): void {
-    const data: ConfirmDialogData = {
-      title: 'Activer la cotisation ?',
-      message: `« ${row.definition.name} » deviendra visible selon sa visibilité et ses participants pourront déclarer leurs paiements.`,
-      confirmLabel: 'Activer',
-      icon: 'rocket_launch',
-    };
-    this.dialog
-      .open(ConfirmDialog, { data, width: '440px', maxWidth: 'calc(100vw - 32px)' })
-      .afterClosed()
-      .subscribe((confirmed) => {
-        if (!confirmed) {
-          return;
-        }
-        this.activatingId.set(row.definition.id);
-        this.contributionService.activate(row.definition.id).subscribe({
-          next: (updated) => {
-            this.activatingId.set(null);
-            this.rows.update((rows) =>
-              rows.map((r) => (r.definition.id === updated.id ? { ...r, definition: updated } : r)),
-            );
-            this.snackBar.open(`Cotisation « ${updated.name} » activée`, 'OK', { duration: 4000 });
-          },
-          error: (err: HttpErrorResponse) => {
-            this.activatingId.set(null);
-            this.snackBar.open(
-              err.status === 400 ? 'Cette cotisation est déjà active.' : "L'activation a échoué.",
-              'OK',
-              { duration: 5000 },
-            );
-          },
-        });
+  /** Actions du menu ⋮ selon le statut ; suppression grisée dès qu'un paiement existe. */
+  menuActions(definition: ContributionDefinition): MenuAction<RowAction>[] {
+    const items: MenuAction<RowAction>[] = [{ label: 'Modifier', icon: 'edit', action: 'edit' }];
+    if (definition.status === 'ACTIVE') {
+      items.push({ label: 'Désactiver', icon: 'pause_circle', action: 'deactivate' });
+    } else {
+      items.push({
+        label: definition.status === 'INACTIVE' ? 'Réactiver' : 'Activer',
+        icon: 'rocket_launch',
+        action: 'activate',
       });
+    }
+    items.push({
+      label: definition.hasPayments ? 'Supprimer (paiements existants)' : 'Supprimer',
+      icon: 'delete',
+      action: 'delete',
+      danger: true,
+      disabled: definition.hasPayments,
+    });
+    return items;
+  }
+
+  onAction(row: ContributionRow, action: RowAction): void {
+    const definition = row.definition;
+    if (action === 'delete') {
+      this.actions.delete(definition).subscribe((id) =>
+        this.rows.update((rows) => rows.filter((r) => r.definition.id !== id)),
+      );
+      return;
+    }
+    const update$ =
+      action === 'edit'
+        ? this.actions.edit(definition)
+        : action === 'deactivate'
+          ? this.actions.deactivate(definition)
+          : this.actions.activate(definition);
+    this.activatingId.set(action === 'activate' ? definition.id : null);
+    update$.pipe(finalize(() => this.activatingId.set(null))).subscribe((updated) =>
+      this.rows.update((rows) =>
+        rows.map((r) => (r.definition.id === updated.id ? { ...r, definition: updated } : r)),
+      ),
+    );
   }
 }

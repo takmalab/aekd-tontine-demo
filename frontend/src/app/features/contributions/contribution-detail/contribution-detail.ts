@@ -1,7 +1,7 @@
 import { DatePipe, LowerCasePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, computed, inject, input, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -9,6 +9,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { catchError, forkJoin, of } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { PageState } from '../../../shared/components/page-state/page-state';
@@ -36,6 +37,7 @@ import {
   ParticipantPaymentStatus,
   VISIBILITY_LABELS,
 } from '../contribution.model';
+import { ContributionActions } from '../contribution-actions';
 import { ContributionService } from '../contribution.service';
 
 /** Filtres demandés : Tous / Payé / Non payé / Partiel (« en retard » est compté dans « Non payé »). */
@@ -90,6 +92,7 @@ function filterOf(status: ContributionPeriodStatus): ParticipantFilter | null {
     MatProgressSpinnerModule,
     MatFormFieldModule,
     MatSelectModule,
+    MatTooltipModule,
     PageState,
     StatusBadge,
   ],
@@ -103,9 +106,13 @@ export class ContributionDetail implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   private readonly authService = inject(AuthService);
+  private readonly actions = inject(ContributionActions);
+  private readonly router = inject(Router);
 
   /** Paramètre de route `:id`. */
   readonly id = input.required<string>();
+  /** Paramètre de requête `?period=` : séance à afficher (ex. depuis la page d'une séance). */
+  readonly period = input<string>();
 
   readonly formatFcfa = formatFcfa;
   readonly fromIsoDate = fromIsoDate;
@@ -213,7 +220,7 @@ export class ContributionDetail implements OnInit {
         this.periods.set(options);
         this.me.set(me);
         this.loading.set(false);
-        const initial = this.defaultPeriod(options);
+        const initial = options.find((o) => o.period.id === this.period()) ?? this.defaultPeriod(options);
         if (initial) {
           this.selectPeriod(initial.period.id);
         }
@@ -240,6 +247,20 @@ export class ContributionDetail implements OnInit {
       .filter((o) => o.session && o.session.date > today)
       .sort((a, b) => a.session!.date.localeCompare(b.session!.date));
     return upcoming[0] ?? options[0] ?? null;
+  }
+
+  edit(definition: ContributionDefinition): void {
+    this.actions.edit(definition).subscribe((updated) => this.definition.set(updated));
+  }
+
+  toggleActive(definition: ContributionDefinition): void {
+    const update$ =
+      definition.status === 'ACTIVE' ? this.actions.deactivate(definition) : this.actions.activate(definition);
+    update$.subscribe((updated) => this.definition.set(updated));
+  }
+
+  remove(definition: ContributionDefinition): void {
+    this.actions.delete(definition).subscribe(() => this.router.navigate(['/contributions']));
   }
 
   selectPeriod(periodId: string): void {

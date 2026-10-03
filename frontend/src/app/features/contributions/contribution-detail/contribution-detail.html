@@ -1,8 +1,33 @@
 <section class="detail">
-  <a routerLink="/contributions" class="back">
-    <mat-icon>arrow_back</mat-icon>
-    Cotisations
-  </a>
+  <div class="topbar">
+    <a routerLink="/contributions" class="back">
+      <mat-icon>arrow_back</mat-icon>
+      Cotisations
+    </a>
+
+    @if (isStaff && !loading()) {
+      @if (definition(); as d) {
+        <div class="manage">
+          <button mat-stroked-button type="button" (click)="edit(d)">
+            <mat-icon>edit</mat-icon>
+            Modifier
+          </button>
+          <button mat-stroked-button type="button" (click)="toggleActive(d)">
+            <mat-icon>{{ d.status === 'ACTIVE' ? 'pause_circle' : 'rocket_launch' }}</mat-icon>
+            {{ d.status === 'ACTIVE' ? 'Désactiver' : d.status === 'INACTIVE' ? 'Réactiver' : 'Activer' }}
+          </button>
+          <span
+            [matTooltip]="d.hasPayments ? 'Des paiements existent : désactivez la cotisation plutôt que de la supprimer.' : ''"
+          >
+            <button mat-stroked-button type="button" class="manage__danger" [disabled]="d.hasPayments" (click)="remove(d)">
+              <mat-icon>delete</mat-icon>
+              Supprimer
+            </button>
+          </span>
+        </div>
+      }
+    }
+  </div>
 
   @if (loading()) {
     <app-page-state state="loading" title="Chargement…" />

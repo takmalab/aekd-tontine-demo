@@ -1,8 +1,27 @@
 <section class="detail">
-  <a routerLink="/sessions" class="back">
-    <mat-icon>arrow_back</mat-icon>
-    Toutes les séances
-  </a>
+  <div class="topbar">
+    <a routerLink="/sessions" class="back">
+      <mat-icon>arrow_back</mat-icon>
+      Toutes les séances
+    </a>
+
+    @if (isStaff && !loading()) {
+      @if (session(); as s) {
+        <div class="manage">
+          <button mat-stroked-button type="button" (click)="edit(s)">
+            <mat-icon>edit</mat-icon>
+            Modifier
+          </button>
+          <span [matTooltip]="canDelete() ? '' : 'Des paiements existent sur les cotisations de cette séance.'">
+            <button mat-stroked-button type="button" class="manage__danger" [disabled]="!canDelete()" (click)="remove(s)">
+              <mat-icon>delete</mat-icon>
+              Supprimer
+            </button>
+          </span>
+        </div>
+      }
+    }
+  </div>
 
   @if (loading()) {
     <app-page-state state="loading" title="Chargement…" />
@@ -117,10 +136,13 @@
 
           <div class="grid">
             @for (item of group.items; track item.period.id) {
-              <article
+              <a
                 class="contrib"
                 [class.contrib--mandatory]="item.definition.mandatory"
                 [class.contrib--draft]="item.definition.status !== 'ACTIVE'"
+                [routerLink]="['/contributions', item.definition.id]"
+                [queryParams]="{ period: item.period.id }"
+                [attr.aria-label]="'Voir l\'état des cotisations : ' + item.definition.name"
               >
                 <div class="contrib__top">
                   <h3 class="contrib__name">{{ item.definition.name }}</h3>
@@ -169,7 +191,13 @@
                     Échéance non définie
                   }
                 </div>
-              </article>
+
+                <span class="contrib__more">
+                  <mat-icon>groups</mat-icon>
+                  État des cotisations des membres
+                  <mat-icon class="contrib__chevron">chevron_right</mat-icon>
+                </span>
+              </a>
             }
           </div>
         }

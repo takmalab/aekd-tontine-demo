@@ -730,3 +730,74 @@ Si une décision influence :
 * les remboursements ;
 
 elle doit être explicitement validée et documentée.
+
+---
+
+# 35. Suppression d'une séance ou d'une cotisation
+
+## Question
+
+Peut-on supprimer une séance ou une cotisation lorsque des paiements ou des
+sanctions y sont rattachés ?
+
+## Statut
+
+```text
+DÉCIDÉ
+```
+
+## Décision
+
+Validée par le propriétaire du projet le 2026-10-03.
+
+La suppression est **refusée** dès qu'au moins un paiement (quel que soit son
+statut : en attente, validé ou rejeté) ou une sanction appliquée existe. Aucune
+donnée financière ne doit disparaître.
+
+Pour une cotisation dans ce cas, l'alternative proposée est la
+**désactivation** (statut `INACTIVE`, réactivable).
+
+## Conséquence technique
+
+* `DELETE /api/sessions/{id}` et `DELETE /api/contributions/{id}` (ADMIN, TRESORIER)
+  renvoient `409` avec un message explicite si des paiements ou sanctions existent.
+* Sans paiement ni sanction, la suppression entraîne celle des éléments de
+  configuration rattachés (périodes, participants, bénéficiaires, règles de
+  sanction) par `ON DELETE CASCADE`.
+* `PUT /api/contributions/{id}/deactivate` ajouté.
+* Opérations tracées dans l'audit (`SESSION_DELETED`, `CONTRIBUTION_DELETED`,
+  `CONTRIBUTION_DEACTIVATED`).
+
+---
+
+# 36. Modification d'une séance ou d'une cotisation
+
+## Question
+
+Quels champs peut-on modifier, notamment sur une cotisation qui a déjà des
+paiements ?
+
+## Statut
+
+```text
+DÉCIDÉ
+```
+
+## Décision
+
+Validée par le propriétaire du projet le 2026-10-03.
+
+* **Séance** : tous les champs restent modifiables (libellé, date, lieu,
+  récepteur, bénéficiaires) ; aucun montant n'en dépend.
+* **Cotisation** : nom, description, fréquence et visibilité restent modifiables.
+  Le montant, le mode de montant, le caractère obligatoire/facultatif et la
+  destination des fonds sont **verrouillés dès qu'un paiement existe**, pour ne
+  pas fausser rétroactivement les statuts des membres ni les fonds.
+
+## Conséquence technique
+
+* `PUT /api/sessions/{id}` et `PUT /api/contributions/{id}` (ADMIN, TRESORIER) ;
+  le second renvoie `409` en listant les champs verrouillés modifiés.
+* `ContributionDefinitionResponse.hasPayments` permet à l'interface de griser
+  ces champs et le bouton de suppression.
+* Opérations tracées dans l'audit (`SESSION_UPDATED`, `CONTRIBUTION_UPDATED`).

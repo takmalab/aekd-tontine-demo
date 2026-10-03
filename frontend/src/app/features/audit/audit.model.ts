@@ -1,8 +1,13 @@
 /** Miroir de AuditAction (backend). */
 export type AuditAction =
   | 'SESSION_CREATED'
+  | 'SESSION_UPDATED'
+  | 'SESSION_DELETED'
   | 'CONTRIBUTION_CREATED'
   | 'CONTRIBUTION_ACTIVATED'
+  | 'CONTRIBUTION_UPDATED'
+  | 'CONTRIBUTION_DEACTIVATED'
+  | 'CONTRIBUTION_DELETED'
   | 'PAYMENT_DECLARED'
   | 'PAYMENT_VALIDATED'
   | 'PAYMENT_REJECTED'
@@ -31,8 +36,13 @@ export interface AuditLog {
 
 export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   SESSION_CREATED: 'Séance créée',
+  SESSION_UPDATED: 'Séance modifiée',
+  SESSION_DELETED: 'Séance supprimée',
   CONTRIBUTION_CREATED: 'Cotisation créée',
   CONTRIBUTION_ACTIVATED: 'Cotisation activée',
+  CONTRIBUTION_UPDATED: 'Cotisation modifiée',
+  CONTRIBUTION_DEACTIVATED: 'Cotisation désactivée',
+  CONTRIBUTION_DELETED: 'Cotisation supprimée',
   PAYMENT_DECLARED: 'Paiement déclaré',
   PAYMENT_VALIDATED: 'Paiement validé',
   PAYMENT_REJECTED: 'Paiement rejeté',

@@ -16,6 +16,12 @@ export interface ContributionDefinition {
   visibility: Visibility;
   fundDestination: FundDestination;
   status: ContributionStatus;
+  /**
+   * Au moins un paiement existe : montant, mode de montant, caractère obligatoire
+   * et destination des fonds sont verrouillés, et la suppression est refusée
+   * (docs/decisions.md n° 35 et 36).
+   */
+  hasPayments: boolean;
 }
 
 /** Miroir de ContributionDefinitionRequest (backend). La cotisation est créée en DRAFT. */

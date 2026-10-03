@@ -59,8 +59,13 @@
             <h2 class="contrib__name">
               <a [routerLink]="['/contributions', row.definition.id]">{{ row.definition.name }}</a>
             </h2>
-            <span [class]="'status status--' + row.definition.status.toLowerCase()">
-              {{ statusLabels[row.definition.status] }}
+            <span class="contrib__top-end">
+              <span [class]="'status status--' + row.definition.status.toLowerCase()">
+                {{ statusLabels[row.definition.status] }}
+              </span>
+              @if (canManage) {
+                <app-action-menu [actions]="menuActions(row.definition)" (selected)="onAction(row, $event)" />
+              }
             </span>
           </div>
 
@@ -121,7 +126,7 @@
               <button
                 mat-flat-button
                 type="button"
-                (click)="activate(row)"
+                (click)="onAction(row, 'activate')"
                 [disabled]="activatingId() === row.definition.id"
               >
                 <mat-icon>rocket_launch</mat-icon>

@@ -6,6 +6,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 public interface ContributionTransactionRepository extends JpaRepository<ContributionTransaction, UUID> {
@@ -44,4 +45,14 @@ public interface ContributionTransactionRepository extends JpaRepository<Contrib
     BigDecimal sumAmountByStatusAndFundDestinationAndMember(@Param("status") ContributionTransactionStatus status,
                                                              @Param("fundDestination") FundDestination fundDestination,
                                                              @Param("memberId") UUID memberId);
+
+    /** Au moins un paiement (quel que soit son statut) sur une période de la cotisation. */
+    boolean existsByContributionPeriod_ContributionDefinition_Id(UUID contributionDefinitionId);
+
+    /** Au moins un paiement (quel que soit son statut) sur une période de la séance. */
+    boolean existsByContributionPeriod_Session_Id(UUID sessionId);
+
+    /** Cotisations ayant au moins un paiement (quel que soit son statut). */
+    @Query("SELECT DISTINCT t.contributionPeriod.contributionDefinition.id FROM ContributionTransaction t")
+    Set<UUID> findContributionDefinitionIdsWithPayments();
 }

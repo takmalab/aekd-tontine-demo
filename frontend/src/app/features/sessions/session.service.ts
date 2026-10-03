@@ -25,6 +25,15 @@ export class SessionService {
     return this.http.post<Session>(this.baseUrl, request);
   }
 
+  update(id: string, request: SessionRequest): Observable<Session> {
+    return this.http.put<Session>(`${this.baseUrl}/${id}`, request);
+  }
+
+  /** Refusé (409) si des paiements ou des sanctions existent sur ses cotisations. */
+  delete(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  }
+
   /**
    * Cotisations rattachées à une séance via leurs périodes (CLAUDE.md §7, §13).
    * Le backend n'expose pas encore d'endpoint "cotisations d'une séance" : on lit

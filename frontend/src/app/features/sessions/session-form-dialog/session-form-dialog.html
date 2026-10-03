@@ -1,7 +1,7 @@
 <div class="dialog-head">
   <span class="dialog-head__icon"><mat-icon>event</mat-icon></span>
   <div>
-    <h2 mat-dialog-title class="dialog-head__title">Nouvelle séance</h2>
+    <h2 mat-dialog-title class="dialog-head__title">{{ editing ? 'Modifier la séance' : 'Nouvelle séance' }}</h2>
     <p class="dialog-head__subtitle">Réunion de la tontine : date, lieu, récepteur et bénéficiaire(s).</p>
   </div>
 </div>
@@ -101,7 +101,7 @@
       @if (saving()) {
         <mat-spinner diameter="20" />
       } @else {
-        Créer la séance
+        {{ editing ? 'Enregistrer' : 'Créer la séance' }}
       }
     </button>
   </mat-dialog-actions>

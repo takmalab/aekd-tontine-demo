@@ -89,6 +89,14 @@
     gap: 8px;
   }
 
+  &__top-end {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 2px;
+    margin: -6px -10px 0 0;
+  }
+
   &__name {
     margin: 0;
     font-size: 16px;

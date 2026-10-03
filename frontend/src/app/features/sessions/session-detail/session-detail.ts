@@ -1,11 +1,15 @@
 import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, computed, inject, input, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
-import { forkJoin } from 'rxjs';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { filter, forkJoin, switchMap } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
+import { ConfirmDialog, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog';
 import { PageState } from '../../../shared/components/page-state/page-state';
 import { formatFcfa, fromIsoDate } from '../../../shared/utils/format';
 import {
@@ -14,17 +18,21 @@ import {
   FUND_DESTINATION_LABELS,
 } from '../../contributions/contribution.model';
 import { SESSION_TIMING_LABELS, Session, SessionContribution, SessionTiming } from '../session.model';
+import { SessionFormDialog, SessionFormDialogData } from '../session-form-dialog/session-form-dialog';
 import { SessionService } from '../session.service';
 
 @Component({
   selector: 'app-session-detail',
-  imports: [RouterLink, DatePipe, MatButtonModule, MatIconModule, PageState],
+  imports: [RouterLink, DatePipe, MatButtonModule, MatIconModule, MatTooltipModule, PageState],
   templateUrl: './session-detail.html',
   styleUrl: './session-detail.scss',
 })
 export class SessionDetail implements OnInit {
   private readonly sessionService = inject(SessionService);
   private readonly authService = inject(AuthService);
+  private readonly dialog = inject(MatDialog);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly router = inject(Router);
 
   /** Paramètre de route `:id` (withComponentInputBinding). */
   readonly id = input.required<string>();
@@ -67,6 +75,12 @@ export class SessionDetail implements OnInit {
       .filter((c) => c.definition.status === 'ACTIVE' && c.definition.amountMode === 'FIXED')
       .reduce((sum, c) => sum + (c.definition.amount ?? 0), 0),
   );
+
+  /**
+   * Suppression proposée seulement si aucune cotisation de la séance n'a de
+   * paiement (le backend refuse aussi en présence de sanctions appliquées).
+   */
+  readonly canDelete = computed(() => this.contributions().every((c) => !c.definition.hasPayments));
 
   readonly draftCount = computed(
     () => this.contributions().filter((c) => c.definition.status !== 'ACTIVE').length,
@@ -112,5 +126,56 @@ export class SessionDetail implements OnInit {
         this.loading.set(false);
       },
     });
+  }
+
+  edit(session: Session): void {
+    const data: SessionFormDialogData = { session };
+    this.dialog
+      .open<SessionFormDialog, SessionFormDialogData, Session>(SessionFormDialog, {
+        data,
+        width: '520px',
+        maxWidth: 'calc(100vw - 32px)',
+        autoFocus: 'first-tabbable',
+      })
+      .afterClosed()
+      .subscribe((updated) => {
+        if (!updated) {
+          return;
+        }
+        this.session.set(updated);
+        this.snackBar.open(`Séance « ${updated.label} » modifiée`, 'OK', { duration: 4000 });
+      });
+  }
+
+  remove(session: Session): void {
+    const count = this.contributions().length;
+    const data: ConfirmDialogData = {
+      title: 'Supprimer la séance ?',
+      message:
+        `« ${session.label} » sera définitivement supprimée` +
+        (count > 0 ? `, ainsi que son rattachement à ${count} cotisation${count > 1 ? 's' : ''}` : '') +
+        '. Les cotisations elles-mêmes sont conservées. Cette action est irréversible.',
+      confirmLabel: 'Supprimer',
+      icon: 'delete',
+    };
+    this.dialog
+      .open(ConfirmDialog, { data, width: '440px', maxWidth: 'calc(100vw - 32px)' })
+      .afterClosed()
+      .pipe(
+        filter((confirmed) => confirmed === true),
+        switchMap(() => this.sessionService.delete(session.id)),
+      )
+      .subscribe({
+        next: () => {
+          this.snackBar.open(`Séance « ${session.label} » supprimée`, 'OK', { duration: 4000 });
+          this.router.navigate(['/sessions']);
+        },
+        error: (err: HttpErrorResponse) =>
+          this.snackBar.open(
+            err.status === 409 ? err.error?.message || 'Suppression impossible.' : 'La suppression a échoué.',
+            'OK',
+            { duration: 7000 },
+          ),
+      });
   }
 }

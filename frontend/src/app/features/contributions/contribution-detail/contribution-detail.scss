@@ -1,3 +1,31 @@
+.topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 16px;
+
+  .back {
+    margin-bottom: 0;
+  }
+}
+
+.manage {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  button {
+    border-radius: 10px;
+  }
+
+  &__danger:not([disabled]) {
+    color: var(--aekd-brown-dark);
+    border-color: var(--aekd-brown);
+  }
+}
+
 .back {
   display: inline-flex;
   align-items: center;
