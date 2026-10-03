@@ -6,3 +6,4 @@
 *.ico binary
 *.jar binary
 *.zip binary
+*.bat text eol=crlf
