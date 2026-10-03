@@ -36,6 +36,14 @@ export class AuditLogPage implements OnInit {
 
   readonly actionLabels = AUDIT_ACTION_LABELS;
 
+  /**
+   * Libellé d'une action ; le code brut si le serveur renvoie une action pas
+   * encore connue du frontend (évite de casser toute la page).
+   */
+  actionLabel(action: AuditAction): string {
+    return this.actionLabels[action] ?? action;
+  }
+
   readonly loading = signal(true);
   readonly error = signal(false);
   readonly logs = signal<AuditLog[]>([]);
@@ -49,7 +57,7 @@ export class AuditLogPage implements OnInit {
   /** Actions effectivement présentes dans le journal (pas les 17 valeurs possibles). */
   readonly availableActions = computed(() => {
     const seen = new Set(this.logs().map((l) => l.action));
-    return [...seen].sort((a, b) => this.actionLabels[a].localeCompare(this.actionLabels[b], 'fr'));
+    return [...seen].sort((a, b) => this.actionLabel(a).localeCompare(this.actionLabel(b), 'fr'));
   });
 
   readonly filtered = computed(() => {
@@ -63,7 +71,7 @@ export class AuditLogPage implements OnInit {
     }
     if (term) {
       list = list.filter((log) =>
-        [log.userEmail ?? '', this.actionLabels[log.action], log.entityType, log.description]
+        [log.userEmail ?? '', this.actionLabel(log.action), log.entityType, log.description]
           .join(' ')
           .toLowerCase()
           .includes(term),
@@ -80,7 +88,7 @@ export class AuditLogPage implements OnInit {
     this.filtered().map((log) => ({
       Date: log.occurredAt,
       Utilisateur: log.userEmail,
-      Action: this.actionLabels[log.action],
+      Action: this.actionLabel(log.action),
       Entité: log.entityType,
       'ID entité': log.entityId,
       Description: log.description,

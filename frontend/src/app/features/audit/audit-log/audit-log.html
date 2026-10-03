@@ -24,7 +24,7 @@
         <mat-select [value]="actionFilter()" (selectionChange)="onActionFilter($event.value)">
           <mat-option value="ALL">Toutes</mat-option>
           @for (action of availableActions(); track action) {
-            <mat-option [value]="action">{{ actionLabels[action] }}</mat-option>
+            <mat-option [value]="action">{{ actionLabel(action) }}</mat-option>
           }
         </mat-select>
       </mat-form-field>
@@ -42,7 +42,7 @@
         @for (log of paged(); track log.id) {
           <article class="log-row">
             <span class="log-row__when">{{ log.occurredAt | date: 'd MMM yyyy, HH:mm' }}</span>
-            <span class="chip chip--orange">{{ actionLabels[log.action] }}</span>
+            <span class="chip chip--orange">{{ actionLabel(log.action) }}</span>
             <span class="log-row__entity">{{ log.entityType }}</span>
             <span class="log-row__desc">{{ log.description }}</span>
             <span class="log-row__user">{{ log.userEmail ?? '—' }}</span>

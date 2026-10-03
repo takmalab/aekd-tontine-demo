@@ -1,7 +1,7 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { BreakpointObserver } from '@angular/cdk/layout';
-import { map } from 'rxjs';
+import { catchError, map, of } from 'rxjs';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatSidenavModule } from '@angular/material/sidenav';
@@ -11,23 +11,29 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { AuthService } from '../../core/services/auth.service';
 import { RoleName } from '../../core/models/auth.model';
+import { MemberService } from '../../features/members/member.service';
 
 interface NavItem {
   label: string;
   path: string;
   icon: string;
   roles?: RoleName[];
+  /**
+   * Espace personnel du membre : affiché pour tout compte ayant un profil membre,
+   * quel que soit son rôle (ex. un trésorier qui cotise aussi à la tontine).
+   */
+  memberSpace?: true;
 }
 
 const NAV_ITEMS: NavItem[] = [
   { label: 'Tableau de bord', path: '/dashboard', icon: 'dashboard' },
   { label: 'Séances', path: '/sessions', icon: 'event' },
   { label: 'Cotisations', path: '/contributions', icon: 'payments' },
-  { label: 'Mes cotisations', path: '/my-contributions', icon: 'receipt_long', roles: ['MEMBRE'] },
+  { label: 'Mes cotisations', path: '/my-contributions', icon: 'receipt_long', memberSpace: true },
   { label: 'Paiements', path: '/payments', icon: 'fact_check', roles: ['ADMIN', 'TRESORIER'] },
   { label: 'Membres', path: '/members', icon: 'group', roles: ['ADMIN', 'TRESORIER'] },
   { label: 'Sanctions', path: '/sanctions', icon: 'gavel' },
-  { label: 'Mes prêts', path: '/my-loans', icon: 'account_balance', roles: ['MEMBRE'] },
+  { label: 'Mes prêts', path: '/my-loans', icon: 'account_balance', memberSpace: true },
   { label: 'Prêts', path: '/loans', icon: 'account_balance', roles: ['ADMIN', 'TRESORIER'] },
   { label: 'Politiques de prêt', path: '/loan-policies', icon: 'policy' },
   { label: 'Utilisateurs', path: '/users', icon: 'manage_accounts', roles: ['ADMIN'] },
@@ -63,11 +69,25 @@ export class Shell {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly breakpointObserver = inject(BreakpointObserver);
+  private readonly memberService = inject(MemberService);
 
   readonly currentUser = this.authService.currentUser;
 
+  /** Le compte connecté a-t-il un profil membre ? (404 sinon, ex. administrateur). */
+  private readonly hasMemberProfile = toSignal(
+    this.memberService.mine().pipe(
+      map(() => true),
+      catchError(() => of(false)),
+    ),
+    { initialValue: this.authService.hasRole('MEMBRE') },
+  );
+
   readonly navItems = computed(() =>
-    NAV_ITEMS.filter((item) => !item.roles || this.authService.hasAnyRole(item.roles)),
+    NAV_ITEMS.filter((item) =>
+      item.memberSpace
+        ? this.hasMemberProfile() || this.authService.hasRole('MEMBRE')
+        : !item.roles || this.authService.hasAnyRole(item.roles),
+    ),
   );
 
   readonly roleLabel = computed(() =>

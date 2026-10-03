@@ -18,6 +18,11 @@ export type AuditAction =
   | 'LOAN_APPROVED'
   | 'LOAN_REJECTED'
   | 'LOAN_REPAYMENT_RECORDED'
+  | 'LOAN_POLICY_CREATED'
+  | 'LOAN_POLICY_UPDATED'
+  | 'LOAN_POLICY_ACTIVATED'
+  | 'LOAN_POLICY_DEACTIVATED'
+  | 'LOAN_POLICY_DELETED'
   | 'USER_CREATED'
   | 'USER_REGISTERED'
   | 'USER_APPROVED'
@@ -53,6 +58,11 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   LOAN_APPROVED: 'Prêt approuvé',
   LOAN_REJECTED: 'Prêt rejeté',
   LOAN_REPAYMENT_RECORDED: 'Remboursement enregistré',
+  LOAN_POLICY_CREATED: 'Politique de prêt créée',
+  LOAN_POLICY_UPDATED: 'Politique de prêt modifiée',
+  LOAN_POLICY_ACTIVATED: 'Politique de prêt activée',
+  LOAN_POLICY_DEACTIVATED: 'Politique de prêt désactivée',
+  LOAN_POLICY_DELETED: 'Politique de prêt supprimée',
   USER_CREATED: 'Compte créé',
   USER_REGISTERED: 'Auto-inscription',
   USER_APPROVED: 'Compte validé',
