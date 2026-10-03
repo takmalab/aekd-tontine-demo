@@ -5,6 +5,7 @@ import cm.aekd.tontine.contribution.ContributionTransactionRepository;
 import cm.aekd.tontine.contribution.ContributionTransactionStatus;
 import cm.aekd.tontine.contribution.FundDestination;
 import cm.aekd.tontine.member.MemberRepository;
+import cm.aekd.tontine.savings.SavingsDepositRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +23,10 @@ import java.util.UUID;
  * MVP (moins de 30 membres, regles-metier.md §2). Seuls les paiements
  * VALIDATED sont comptabilisés ; fonds commun et épargne individuelle ne
  * sont jamais mélangés (§17 "IMPORTANT").
+ *
+ * L'épargne individuelle comprend aussi les versements libres VALIDÉS
+ * (bouton « Épargner », docs/decisions.md n° 39). Montants en capital :
+ * les intérêts d'épargne sont calculés à part (SavingsService).
  */
 @Service
 @Transactional(readOnly = true)
@@ -30,13 +35,16 @@ public class FundService {
     private final ContributionTransactionRepository transactionRepository;
     private final MemberRepository memberRepository;
     private final CurrentUserProvider currentUserProvider;
+    private final SavingsDepositRepository depositRepository;
 
     public FundService(ContributionTransactionRepository transactionRepository,
                         MemberRepository memberRepository,
-                        CurrentUserProvider currentUserProvider) {
+                        CurrentUserProvider currentUserProvider,
+                        SavingsDepositRepository depositRepository) {
         this.transactionRepository = transactionRepository;
         this.memberRepository = memberRepository;
         this.currentUserProvider = currentUserProvider;
+        this.depositRepository = depositRepository;
     }
 
     public BigDecimal tontineFundBalance() {
@@ -46,22 +54,27 @@ public class FundService {
 
     public BigDecimal totalIndividualSavings() {
         return transactionRepository.sumAmountByStatusAndFundDestination(
-                ContributionTransactionStatus.VALIDATED, FundDestination.INDIVIDUAL_SAVINGS);
+                ContributionTransactionStatus.VALIDATED, FundDestination.INDIVIDUAL_SAVINGS)
+                .add(depositRepository.sumValidated());
     }
 
     public BigDecimal individualSavingsOf(UUID memberId) {
         if (!memberRepository.existsById(memberId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Membre introuvable");
         }
-        return transactionRepository.sumAmountByStatusAndFundDestinationAndMember(
-                ContributionTransactionStatus.VALIDATED, FundDestination.INDIVIDUAL_SAVINGS, memberId);
+        return savingsOf(memberId);
     }
 
     public BigDecimal myIndividualSavings() {
         UUID memberId = currentUserProvider.currentMemberId()
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN,
                         "Aucun profil membre associé à ce compte"));
+        return savingsOf(memberId);
+    }
+
+    private BigDecimal savingsOf(UUID memberId) {
         return transactionRepository.sumAmountByStatusAndFundDestinationAndMember(
-                ContributionTransactionStatus.VALIDATED, FundDestination.INDIVIDUAL_SAVINGS, memberId);
+                ContributionTransactionStatus.VALIDATED, FundDestination.INDIVIDUAL_SAVINGS, memberId)
+                .add(depositRepository.sumValidatedByMemberId(memberId));
     }
 }

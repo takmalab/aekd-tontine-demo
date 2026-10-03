@@ -13,12 +13,15 @@ import {
 } from '../../contributions/contribution.model';
 import { LoanRepayment } from '../../loans/loan.model';
 import { LoanService } from '../../loans/loan.service';
+import { SavingsEntry } from '../../savings/savings.model';
+import { SavingsService } from '../../savings/savings.service';
 import { PROOF_ACCEPT, PaymentService, checkProofFile } from '../payment.service';
 
-/** Un paiement de cotisation OU un remboursement de prêt (un seul des deux). */
+/** Un paiement de cotisation, un remboursement de prêt OU un versement d'épargne (un seul). */
 export interface ProofUploadData {
   transaction?: ContributionTransaction;
   repayment?: LoanRepayment;
+  deposit?: SavingsEntry;
   /** Ouvert juste après la déclaration : affiche la confirmation de déclaration. */
   justDeclared?: boolean;
 }
@@ -37,18 +40,22 @@ export interface ProofUploadData {
 export class ProofUploadDialog {
   private readonly paymentService = inject(PaymentService);
   private readonly loanService = inject(LoanService);
-  private readonly dialogRef = inject<MatDialogRef<ProofUploadDialog, PaymentProof | LoanRepayment>>(MatDialogRef);
+  private readonly savingsService = inject(SavingsService);
+  private readonly dialogRef =
+    inject<MatDialogRef<ProofUploadDialog, PaymentProof | LoanRepayment | SavingsEntry>>(MatDialogRef);
   readonly data = inject<ProofUploadData>(MAT_DIALOG_DATA);
 
-  /** « paiement » ou « remboursement », pour les libellés. */
-  readonly noun = this.data.repayment ? 'remboursement' : 'paiement';
-  readonly subject = this.data.repayment
-    ? { label: 'Remboursement de prêt', amount: this.data.repayment.amount, operator: this.data.repayment.operator }
-    : {
-        label: this.data.transaction!.contributionDefinitionName,
-        amount: this.data.transaction!.amount,
-        operator: this.data.transaction!.operator,
-      };
+  /** « paiement », « remboursement » ou « versement », pour les libellés. */
+  readonly noun = this.data.deposit ? 'versement' : this.data.repayment ? 'remboursement' : 'paiement';
+  readonly subject = this.data.deposit
+    ? { label: "Versement d'épargne", amount: this.data.deposit.amount, operator: this.data.deposit.operator }
+    : this.data.repayment
+      ? { label: 'Remboursement de prêt', amount: this.data.repayment.amount, operator: this.data.repayment.operator }
+      : {
+          label: this.data.transaction!.contributionDefinitionName,
+          amount: this.data.transaction!.amount,
+          operator: this.data.transaction!.operator,
+        };
 
   readonly accept = PROOF_ACCEPT;
   readonly formatFcfa = formatFcfa;
@@ -96,9 +103,11 @@ export class ProofUploadDialog {
     }
     this.uploading.set(true);
     this.errorMessage.set(null);
-    const upload$: Observable<PaymentProof | LoanRepayment> = this.data.repayment
-      ? this.loanService.uploadRepaymentProof(this.data.repayment.id, file)
-      : this.paymentService.uploadProof(this.data.transaction!.id, file);
+    const upload$: Observable<PaymentProof | LoanRepayment | SavingsEntry> = this.data.deposit
+      ? this.savingsService.uploadProof(this.data.deposit.id, file)
+      : this.data.repayment
+        ? this.loanService.uploadRepaymentProof(this.data.repayment.id, file)
+        : this.paymentService.uploadProof(this.data.transaction!.id, file);
     upload$.subscribe({
       next: (proof) => this.dialogRef.close(proof),
       error: (error: HttpErrorResponse) => {

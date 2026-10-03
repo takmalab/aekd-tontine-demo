@@ -1,6 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
@@ -16,6 +17,7 @@ import { ContributionTransaction, PAYMENT_OPERATOR_LABELS } from '../../contribu
 import { PaymentService } from '../payment.service';
 import { LoanRepayment } from '../../loans/loan.model';
 import { LoanService } from '../../loans/loan.service';
+import { SavingsService } from '../../savings/savings.service';
 import { ProofViewerDialog } from '../proof-viewer-dialog/proof-viewer-dialog';
 
 type Decision = 'validate' | 'reject';
@@ -27,13 +29,14 @@ type Decision = 'validate' | 'reject';
  */
 @Component({
   selector: 'app-pending-payments',
-  imports: [DatePipe, MatButtonModule, MatIconModule, MatProgressSpinnerModule, ExportMenu],
+  imports: [DatePipe, RouterLink, MatButtonModule, MatIconModule, MatProgressSpinnerModule, ExportMenu],
   templateUrl: './pending-payments.html',
   styleUrl: './pending-payments.scss',
 })
 export class PendingPayments implements OnInit {
   private readonly paymentService = inject(PaymentService);
   private readonly loanService = inject(LoanService);
+  private readonly savingsService = inject(SavingsService);
   private readonly authService = inject(AuthService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
@@ -48,6 +51,8 @@ export class PendingPayments implements OnInit {
   readonly error = signal(false);
   readonly payments = signal<ContributionTransaction[]>([]);
   readonly repayments = signal<LoanRepayment[]>([]);
+  /** Versements d'épargne en attente : validés sur la page « Épargnes ». */
+  readonly pendingSavings = signal(0);
   readonly busyId = signal<string | null>(null);
 
   readonly total = computed(() => this.payments().reduce((sum, p) => sum + p.amount, 0));
@@ -80,6 +85,10 @@ export class PendingPayments implements OnInit {
         this.payments.set([...payments].sort((a, b) => a.paymentDate.localeCompare(b.paymentDate)));
         this.repayments.set([...repayments].sort((a, b) => a.paymentDate.localeCompare(b.paymentDate)));
         this.loading.set(false);
+        this.savingsService.pending().subscribe({
+          next: (deposits) => this.pendingSavings.set(deposits.length),
+          error: () => this.pendingSavings.set(0),
+        });
       },
       error: () => {
         this.error.set(true);

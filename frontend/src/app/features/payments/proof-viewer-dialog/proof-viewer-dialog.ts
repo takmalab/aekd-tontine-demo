@@ -11,14 +11,17 @@ import { formatFcfa } from '../../../shared/utils/format';
 import { ContributionTransaction, PAYMENT_OPERATOR_LABELS } from '../../contributions/contribution.model';
 import { LoanRepayment } from '../../loans/loan.model';
 import { LoanService } from '../../loans/loan.service';
+import { SavingsEntry } from '../../savings/savings.model';
+import { SavingsService } from '../../savings/savings.service';
 import { PaymentService } from '../payment.service';
 
 type ViewerState = 'loading' | 'image' | 'pdf' | 'other' | 'none' | 'error';
 
-/** Un paiement de cotisation OU un remboursement de prêt (un seul des deux). */
+/** Un paiement de cotisation, un remboursement de prêt OU un versement d'épargne (un seul). */
 export interface ProofViewerData {
   transaction?: ContributionTransaction;
   repayment?: LoanRepayment;
+  deposit?: SavingsEntry;
 }
 
 /**
@@ -35,12 +38,21 @@ export interface ProofViewerData {
 export class ProofViewerDialog implements OnInit, OnDestroy {
   private readonly paymentService = inject(PaymentService);
   private readonly loanService = inject(LoanService);
+  private readonly savingsService = inject(SavingsService);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly data = inject<ProofViewerData>(MAT_DIALOG_DATA);
 
-  /** « paiement » ou « remboursement », pour les libellés. */
-  readonly noun = this.data.repayment ? 'remboursement' : 'paiement';
-  readonly subject = this.data.repayment
+  /** « paiement », « remboursement » ou « versement », pour les libellés. */
+  readonly noun = this.data.deposit ? 'versement' : this.data.repayment ? 'remboursement' : 'paiement';
+  readonly subject = this.data.deposit
+    ? {
+        member: this.data.deposit.memberFullName,
+        label: "Versement d'épargne",
+        amount: this.data.deposit.amount,
+        operator: this.data.deposit.operator,
+        reference: this.data.deposit.reference,
+      }
+    : this.data.repayment
     ? {
         member: this.data.repayment.memberFullName,
         label: 'Remboursement de prêt',
@@ -65,9 +77,11 @@ export class ProofViewerDialog implements OnInit, OnDestroy {
   readonly filename = signal('justificatif');
 
   ngOnInit(): void {
-    const download$: Observable<HttpResponse<Blob>> = this.data.repayment
-      ? this.loanService.downloadRepaymentProof(this.data.repayment.id)
-      : this.paymentService.downloadProof(this.data.transaction!.id);
+    const download$: Observable<HttpResponse<Blob>> = this.data.deposit
+      ? this.savingsService.downloadProof(this.data.deposit.id)
+      : this.data.repayment
+        ? this.loanService.downloadRepaymentProof(this.data.repayment.id)
+        : this.paymentService.downloadProof(this.data.transaction!.id);
     download$.subscribe({
       next: (response) => {
         const blob = response.body;

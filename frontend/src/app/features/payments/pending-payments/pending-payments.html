@@ -27,6 +27,16 @@
       <button mat-stroked-button (click)="load()"><mat-icon>refresh</mat-icon> Réessayer</button>
     </div>
   } @else {
+    @if (pendingSavings() > 0) {
+      <a class="savings-link" routerLink="/savings">
+        <mat-icon>savings</mat-icon>
+        <span>
+          <strong>{{ pendingSavings() }}</strong> versement{{ pendingSavings() > 1 ? 's' : '' }} d'épargne à valider
+        </span>
+        <span class="savings-link__go">Ouvrir Épargnes <mat-icon>chevron_right</mat-icon></span>
+      </a>
+    }
+
     @if (payments().length === 0 && repayments().length === 0) {
       <div class="state state--card">
         <mat-icon class="state__icon">task_alt</mat-icon>

@@ -1,0 +1,326 @@
+<section class="page">
+  <header class="page__header page__header--tools">
+    <div>
+      <h1 class="page__title">Épargnes</h1>
+      <p class="page__subtitle">
+        Épargne individuelle des membres, séparée du fonds commun : états généraux, épargnants, historique, versements à
+        valider et taux d'intérêt.
+      </p>
+    </div>
+    <div class="tools">
+      <button mat-stroked-button type="button" (click)="setRate()">
+        <mat-icon>percent</mat-icon>
+        Taux d'intérêt
+      </button>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <div class="state"><mat-spinner diameter="40" /></div>
+  } @else if (error()) {
+    <div class="state state--card">
+      <mat-icon class="state__icon state__icon--brown">cloud_off</mat-icon>
+      <p class="state__title">Impossible de charger les épargnes</p>
+      <p class="state__text">Vérifiez que le serveur est démarré, puis réessayez.</p>
+      <button mat-stroked-button (click)="load()"><mat-icon>refresh</mat-icon> Réessayer</button>
+    </div>
+  } @else if (overview(); as o) {
+    <div class="kpis">
+      <div class="kpi kpi--hero">
+        <span class="kpi__label"><mat-icon>account_balance_wallet</mat-icon> Épargne totale (avec intérêts)</span>
+        <span class="kpi__value">{{ formatFcfa(o.total) }}</span>
+        <span class="kpi__hint">{{ formatFcfa(o.totalPrincipal) }} versés · {{ formatFcfa(o.totalInterest) }} d'intérêts</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi__label"><mat-icon>groups</mat-icon> Épargnants</span>
+        <span class="kpi__value">{{ o.saversCount }} / {{ o.membersCount }}</span>
+        <span class="kpi__hint">Membres actifs ayant une épargne</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi__label"><mat-icon>person</mat-icon> Moyenne par épargnant</span>
+        <span class="kpi__value">{{ formatFcfa(o.averagePerSaver) }}</span>
+        <span class="kpi__hint">Épargne versée</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi__label"><mat-icon>calendar_month</mat-icon> Validé ce mois-ci</span>
+        <span class="kpi__value">{{ formatFcfa(o.validatedThisMonth) }}</span>
+        <span class="kpi__hint">Mois en cours</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi__label"><mat-icon>hourglass_top</mat-icon> En attente</span>
+        <span class="kpi__value">{{ formatFcfa(o.pendingAmount) }}</span>
+        <span class="kpi__hint">{{ o.pendingCount }} versement{{ o.pendingCount > 1 ? 's' : '' }} à valider</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi__label"><mat-icon>percent</mat-icon> Taux actuel</span>
+        <span class="kpi__value">{{ formatMonthlyRate(o.currentMonthlyRate) }}</span>
+        <span class="kpi__hint">Intérêts simples, par mois complet</span>
+      </div>
+    </div>
+
+    @if (!o.rateConfigured) {
+      <p class="explain explain--warn">
+        <mat-icon>info</mat-icon>
+        <span>
+          Aucun taux d'intérêt n'est encore fixé : aucun intérêt n'est calculé.
+          <button mat-button type="button" (click)="setRate()">Fixer le taux</button>
+        </span>
+      </p>
+    }
+
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" class="tab" [class.tab--active]="tab() === 'overview'" (click)="tab.set('overview')">
+        <mat-icon>insights</mat-icon> Vue d'ensemble
+      </button>
+      <button type="button" role="tab" class="tab" [class.tab--active]="tab() === 'savers'" (click)="tab.set('savers')">
+        <mat-icon>groups</mat-icon> Épargnants
+      </button>
+      <button type="button" role="tab" class="tab" [class.tab--active]="tab() === 'history'" (click)="tab.set('history')">
+        <mat-icon>history</mat-icon> Historique
+      </button>
+      <button type="button" role="tab" class="tab" [class.tab--active]="tab() === 'pending'" (click)="tab.set('pending')">
+        <mat-icon>pending_actions</mat-icon> À valider
+        @if (pending().length > 0) {
+          <span class="tab__count">{{ pending().length }}</span>
+        }
+      </button>
+      <button type="button" role="tab" class="tab" [class.tab--active]="tab() === 'rates'" (click)="tab.set('rates')">
+        <mat-icon>percent</mat-icon> Taux
+      </button>
+    </div>
+
+    @switch (tab()) {
+      @case ('overview') {
+        <div class="split">
+          <div class="card">
+            <h2 class="card__title"><mat-icon>bar_chart</mat-icon> Épargne validée par mois</h2>
+            <p class="card__subtitle">12 derniers mois, selon la date de validation</p>
+            <app-savings-chart [points]="o.monthly" />
+          </div>
+          <div class="card">
+            <h2 class="card__title"><mat-icon>emoji_events</mat-icon> Principaux épargnants</h2>
+            <p class="card__subtitle">Épargne + intérêts</p>
+            @if (topSavers().length === 0) {
+              <p class="muted">Aucune épargne validée pour le moment.</p>
+            } @else {
+              <ol class="top">
+                @for (m of topSavers(); track m.memberId) {
+                  <li>
+                    <button type="button" class="top__row" (click)="openMember(m)">
+                      <span class="top__name">{{ m.memberFullName }}</span>
+                      <span class="top__value">{{ formatFcfa(m.total) }}</span>
+                      <span class="top__bar"><span [style.width.%]="(m.total / topMax()) * 100"></span></span>
+                    </button>
+                  </li>
+                }
+              </ol>
+            }
+          </div>
+        </div>
+      }
+
+      @case ('savers') {
+        <div class="toolbar">
+          <app-search-bar label="Rechercher un membre" [value]="saverSearch()" (valueChange)="saverSearch.set($event)" />
+          <app-export-menu
+            filename="epargnants"
+            title="Épargne des membres"
+            [rows]="saverExportRows()"
+            [filters]="saverExportFilters()"
+          />
+        </div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Membre</th>
+                <th class="num">Épargne versée</th>
+                <th class="num">Intérêts</th>
+                <th class="num">Total</th>
+                <th class="num">Versements</th>
+                <th>Dernier versement</th>
+                <th class="num">En attente</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (r of visibleSavers(); track r.memberId) {
+                <tr (click)="openMember(r)" tabindex="0" (keydown.enter)="openMember(r)">
+                  <td>
+                    <strong>{{ r.memberFullName }}</strong>
+                    @if (!r.active) {
+                      <span class="chip">Inactif</span>
+                    }
+                  </td>
+                  <td class="num">{{ formatFcfa(r.principal) }}</td>
+                  <td class="num">{{ formatFcfa(r.interest) }}</td>
+                  <td class="num"><strong>{{ formatFcfa(r.total) }}</strong></td>
+                  <td class="num">{{ r.validatedCount }}</td>
+                  <td>{{ r.lastDepositDate ? (fromIsoDate(r.lastDepositDate) | date: 'd MMM yyyy') : '–' }}</td>
+                  <td class="num">{{ r.pendingAmount > 0 ? formatFcfa(r.pendingAmount) : '–' }}</td>
+                </tr>
+              } @empty {
+                <tr><td colspan="7" class="muted">Aucun membre ne correspond.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      @case ('history') {
+        <div class="toolbar">
+          <app-search-bar
+            label="Rechercher (membre, référence)"
+            [value]="historySearch()"
+            (valueChange)="historySearch.set($event)"
+          />
+          <app-export-menu
+            filename="historique-epargne"
+            title="Historique de l'épargne"
+            [rows]="historyExportRows()"
+            [filters]="historyExportFilters()"
+          />
+        </div>
+        <app-filter-chips
+          [options]="historyOptions()"
+          [active]="historyFilter()"
+          ariaLabel="Filtrer l'historique"
+          (activeChange)="historyFilter.set($event)"
+        />
+        <div class="entries">
+          @for (e of visibleHistory(); track e.id) {
+            <article class="entry" [class.entry--rejected]="e.status === 'REJECTED'">
+              <div class="entry__main">
+                <div class="entry__top">
+                  <span class="entry__member">{{ e.memberFullName }}</span>
+                  <span class="entry__label">{{ e.label }}</span>
+                  <span [class]="'badge badge--' + e.status.toLowerCase()">{{ statusLabels[e.status] }}</span>
+                </div>
+                <p class="entry__meta">
+                  {{ fromIsoDate(e.paymentDate) | date: 'd MMM yyyy' }} · {{ operatorLabels[e.operator] }} · réf.
+                  {{ e.reference }}
+                  @if (e.validatedAt) {
+                    · {{ e.status === 'REJECTED' ? 'rejeté' : 'validé' }} le {{ e.validatedAt | date: 'd MMM yyyy' }}
+                    @if (e.validatedByEmail) {
+                      par {{ e.validatedByEmail }}
+                    }
+                  }
+                </p>
+              </div>
+              <div class="entry__money">
+                <span class="entry__amount">{{ formatFcfa(e.amount) }}</span>
+                @if (e.interest !== null) {
+                  <span class="entry__interest">+ {{ formatFcfa(e.interest) }} ({{ e.completeMonths }} mois)</span>
+                }
+              </div>
+              @if (e.hasProof) {
+                <div class="entry__actions">
+                  <button mat-icon-button type="button" aria-label="Voir le justificatif" (click)="viewProof(e)">
+                    <mat-icon>visibility</mat-icon>
+                  </button>
+                </div>
+              }
+            </article>
+          } @empty {
+            <p class="muted">Aucun mouvement ne correspond.</p>
+          }
+        </div>
+      }
+
+      @case ('pending') {
+        @if (!canDecide) {
+          <p class="explain">
+            <mat-icon>visibility</mat-icon>
+            <span>Consultation seule : la validation et le rejet des versements sont réservés au trésorier.</span>
+          </p>
+        }
+        <p class="card__subtitle">
+          Versements libres déclarés par les membres. Les cotisations « Banque / Épargne » se valident sur la page
+          Paiements.
+        </p>
+        <div class="entries">
+          @for (e of pending(); track e.id) {
+            <article class="entry">
+              <div class="entry__main">
+                <div class="entry__top">
+                  <span class="entry__member">{{ e.memberFullName }}</span>
+                  <span class="badge badge--pending">En attente</span>
+                </div>
+                <p class="entry__meta">
+                  {{ fromIsoDate(e.paymentDate) | date: 'd MMM yyyy' }} · {{ operatorLabels[e.operator] }} · réf.
+                  <strong>{{ e.reference }}</strong> · déclaré le {{ e.declaredAt | date: 'd MMM yyyy' }}
+                </p>
+                @if (e.observation) {
+                  <p class="entry__meta">« {{ e.observation }} »</p>
+                }
+              </div>
+              <div class="entry__money">
+                <span class="entry__amount">{{ formatFcfa(e.amount) }}</span>
+              </div>
+              <div class="decide">
+                <button mat-stroked-button type="button" (click)="viewProof(e)">
+                  <mat-icon>receipt_long</mat-icon>
+                  Justificatif
+                </button>
+                @if (canDecide) {
+                  <button mat-button type="button" class="reject" [disabled]="busyId() === e.id" (click)="decide(e, 'reject')">
+                    <mat-icon>block</mat-icon>
+                    Rejeter
+                  </button>
+                  <button mat-flat-button type="button" [disabled]="busyId() === e.id" (click)="decide(e, 'validate')">
+                    <mat-icon>task_alt</mat-icon>
+                    Valider
+                  </button>
+                }
+              </div>
+            </article>
+          } @empty {
+            <div class="state state--card">
+              <mat-icon class="state__icon">task_alt</mat-icon>
+              <p class="state__title">Aucun versement à valider</p>
+            </div>
+          }
+        </div>
+      }
+
+      @case ('rates') {
+        <div class="card">
+          <h2 class="card__title"><mat-icon>percent</mat-icon> Taux d'intérêt mensuel</h2>
+          <p class="card__subtitle">
+            Intérêts simples : chaque versement validé rapporte le taux en vigueur pour chaque mois complet écoulé depuis
+            sa validation. Un nouveau taux s'applique aux mois se terminant à partir de sa date d'effet.
+          </p>
+          <button mat-flat-button type="button" (click)="setRate()">
+            <mat-icon>add</mat-icon>
+            Nouveau taux
+          </button>
+        </div>
+        <div class="table-wrap">
+          <table class="table table--static">
+            <thead>
+              <tr>
+                <th>À partir du</th>
+                <th class="num">Taux mensuel</th>
+                <th>Note</th>
+                <th>Fixé par</th>
+                <th>Le</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (r of rates(); track r.id) {
+                <tr>
+                  <td>{{ fromIsoDate(r.effectiveFrom) | date: 'd MMM yyyy' }}</td>
+                  <td class="num"><strong>{{ formatMonthlyRate(r.monthlyRate) }}</strong></td>
+                  <td>{{ r.note ?? '–' }}</td>
+                  <td>{{ r.createdByEmail }}</td>
+                  <td>{{ r.createdAt | date: 'd MMM yyyy' }}</td>
+                </tr>
+              } @empty {
+                <tr><td colspan="5" class="muted">Aucun taux fixé pour le moment.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    }
+  }
+</section>

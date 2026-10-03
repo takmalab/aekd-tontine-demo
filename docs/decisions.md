@@ -904,3 +904,61 @@ Validée par le propriétaire du projet le 2026-10-03.
 * Interface : bouton « Rembourser » sur les cartes de « Mes prêts » ; section
   « Remboursements de prêts » sur la page « Paiements à valider ».
 
+---
+
+# 39. Épargne : versements libres et intérêts
+
+## Question
+
+Comment un membre épargne-t-il en dehors des séances, et comment calculer les
+intérêts produits par l'épargne ?
+
+## Statut
+
+```text
+DÉCIDÉ
+```
+
+## Décision
+
+Validée par le propriétaire du projet le 2026-10-03.
+
+* **Bouton « Épargner »** : le membre déclare à tout moment un **versement libre**
+  (montant, opérateur, référence, date, observation, justificatif facultatif),
+  indépendant des séances. Il est compté dans l'épargne après **validation par
+  le trésorier** (personne ne valide son propre versement). Plusieurs versements
+  sont possibles.
+* L'épargne d'un membre = versements libres validés + paiements validés des
+  cotisations destinées à l'épargne individuelle (ex. « Banque / Épargne »).
+  Elle reste séparée du fonds commun.
+* **Intérêts** : taux **mensuel**, configurable par l'ADMIN ou le TRESORIER, sans
+  valeur par défaut. Intérêts **simples**, comptés **par mois complet** écoulé
+  depuis la validation du versement : montant × taux × mois complets. Les
+  intérêts ne produisent pas d'intérêts.
+* Un nouveau taux s'applique aux mois d'épargne qui se terminent à partir de sa
+  date d'effet ; les mois précédents gardent leur taux. Tant qu'aucun taux n'est
+  fixé, aucun intérêt n'est calculé.
+* **Retraits** : non gérés pour l'instant (règles à définir).
+
+## Points à valider
+
+```text
+À VALIDER
+```
+
+* Les intérêts sont calculés et affichés, mais **pas versés** : leur
+  financement (par exemple les intérêts des prêts, décision n° 14) et leur
+  versement effectif restent à définir.
+* L'épargne minimale exigée pour un prêt (décision n° 15) est comparée au
+  capital épargné, sans les intérêts.
+
+## Conséquence technique
+
+* Migration V14 : tables `savings_deposit` et `savings_interest_rate`.
+* API `/api/savings/...` : `me/overview`, `deposits` (+ justificatif),
+  `deposits/pending`, `deposits/{id}/validate|reject` (TRESORIER), `overview`,
+  `entries`, `members/{id}/overview`, `rates` (ADMIN, TRESORIER).
+* Le solde d'épargne utilisé partout (tableaux de bord, relevé, règle de prêt)
+  inclut les versements libres validés.
+* Interface : pages « Mon épargne » (membre) et « Épargnes » (ADMIN, TRESORIER).
+

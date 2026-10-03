@@ -5,6 +5,7 @@ import cm.aekd.tontine.contribution.ContributionTransactionRepository;
 import cm.aekd.tontine.contribution.ContributionTransactionStatus;
 import cm.aekd.tontine.contribution.FundDestination;
 import cm.aekd.tontine.document.AekdPdf.Cell;
+import cm.aekd.tontine.fund.FundService;
 import cm.aekd.tontine.loan.Loan;
 import cm.aekd.tontine.loan.LoanRepository;
 import cm.aekd.tontine.loan.LoanStatus;
@@ -52,19 +53,22 @@ public class MemberStatementDocumentService {
     private final LoanRepaymentRepository repaymentRepository;
     private final AppliedSanctionRepository sanctionRepository;
     private final DocumentAccess access;
+    private final FundService fundService;
 
     public MemberStatementDocumentService(MemberRepository memberRepository,
                                           ContributionTransactionRepository transactionRepository,
                                           LoanRepository loanRepository,
                                           LoanRepaymentRepository repaymentRepository,
                                           AppliedSanctionRepository sanctionRepository,
-                                          DocumentAccess access) {
+                                          DocumentAccess access,
+                                          FundService fundService) {
         this.memberRepository = memberRepository;
         this.transactionRepository = transactionRepository;
         this.loanRepository = loanRepository;
         this.repaymentRepository = repaymentRepository;
         this.sanctionRepository = sanctionRepository;
         this.access = access;
+        this.fundService = fundService;
     }
 
     public GeneratedDocument myStatement() {
@@ -90,8 +94,7 @@ public class MemberStatementDocumentService {
                 .sorted(Comparator.comparing(AppliedSanction::getCreatedAt, Comparator.reverseOrder()))
                 .toList();
 
-        BigDecimal savings = transactionRepository.sumAmountByStatusAndFundDestinationAndMember(
-                ContributionTransactionStatus.VALIDATED, FundDestination.INDIVIDUAL_SAVINGS, memberId);
+        BigDecimal savings = fundService.individualSavingsOf(memberId);
         BigDecimal tontineFund = transactionRepository.sumAmountByStatusAndFundDestinationAndMember(
                 ContributionTransactionStatus.VALIDATED, FundDestination.TONTINE_FUND, memberId);
         BigDecimal outstanding = loans.stream()

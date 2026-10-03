@@ -1,0 +1,158 @@
+<section class="page">
+  <header class="page__header page__header--tools">
+    <div>
+      <h1 class="page__title">Mon épargne</h1>
+      <p class="page__subtitle">
+        Votre épargne individuelle, séparée du fonds commun : versements validés, intérêts produits et historique.
+      </p>
+    </div>
+    @if (!loading() && !noMemberProfile() && !error()) {
+      <div class="tools">
+        <button mat-stroked-button type="button" [disabled]="documents.busy() !== null" (click)="documents.myStatement()">
+          <mat-icon>picture_as_pdf</mat-icon>
+          Mon relevé (PDF)
+        </button>
+        <button mat-flat-button type="button" class="page__action" (click)="save()">
+          <mat-icon>savings</mat-icon>
+          Épargner
+        </button>
+      </div>
+    }
+  </header>
+
+  @if (loading()) {
+    <div class="state"><mat-spinner diameter="40" /></div>
+  } @else if (noMemberProfile()) {
+    <div class="state state--card">
+      <mat-icon class="state__icon state__icon--brown">person_off</mat-icon>
+      <p class="state__title">Aucun profil membre</p>
+      <p class="state__text">Ce compte n'est pas rattaché à un membre de la tontine : il n'a pas d'épargne.</p>
+    </div>
+  } @else if (error()) {
+    <div class="state state--card">
+      <mat-icon class="state__icon state__icon--brown">cloud_off</mat-icon>
+      <p class="state__title">Impossible de charger votre épargne</p>
+      <p class="state__text">Vérifiez que le serveur est démarré, puis réessayez.</p>
+      <button mat-stroked-button (click)="load()"><mat-icon>refresh</mat-icon> Réessayer</button>
+    </div>
+  } @else if (savings(); as s) {
+    <div class="kpis">
+      <div class="kpi kpi--hero">
+        <span class="kpi__label"><mat-icon>account_balance_wallet</mat-icon> Total (épargne + intérêts)</span>
+        <span class="kpi__value">{{ formatFcfa(s.total) }}</span>
+        <span class="kpi__hint">{{ s.validatedCount }} versement{{ s.validatedCount > 1 ? 's' : '' }} validé{{ s.validatedCount > 1 ? 's' : '' }}</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi__label"><mat-icon>savings</mat-icon> Épargne versée</span>
+        <span class="kpi__value">{{ formatFcfa(s.principal) }}</span>
+        <span class="kpi__hint">Versements validés</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi__label"><mat-icon>trending_up</mat-icon> Intérêts produits</span>
+        <span class="kpi__value">{{ s.interest === null ? '–' : formatFcfa(s.interest) }}</span>
+        <span class="kpi__hint">{{ s.rateConfigured ? 'Acquis à ce jour' : 'Taux non encore fixé' }}</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi__label"><mat-icon>hourglass_top</mat-icon> En attente</span>
+        <span class="kpi__value">{{ formatFcfa(s.pendingAmount) }}</span>
+        <span class="kpi__hint">{{ s.pendingCount }} versement{{ s.pendingCount > 1 ? 's' : '' }} à valider</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi__label"><mat-icon>percent</mat-icon> Taux actuel</span>
+        <span class="kpi__value">{{ formatMonthlyRate(s.currentMonthlyRate) }}</span>
+        <span class="kpi__hint">Fixé par la trésorerie</span>
+      </div>
+    </div>
+
+    @if (s.rateConfigured) {
+      <p class="explain">
+        <mat-icon>calculate</mat-icon>
+        <span>
+          <strong>Comment sont calculés les intérêts ?</strong> Chaque versement validé rapporte le taux mensuel en
+          vigueur pour <strong>chaque mois complet</strong> écoulé depuis sa validation (intérêts simples). Exemple :
+          100 000 FCFA à 1 % / mois pendant 3 mois = 3 000 FCFA.
+        </span>
+      </p>
+    } @else {
+      <p class="explain explain--warn">
+        <mat-icon>info</mat-icon>
+        <span>
+          Le taux d'intérêt de l'épargne n'a pas encore été fixé par la trésorerie : les intérêts s'afficheront dès
+          qu'il le sera.
+        </span>
+      </p>
+    }
+
+    <h2 class="card__title"><mat-icon>history</mat-icon> Historique de mon épargne</h2>
+    <app-filter-chips
+      [options]="filterOptions()"
+      [active]="filter()"
+      ariaLabel="Filtrer l'historique"
+      (activeChange)="filter.set($event)"
+    />
+
+    @if (s.entries.length === 0) {
+      <div class="state state--card">
+        <mat-icon class="state__icon">savings</mat-icon>
+        <p class="state__title">Aucun versement pour le moment</p>
+        <p class="state__text">Vos versements d'épargne et leur validation apparaîtront ici.</p>
+        <button mat-flat-button (click)="save()"><mat-icon>savings</mat-icon> Épargner</button>
+      </div>
+    } @else if (visibleEntries().length === 0) {
+      <p class="state__text">Aucun versement dans cette catégorie.</p>
+    } @else {
+      <div class="entries">
+        @for (e of visibleEntries(); track e.id) {
+          <article class="entry" [class.entry--rejected]="e.status === 'REJECTED'">
+            <div class="entry__main">
+              <div class="entry__top">
+                <span class="entry__label">{{ e.label }}</span>
+                <span [class]="'badge badge--' + e.status.toLowerCase()">{{ statusLabels[e.status] }}</span>
+                @if (e.source === 'CONTRIBUTION') {
+                  <span class="badge badge--source">{{ sourceLabels[e.source] }}</span>
+                }
+              </div>
+              <p class="entry__meta">
+                {{ fromIsoDate(e.paymentDate) | date: 'd MMM yyyy' }} · {{ operatorLabels[e.operator] }} · réf.
+                {{ e.reference }}
+                @if (e.validatedAt && e.status === 'VALIDATED') {
+                  · validé le {{ e.validatedAt | date: 'd MMM yyyy' }}
+                }
+              </p>
+              @if (e.observation) {
+                <p class="entry__meta">« {{ e.observation }} »</p>
+              }
+            </div>
+            <div class="entry__money">
+              <span class="entry__amount">{{ formatFcfa(e.amount) }}</span>
+              @if (e.interest !== null) {
+                <span class="entry__interest">
+                  + {{ formatFcfa(e.interest) }} d'intérêts ({{ e.completeMonths }} mois)
+                </span>
+              }
+            </div>
+            @if (e.source === 'DEPOSIT') {
+              <div class="entry__actions">
+                @if (e.status === 'PENDING') {
+                  <button
+                    mat-icon-button
+                    type="button"
+                    [attr.aria-label]="e.hasProof ? 'Remplacer le justificatif' : 'Joindre un justificatif'"
+                    (click)="attachProof(e)"
+                  >
+                    <mat-icon>attach_file</mat-icon>
+                  </button>
+                }
+                @if (e.hasProof) {
+                  <button mat-icon-button type="button" aria-label="Voir le justificatif" (click)="viewProof(e)">
+                    <mat-icon>visibility</mat-icon>
+                  </button>
+                }
+              </div>
+            }
+          </article>
+        }
+      </div>
+    }
+  }
+</section>

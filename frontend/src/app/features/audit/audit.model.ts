@@ -21,6 +21,10 @@ export type AuditAction =
   | 'LOAN_REPAYMENT_DECLARED'
   | 'LOAN_REPAYMENT_VALIDATED'
   | 'LOAN_REPAYMENT_REJECTED'
+  | 'SAVINGS_DEPOSIT_DECLARED'
+  | 'SAVINGS_DEPOSIT_VALIDATED'
+  | 'SAVINGS_DEPOSIT_REJECTED'
+  | 'SAVINGS_RATE_SET'
   | 'LOAN_POLICY_CREATED'
   | 'LOAN_POLICY_UPDATED'
   | 'LOAN_POLICY_ACTIVATED'
@@ -64,6 +68,10 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   LOAN_REPAYMENT_DECLARED: 'Remboursement déclaré',
   LOAN_REPAYMENT_VALIDATED: 'Remboursement validé',
   LOAN_REPAYMENT_REJECTED: 'Remboursement rejeté',
+  SAVINGS_DEPOSIT_DECLARED: "Versement d'épargne déclaré",
+  SAVINGS_DEPOSIT_VALIDATED: "Versement d'épargne validé",
+  SAVINGS_DEPOSIT_REJECTED: "Versement d'épargne rejeté",
+  SAVINGS_RATE_SET: "Taux d'épargne fixé",
   LOAN_POLICY_CREATED: 'Politique de prêt créée',
   LOAN_POLICY_UPDATED: 'Politique de prêt modifiée',
   LOAN_POLICY_ACTIVATED: 'Politique de prêt activée',

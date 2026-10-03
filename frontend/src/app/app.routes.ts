@@ -66,6 +66,17 @@ export const routes: Routes = [
           import('./features/payments/pending-payments/pending-payments').then((m) => m.PendingPayments),
       },
       {
+        path: 'my-savings',
+        loadComponent: () => import('./features/savings/my-savings/my-savings').then((m) => m.MySavings),
+      },
+      {
+        path: 'savings',
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN', 'TRESORIER'] },
+        loadComponent: () =>
+          import('./features/savings/savings-admin/savings-admin').then((m) => m.SavingsAdmin),
+      },
+      {
         path: 'my-loans',
         loadComponent: () => import('./features/loans/my-loans/my-loans').then((m) => m.MyLoans),
       },

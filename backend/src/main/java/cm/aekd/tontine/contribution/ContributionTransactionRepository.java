@@ -55,4 +55,11 @@ public interface ContributionTransactionRepository extends JpaRepository<Contrib
     /** Cotisations ayant au moins un paiement (quel que soit son statut). */
     @Query("SELECT DISTINCT t.contributionPeriod.contributionDefinition.id FROM ContributionTransaction t")
     Set<UUID> findContributionDefinitionIdsWithPayments();
+
+    /** Paiements d'une destination (ex. épargne individuelle via « Banque / Épargne »), tous statuts. */
+    List<ContributionTransaction> findByContributionPeriod_ContributionDefinition_FundDestination(
+            FundDestination fundDestination);
+
+    List<ContributionTransaction> findByMemberIdAndContributionPeriod_ContributionDefinition_FundDestination(
+            UUID memberId, FundDestination fundDestination);
 }

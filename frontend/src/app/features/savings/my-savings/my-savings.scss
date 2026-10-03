@@ -1,0 +1,5 @@
+@use '../../loans/loans' as loans;
+@use '../savings' as savings;
+
+@include loans.loans-page;
+@include savings.savings-page;

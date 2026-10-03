@@ -33,6 +33,8 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Paiements', path: '/payments', icon: 'fact_check', roles: ['ADMIN', 'TRESORIER'] },
   { label: 'Membres', path: '/members', icon: 'group', roles: ['ADMIN', 'TRESORIER'] },
   { label: 'Sanctions', path: '/sanctions', icon: 'gavel' },
+  { label: 'Mon épargne', path: '/my-savings', icon: 'savings', memberSpace: true },
+  { label: 'Épargnes', path: '/savings', icon: 'savings', roles: ['ADMIN', 'TRESORIER'] },
   { label: 'Mes prêts', path: '/my-loans', icon: 'account_balance', memberSpace: true },
   { label: 'Prêts', path: '/loans', icon: 'account_balance', roles: ['ADMIN', 'TRESORIER'] },
   { label: 'Politiques de prêt', path: '/loan-policies', icon: 'policy' },

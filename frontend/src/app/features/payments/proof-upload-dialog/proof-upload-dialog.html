@@ -5,7 +5,7 @@
   <div class="head__text">
     <h2 mat-dialog-title class="head__title">
       @if (data.justDeclared) {
-        {{ noun === 'paiement' ? 'Paiement déclaré' : 'Remboursement déclaré' }}
+        {{ noun === 'paiement' ? 'Paiement déclaré' : noun === 'versement' ? 'Versement déclaré' : 'Remboursement déclaré' }}
       } @else {
         Justificatif du {{ noun }}
       }
