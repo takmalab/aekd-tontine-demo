@@ -13,10 +13,7 @@
       </div>
     </div>
     <div class="header-actions">
-      <button mat-stroked-button type="button" (click)="exportList()" [disabled]="loading() || filtered().length === 0">
-        <mat-icon>download</mat-icon>
-        Exporter
-      </button>
+      <app-export-menu filename="membres" title="Liste des membres" [rows]="loading() ? [] : exportRows()" [filters]="exportFilters()" />
       @if (isAdmin) {
         <button mat-flat-button type="button" class="page__action" (click)="createMember()">
           <mat-icon>add</mat-icon>

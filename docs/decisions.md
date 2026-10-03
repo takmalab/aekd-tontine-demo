@@ -601,9 +601,9 @@ Le propriétaire du projet a validé le 2026-09-26 la sortie du périmètre MVP
 initial pour ajouter un export **CSV** côté frontend sur les écrans Membres,
 Utilisateurs et Journal d'audit.
 
-Un export Excel (`.xlsx`) ou PDF réel reste **hors périmètre** tant qu'il n'est
-pas explicitement redemandé (ajouterait une dépendance frontend supplémentaire,
-CLAUDE.md §19).
+Un export Excel (`.xlsx`) reste **hors périmètre** tant qu'il n'est pas
+explicitement redemandé. L'export **PDF** a été demandé le 2026-10-03 : voir la
+décision n° 37.
 
 ## Conséquence technique
 
@@ -801,3 +801,62 @@ Validée par le propriétaire du projet le 2026-10-03.
 * `ContributionDefinitionResponse.hasPayments` permet à l'interface de griser
   ces champs et le bouton de suppression.
 * Opérations tracées dans l'audit (`SESSION_UPDATED`, `CONTRIBUTION_UPDATED`).
+
+---
+
+# 37. Documents PDF (reçus, rapports, relevés, exports)
+
+## Question
+
+Faut-il générer des documents PDF aux couleurs de l'association, et lesquels ?
+
+## Statut
+
+```text
+DÉCIDÉ
+```
+
+## Décision
+
+Demandée et validée par le propriétaire du projet le 2026-10-03 (sortie du
+périmètre MVP initial, CLAUDE.md §3). Les PDF sont générés **côté serveur**
+(bibliothèque OpenPDF), avec le logo et le nom de l'association.
+
+Premiers documents :
+
+* **Reçus** : paiement de cotisation (uniquement s'il est **validé**) et
+  remboursement de prêt (avec le solde restant après ce remboursement) ;
+  montant en chiffres et en toutes lettres.
+* **Rapport de séance** : pour chaque cotisation de la séance, l'état de chaque
+  membre (payé, partiel, en attente, en retard, non payé), les montants et un
+  récapitulatif.
+* **Relevé individuel du membre** : paiements, épargne individuelle, versements
+  au fonds commun, prêts, remboursements, sanctions.
+* **Exports PDF des listes** (membres, utilisateurs, paiements en attente, prêts,
+  sanctions, journal d'audit), qui reprennent la recherche et les filtres affichés,
+  comme l'export CSV (n° 29).
+
+## Accès
+
+* Reçus et relevé : le membre concerné, ADMIN et TRESORIER.
+* Rapport de séance et exports de listes : ADMIN et TRESORIER.
+
+## Points à valider
+
+```text
+À VALIDER
+```
+
+* Les membres doivent-ils pouvoir télécharger le **rapport de séance**, qui
+  montre la situation de tous les participants ? (Réservé au personnel en attendant.)
+* Numérotation officielle des reçus : en attendant, le numéro est dérivé de
+  l'identifiant (ex. `PAI-3F2A9C1B`), sans séquence continue.
+
+## Conséquence technique
+
+* Module backend `document/` : `AekdPdf` (gabarit commun : en-tête, pied de page
+  « Page X / Y », couleurs), services par document, `DocumentController`
+  (`/api/documents/...`). Logo : `backend/src/main/resources/branding/logo-aekd.png`.
+* Frontend : `DocumentService` (téléchargement, nom de fichier lu dans
+  `Content-Disposition`) et menu d'export CSV/PDF partagé (`ExportMenu`).
+

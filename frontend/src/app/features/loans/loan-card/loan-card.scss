@@ -291,6 +291,11 @@
   &__meta {
     color: var(--aekd-gray-muted);
   }
+
+  &__receipt {
+    margin: -8px -6px -8px auto;
+    color: var(--aekd-brown);
+  }
 }
 
 .actions {

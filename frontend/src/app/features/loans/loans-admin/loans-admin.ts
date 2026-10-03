@@ -6,8 +6,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { AuthService } from '../../../core/services/auth.service';
+import { ExportMenu } from '../../../shared/components/export-menu/export-menu';
 import { formatFcfa } from '../../../shared/utils/format';
-import { Loan, LoanBalance, LoanStatus } from '../loan.model';
+import { LOAN_STATUS_LABELS, Loan, LoanBalance, LoanStatus } from '../loan.model';
 import { LoanService } from '../loan.service';
 import { LoanCard } from '../loan-card/loan-card';
 import { LoanDecisionDialog, LoanDecisionData } from '../loan-decision-dialog/loan-decision-dialog';
@@ -28,7 +29,7 @@ const FILTER_STATUSES: Record<Exclude<LoanFilter, 'ALL'>, LoanStatus[]> = {
  */
 @Component({
   selector: 'app-loans-admin',
-  imports: [RouterLink, MatButtonModule, MatIconModule, MatProgressSpinnerModule, LoanCard],
+  imports: [RouterLink, MatButtonModule, MatIconModule, MatProgressSpinnerModule, LoanCard, ExportMenu],
   templateUrl: './loans-admin.html',
   styleUrl: './loans-admin.scss',
 })
@@ -74,6 +75,21 @@ export class LoansAdmin implements OnInit {
       .reduce((sum, l) => sum + (l.approvedAmount ?? 0), 0),
   );
   readonly formatFcfa = formatFcfa;
+
+  /** Prêts affichés (filtre actif), pour l'export CSV/PDF. */
+  readonly exportRows = computed(() =>
+    this.visibleLoans().map((l) => ({
+      Membre: l.memberFullName,
+      Politique: l.loanPolicyName,
+      'Demandé le': l.requestedAt,
+      'Montant demandé': formatFcfa(l.requestedAmount),
+      'Montant approuvé': l.approvedAmount !== null ? formatFcfa(l.approvedAmount) : '',
+      'Durée (mois)': l.approvedDurationMonths ?? l.requestedDurationMonths,
+      Statut: LOAN_STATUS_LABELS[l.status],
+    })),
+  );
+
+  readonly exportFilters = computed(() => `Filtre : ${this.filters.find((f) => f.value === this.filter())?.label}`);
 
   ngOnInit(): void {
     this.load();

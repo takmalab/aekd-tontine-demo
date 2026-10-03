@@ -4,7 +4,7 @@
       <h1 class="page__title">Journal d'audit</h1>
       <p class="page__subtitle">Historique des opérations importantes (séances, cotisations, paiements, sanctions, prêts, comptes).</p>
     </div>
-    <app-export-menu filename="journal-audit" [rows]="exportRows()" />
+    <app-export-menu filename="journal-audit" title="Journal d'audit" [rows]="exportRows()" />
   </header>
 
   @if (loading()) {

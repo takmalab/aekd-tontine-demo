@@ -8,6 +8,15 @@
     @if (isStaff && !loading()) {
       @if (session(); as s) {
         <div class="manage">
+          <button
+            mat-stroked-button
+            type="button"
+            [disabled]="documents.busy() !== null"
+            (click)="documents.sessionReport(s.id)"
+          >
+            <mat-icon>picture_as_pdf</mat-icon>
+            Rapport PDF
+          </button>
           <button mat-stroked-button type="button" (click)="edit(s)">
             <mat-icon>edit</mat-icon>
             Modifier

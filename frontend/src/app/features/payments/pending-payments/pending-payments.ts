@@ -7,7 +7,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { AuthService } from '../../../core/services/auth.service';
+import { DocumentService } from '../../../core/services/document.service';
 import { ConfirmDialog, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog';
+import { ExportMenu } from '../../../shared/components/export-menu/export-menu';
 import { formatFcfa, fromIsoDate } from '../../../shared/utils/format';
 import { ContributionTransaction, PAYMENT_OPERATOR_LABELS } from '../../contributions/contribution.model';
 import { PaymentService } from '../payment.service';
@@ -21,7 +23,7 @@ type Decision = 'validate' | 'reject';
  */
 @Component({
   selector: 'app-pending-payments',
-  imports: [DatePipe, MatButtonModule, MatIconModule, MatProgressSpinnerModule],
+  imports: [DatePipe, MatButtonModule, MatIconModule, MatProgressSpinnerModule, ExportMenu],
   templateUrl: './pending-payments.html',
   styleUrl: './pending-payments.scss',
 })
@@ -43,6 +45,20 @@ export class PendingPayments implements OnInit {
   readonly busyId = signal<string | null>(null);
 
   readonly total = computed(() => this.payments().reduce((sum, p) => sum + p.amount, 0));
+
+  private readonly documents = inject(DocumentService);
+
+  readonly exportRows = computed(() =>
+    this.payments().map((p) => ({
+      Membre: p.memberFullName,
+      Cotisation: p.contributionDefinitionName,
+      Séance: p.sessionLabel,
+      Montant: formatFcfa(p.amount),
+      Opérateur: this.operatorLabels[p.operator],
+      Référence: p.transactionReference,
+      'Payé le': p.paymentDate,
+    })),
+  );
 
   ngOnInit(): void {
     this.load();
@@ -104,11 +120,14 @@ export class PendingPayments implements OnInit {
           next: () => {
             this.busyId.set(null);
             this.payments.update((list) => list.filter((p) => p.id !== payment.id));
-            this.snackBar.open(
-              decision === 'validate' ? 'Paiement validé : fonds mis à jour' : 'Paiement rejeté',
-              'OK',
-              { duration: 4000 },
-            );
+            if (decision === 'validate') {
+              this.snackBar
+                .open('Paiement validé : fonds mis à jour', 'Reçu PDF', { duration: 8000 })
+                .onAction()
+                .subscribe(() => this.documents.paymentReceipt(payment.id));
+            } else {
+              this.snackBar.open('Paiement rejeté', 'OK', { duration: 4000 });
+            }
           },
           error: (err: HttpErrorResponse) => {
             this.busyId.set(null);

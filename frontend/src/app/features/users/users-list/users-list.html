@@ -5,7 +5,7 @@
       <p class="page__subtitle">Comptes d'accès à l'application : rôles, statut, validation des auto-inscriptions.</p>
     </div>
     <div class="header-actions">
-      <app-export-menu filename="utilisateurs" [rows]="exportRows()" />
+      <app-export-menu filename="utilisateurs" title="Liste des utilisateurs" [rows]="exportRows()" />
       <button mat-flat-button class="page__action" (click)="create()">
         <mat-icon>person_add</mat-icon>
         Nouveau compte

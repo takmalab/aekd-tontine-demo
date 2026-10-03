@@ -1,10 +1,13 @@
 <section class="page">
-  <header class="page__header">
-    <h1 class="page__title">Paiements à valider</h1>
-    <p class="page__subtitle">
-      Paiements déclarés par les membres, en attente de vérification. Seul un paiement validé est comptabilisé dans les
-      fonds.
-    </p>
+  <header class="page__header page__header--tools">
+    <div>
+      <h1 class="page__title">Paiements à valider</h1>
+      <p class="page__subtitle">
+        Paiements déclarés par les membres, en attente de vérification. Seul un paiement validé est comptabilisé dans
+        les fonds.
+      </p>
+    </div>
+    <app-export-menu filename="paiements-en-attente" title="Paiements à valider" [rows]="exportRows()" />
   </header>
 
   @if (!canDecide) {

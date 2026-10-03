@@ -102,6 +102,16 @@
                     {{ fromIsoDate(r.paymentDate) | date: 'd MMM yyyy' }} · {{ operatorLabels[r.operator] }} · réf.
                     {{ r.reference }}
                   </span>
+                  <button
+                    mat-icon-button
+                    type="button"
+                    class="history__receipt"
+                    aria-label="Télécharger le reçu de ce remboursement"
+                    [disabled]="documents.busy() !== null"
+                    (click)="documents.repaymentReceipt(r.id)"
+                  >
+                    <mat-icon>receipt_long</mat-icon>
+                  </button>
                 </li>
               }
             </ul>

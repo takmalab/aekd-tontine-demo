@@ -4,6 +4,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { forkJoin } from 'rxjs';
+import { DocumentService } from '../../../core/services/document.service';
 import { formatFcfa, fromIsoDate } from '../../../shared/utils/format';
 import { PAYMENT_OPERATOR_LABELS } from '../../contributions/contribution.model';
 import {
@@ -29,6 +30,7 @@ import { RuleChecklist } from '../rule-checklist/rule-checklist';
 })
 export class LoanCard {
   private readonly loanService = inject(LoanService);
+  readonly documents = inject(DocumentService);
 
   readonly loan = input.required<Loan>();
   /** Affiche le nom du membre (vue trésorier/admin). */

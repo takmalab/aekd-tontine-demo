@@ -160,8 +160,14 @@
 
         <!-- Sanctions appliquées -->
         <section class="block">
-          <div class="block__head">
+          <div class="block__head block__head--tools">
             <h2 class="block__title"><mat-icon>gavel</mat-icon> Sanctions appliquées</h2>
+            <app-export-menu
+              filename="sanctions"
+              [title]="'Sanctions – ' + (selected()?.name ?? '')"
+              [rows]="exportRows()"
+              [filters]="exportFilters()"
+            />
           </div>
           <div class="filters" role="tablist" aria-label="Filtrer les sanctions">
             @for (f of appliedFilters; track f.value) {

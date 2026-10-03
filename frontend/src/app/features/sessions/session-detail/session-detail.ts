@@ -9,6 +9,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { filter, forkJoin, switchMap } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
+import { DocumentService } from '../../../core/services/document.service';
 import { ConfirmDialog, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog';
 import { PageState } from '../../../shared/components/page-state/page-state';
 import { formatFcfa, fromIsoDate } from '../../../shared/utils/format';
@@ -33,6 +34,7 @@ export class SessionDetail implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   private readonly router = inject(Router);
+  readonly documents = inject(DocumentService);
 
   /** Paramètre de route `:id` (withComponentInputBinding). */
   readonly id = input.required<string>();

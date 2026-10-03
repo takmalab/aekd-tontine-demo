@@ -10,7 +10,9 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { catchError, forkJoin, of } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
+import { DocumentService } from '../../../core/services/document.service';
 import { ActionMenu, MenuAction } from '../../../shared/components/action-menu/action-menu';
+import { ExportMenu } from '../../../shared/components/export-menu/export-menu';
 import { ConfirmDialog, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog';
 import { InfoDialog, InfoDialogData } from '../../../shared/components/info-dialog/info-dialog';
 import { PageState } from '../../../shared/components/page-state/page-state';
@@ -43,9 +45,17 @@ type StatusFilterValue = MemberStatusUi | 'ALL';
  */
 type ContributionState = 'NONE' | 'UP_TO_DATE' | 'IN_PROGRESS' | 'PENDING' | 'LATE';
 type SituationFilterValue = 'ALL' | 'UP_TO_DATE' | 'LATE' | 'WITH_LOAN' | 'WITH_SANCTION';
+
+const SITUATION_EXPORT_LABELS: Record<SituationFilterValue, string> = {
+  ALL: 'Toutes',
+  UP_TO_DATE: 'À jour',
+  LATE: 'En retard',
+  WITH_LOAN: 'Avec prêt en cours',
+  WITH_SANCTION: 'Avec sanction active',
+};
 type SortValue = 'name' | 'recent' | 'savings' | 'loans';
 type Tone = 'blue' | 'green' | 'orange' | 'red' | 'violet' | 'brown' | 'gray';
-type RowAction = 'toggle-active' | 'export';
+type RowAction = 'toggle-active' | 'export' | 'statement';
 
 const STATUS_UI_LABELS: Record<MemberStatusUi, string> = {
   ACTIVE: 'Actif',
@@ -168,6 +178,7 @@ function contributionStateOf(summary: MemberSummary | null): ContributionState {
     SearchBar,
     StatusBadge,
     ActionMenu,
+    ExportMenu,
     MemberStatCard,
   ],
   templateUrl: './members-list.html',
@@ -180,6 +191,7 @@ export class MembersList implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   private readonly router = inject(Router);
+  private readonly documentService = inject(DocumentService);
 
   readonly isAdmin = this.authService.hasRole('ADMIN');
   readonly fromIsoDate = fromIsoDate;
@@ -250,6 +262,22 @@ export class MembersList implements OnInit {
         { tone: 'blue' as Tone, label: 'À payer', count: remaining, percent: pct(remaining) },
       ],
     };
+  });
+
+  /** Recherche et filtres actifs, rappelés sous le titre du PDF exporté. */
+  readonly exportFilters = computed(() => {
+    const parts: string[] = [];
+    const term = this.search().trim();
+    if (term) {
+      parts.push(`Recherche : « ${term} »`);
+    }
+    if (this.statusFilter() !== 'ALL') {
+      parts.push(`Statut : ${this.statusFilters().find((f) => f.value === this.statusFilter())?.label}`);
+    }
+    if (this.situationFilter() !== 'ALL') {
+      parts.push(`Situation : ${SITUATION_EXPORT_LABELS[this.situationFilter()]}`);
+    }
+    return parts.join(' · ') || null;
   });
 
   readonly filtered = computed(() => {
@@ -488,12 +516,15 @@ export class MembersList implements OnInit {
           : { label: 'Réactiver le membre', icon: 'check_circle', action: 'toggle-active' },
       );
     }
-    actions.push({ label: 'Exporter la fiche', icon: 'download', action: 'export' });
+    actions.push({ label: 'Relevé individuel (PDF)', icon: 'picture_as_pdf', action: 'statement' });
+    actions.push({ label: 'Exporter la fiche (CSV)', icon: 'download', action: 'export' });
     return actions;
   }
 
   onRowAction(action: RowAction, row: MemberRow): void {
-    if (action === 'export') {
+    if (action === 'statement') {
+      this.documentService.memberStatement(row.member.id);
+    } else if (action === 'export') {
       exportToCsv(`membre-${row.member.fullName.replace(/\s+/g, '-').toLowerCase()}`, [this.toExportRow(row)]);
     } else if (action === 'toggle-active') {
       this.toggleActive(row);

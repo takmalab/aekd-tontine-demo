@@ -7,6 +7,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { catchError, forkJoin, map, of, switchMap } from 'rxjs';
+import { DocumentService } from '../../../core/services/document.service';
 import { formatFcfa, fromIsoDate } from '../../../shared/utils/format';
 import {
   ContributionDefinition,
@@ -68,6 +69,7 @@ export class MyContributions implements OnInit {
   private readonly paymentService = inject(PaymentService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
+  readonly documents = inject(DocumentService);
 
   readonly formatFcfa = formatFcfa;
   readonly fromIsoDate = fromIsoDate;

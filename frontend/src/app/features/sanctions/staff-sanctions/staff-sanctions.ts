@@ -12,6 +12,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { forkJoin } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { ConfirmDialog, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog';
+import { ExportMenu } from '../../../shared/components/export-menu/export-menu';
 import { formatFcfa } from '../../../shared/utils/format';
 import { ContributionDefinition } from '../../contributions/contribution.model';
 import { ContributionService } from '../../contributions/contribution.service';
@@ -49,6 +50,7 @@ interface CandidatesState {
     MatProgressSpinnerModule,
     MatFormFieldModule,
     MatSelectModule,
+    ExportMenu,
   ],
   templateUrl: './staff-sanctions.html',
   styleUrl: './staff-sanctions.scss',
@@ -69,6 +71,23 @@ export class StaffSanctions implements OnInit {
   readonly typeLabels = SANCTION_TYPE_LABELS;
   readonly statusLabels = APPLIED_STATUS_LABELS;
   readonly formatFcfa = formatFcfa;
+
+  /** Sanctions appliquées affichées (cotisation et filtre actifs), pour l'export CSV/PDF. */
+  readonly exportRows = computed(() =>
+    this.visibleApplied().map((s) => ({
+      Membre: s.memberFullName,
+      Cotisation: s.contributionDefinitionName,
+      Séance: s.sessionLabel,
+      Type: this.typeLabels[s.type],
+      'Montant / description': s.type === 'MONETARY' ? formatFcfa(s.amount) : (s.description ?? ''),
+      Statut: this.statusLabels[s.status],
+      'Appliquée le': s.appliedAt,
+    })),
+  );
+
+  readonly exportFilters = computed(
+    () => `Filtre : ${this.appliedFilters.find((f) => f.value === this.appliedFilter())?.label}`,
+  );
 
   readonly loading = signal(true);
   readonly error = signal(false);
