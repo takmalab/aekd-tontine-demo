@@ -136,6 +136,16 @@ public final class DocumentFormat {
         };
     }
 
+    /** Statut d'un mouvement d'épargne (PENDING, VALIDATED, REJECTED). */
+    public static String savingsStatus(String status) {
+        return switch (status) {
+            case "PENDING" -> "En attente";
+            case "VALIDATED" -> "Validé";
+            case "REJECTED" -> "Rejeté";
+            default -> status;
+        };
+    }
+
     public static String sanctionType(SanctionType type) {
         return switch (type) {
             case MONETARY -> "Monétaire";

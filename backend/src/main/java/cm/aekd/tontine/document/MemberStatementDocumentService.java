@@ -18,6 +18,10 @@ import cm.aekd.tontine.sanction.AppliedSanction;
 import cm.aekd.tontine.sanction.AppliedSanctionRepository;
 import cm.aekd.tontine.sanction.AppliedSanctionStatus;
 import cm.aekd.tontine.sanction.SanctionType;
+import cm.aekd.tontine.savings.SavingsDtos.EntryResponse;
+import cm.aekd.tontine.savings.SavingsDtos.EntrySource;
+import cm.aekd.tontine.savings.SavingsDtos.MemberSavingsResponse;
+import cm.aekd.tontine.savings.SavingsService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -54,6 +58,7 @@ public class MemberStatementDocumentService {
     private final AppliedSanctionRepository sanctionRepository;
     private final DocumentAccess access;
     private final FundService fundService;
+    private final SavingsService savingsService;
 
     public MemberStatementDocumentService(MemberRepository memberRepository,
                                           ContributionTransactionRepository transactionRepository,
@@ -61,7 +66,8 @@ public class MemberStatementDocumentService {
                                           LoanRepaymentRepository repaymentRepository,
                                           AppliedSanctionRepository sanctionRepository,
                                           DocumentAccess access,
-                                          FundService fundService) {
+                                          FundService fundService,
+                                          SavingsService savingsService) {
         this.memberRepository = memberRepository;
         this.transactionRepository = transactionRepository;
         this.loanRepository = loanRepository;
@@ -69,6 +75,7 @@ public class MemberStatementDocumentService {
         this.sanctionRepository = sanctionRepository;
         this.access = access;
         this.fundService = fundService;
+        this.savingsService = savingsService;
     }
 
     public GeneratedDocument myStatement() {
@@ -134,6 +141,35 @@ public class MemberStatementDocumentService {
         }
         pdf.table(new String[]{"Date", "Cotisation", "Séance", "Destination", "Opérateur", "Montant", "Statut"},
                 new float[]{1.2f, 2.4f, 2.2f, 1.6f, 1.6f, 1.4f, 1.2f}, payRows, 5);
+
+        // Versements libres d'épargne (docs/decisions.md n° 39), avec les intérêts
+        // acquis à ce jour calculés exactement comme sur la page « Mon épargne ».
+        MemberSavingsResponse memberSavings = savingsService.ofMember(memberId);
+        List<EntryResponse> deposits = memberSavings.entries().stream()
+                .filter(e -> e.source() == EntrySource.DEPOSIT)
+                .toList();
+        pdf.section("Versements d'épargne");
+        List<Cell[]> depositRows = new ArrayList<>();
+        for (EntryResponse e : deposits) {
+            depositRows.add(new Cell[]{
+                    Cell.of(date(e.paymentDate())),
+                    Cell.of(DocumentFormat.operator(e.operator())),
+                    Cell.of(e.reference()),
+                    Cell.of(fcfa(e.amount())),
+                    Cell.of(e.interest() == null ? "–" : fcfa(e.interest()) + " (" + e.completeMonths() + " mois)"),
+                    Cell.colored(DocumentFormat.savingsStatus(e.status()), savingsColor(e.status()))
+            });
+        }
+        pdf.table(new String[]{"Date", "Opérateur", "Référence", "Montant", "Intérêts acquis", "Statut"},
+                new float[]{1.2f, 1.7f, 2.2f, 1.4f, 1.8f, 1.3f}, depositRows, 3, 4);
+        pdf.note(memberSavings.rateConfigured()
+                ? "Épargne : " + fcfa(memberSavings.principal()) + " versés (versements libres et cotisations "
+                + "d'épargne validés) + " + fcfa(memberSavings.interest()) + " d'intérêts = "
+                + fcfa(memberSavings.total()) + ". Taux actuel : "
+                + memberSavings.currentMonthlyRate().stripTrailingZeros().toPlainString().replace('.', ',')
+                + " % par mois, intérêts simples par mois complet depuis la validation."
+                : "Épargne : " + fcfa(memberSavings.principal()) + " versés (versements libres et cotisations "
+                + "d'épargne validés). Aucun taux d'intérêt n'est encore fixé : aucun intérêt n'est calculé.");
 
         pdf.section("Prêts");
         List<Cell[]> loanRows = new ArrayList<>();
@@ -211,6 +247,14 @@ public class MemberStatementDocumentService {
     private static BigDecimal remaining(Loan loan, List<LoanRepayment> repayments) {
         BigDecimal approved = loan.getApprovedAmount() != null ? loan.getApprovedAmount() : BigDecimal.ZERO;
         return approved.subtract(repaid(repayments));
+    }
+
+    private static Color savingsColor(String status) {
+        return switch (status) {
+            case "VALIDATED" -> AekdPdf.GREEN;
+            case "PENDING" -> AekdPdf.ORANGE;
+            default -> AekdPdf.RED;
+        };
     }
 
     private static Color transactionColor(ContributionTransactionStatus status) {

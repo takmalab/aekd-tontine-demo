@@ -23,6 +23,9 @@ import cm.aekd.tontine.member.Member;
 import cm.aekd.tontine.member.MemberRepository;
 import cm.aekd.tontine.repayment.LoanRepayment;
 import cm.aekd.tontine.repayment.LoanRepaymentRepository;
+import cm.aekd.tontine.savings.SavingsDeposit;
+import cm.aekd.tontine.savings.SavingsDepositRepository;
+import cm.aekd.tontine.savings.SavingsDepositStatus;
 import cm.aekd.tontine.security.RoleName;
 import cm.aekd.tontine.session.Session;
 import cm.aekd.tontine.session.SessionRepository;
@@ -75,6 +78,7 @@ class DocumentServicesTest {
     @Autowired private LoanPolicyRepository policyRepository;
     @Autowired private LoanRepository loanRepository;
     @Autowired private LoanRepaymentRepository repaymentRepository;
+    @Autowired private SavingsDepositRepository depositRepository;
     @Autowired private PasswordEncoder passwordEncoder;
 
     private Member alice;
@@ -193,6 +197,11 @@ class DocumentServicesTest {
 
     @Test
     void memberStatementSeparatesSavingsAndTontineFund() throws IOException {
+        SavingsDeposit deposit = new SavingsDeposit(alice, new BigDecimal(25000), LocalDate.of(2026, 10, 1),
+                PaymentOperator.ORANGE_MONEY, "EPARGNE-OM-1", null, treasurer);
+        deposit.setStatus(SavingsDepositStatus.VALIDATED);
+        deposit.setValidatedAt(Instant.now());
+        depositRepository.saveAndFlush(deposit);
         loginAs("doc-alice@test.aekd.cm", RoleName.MEMBRE);
 
         GeneratedDocument statement = statementService.myStatement();
@@ -200,7 +209,8 @@ class DocumentServicesTest {
         String text = text(statement);
         assertThat(statement.filename()).isEqualTo("releve-alice-ndongo.pdf");
         assertThat(text).contains("RELEVÉ INDIVIDUEL DU MEMBRE", "Alice Ndongo", "Épargne individuelle",
-                "Versé au fonds commun", "Cotisation 50 000 FCFA", "Validé");
+                "Versé au fonds commun", "Cotisation 50 000 FCFA", "Validé",
+                "Versements d'épargne", "EPARGNE-OM-1", "Orange Money", "25 000 FCFA");
 
         loginAs("doc-alice@test.aekd.cm", RoleName.MEMBRE);
         assertThatThrownBy(() -> statementService.statement(bruno.getId()))
