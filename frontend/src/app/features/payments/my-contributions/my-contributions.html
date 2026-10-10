@@ -145,7 +145,7 @@
                 @if (lastRejected(row); as r) {
                   <p class="item__tx item__tx--rejected">
                     <mat-icon>block</mat-icon>
-                    <span>Paiement du {{ fromIsoDate(r.paymentDate) | date: 'd MMM' }} (réf. {{ r.transactionReference }}) rejeté : vous pouvez en déclarer un nouveau.</span>
+                    <span>Paiement du {{ fromIsoDate(r.paymentDate) | date: 'd MMM' }} (réf. {{ r.transactionReference }}) rejeté : vous pouvez cotiser à nouveau.</span>
                   </p>
                 }
               </div>
@@ -154,7 +154,7 @@
                 @if (canDeclare(row.status)) {
                   <button mat-flat-button type="button" (click)="declare(row)">
                     <mat-icon>send_money</mat-icon>
-                    {{ row.status === 'PARTIAL' ? 'Compléter le paiement' : 'Déclarer un paiement' }}
+                    {{ row.status === 'PARTIAL' ? 'Compléter le paiement' : 'Cotiser' }}
                   </button>
                 } @else if (pendingTransaction(row); as t) {
                   <button mat-stroked-button type="button" (click)="openUpload(t)">

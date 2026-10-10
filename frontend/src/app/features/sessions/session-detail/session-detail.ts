@@ -17,8 +17,18 @@ import {
   CONTRIBUTION_STATUS_LABELS,
   FREQUENCY_LABELS,
   FUND_DESTINATION_LABELS,
+  PAYMENT_OPERATOR_LABELS,
 } from '../../contributions/contribution.model';
-import { SESSION_TIMING_LABELS, Session, SessionContribution, SessionTiming } from '../session.model';
+import { PayoutDialog, PayoutDialogData } from '../payout-dialog/payout-dialog';
+import {
+  PayoutBeneficiaryShare,
+  PayoutOverview,
+  SESSION_TIMING_LABELS,
+  Session,
+  SessionContribution,
+  SessionPayout,
+  SessionTiming,
+} from '../session.model';
 import { SessionFormDialog, SessionFormDialogData } from '../session-form-dialog/session-form-dialog';
 import { SessionService } from '../session.service';
 
@@ -52,6 +62,10 @@ export class SessionDetail implements OnInit {
   readonly error = signal(false);
   readonly session = signal<Session | null>(null);
   readonly contributions = signal<SessionContribution[]>([]);
+  /** Cagnotte remise aux bénéficiaires (personnel uniquement, décision n° 46). */
+  readonly payout = signal<PayoutOverview | null>(null);
+  readonly payoutError = signal(false);
+  readonly operatorLabels = PAYMENT_OPERATOR_LABELS;
 
   readonly timing = computed<SessionTiming | null>(() => {
     const session = this.session();
@@ -82,7 +96,10 @@ export class SessionDetail implements OnInit {
    * Suppression proposée seulement si aucune cotisation de la séance n'a de
    * paiement (le backend refuse aussi en présence de sanctions appliquées).
    */
-  readonly canDelete = computed(() => this.contributions().every((c) => !c.definition.hasPayments));
+  readonly canDelete = computed(
+    () =>
+      this.contributions().every((c) => !c.definition.hasPayments) && (this.payout()?.payouts.length ?? 0) === 0,
+  );
 
   readonly draftCount = computed(
     () => this.contributions().filter((c) => c.definition.status !== 'ACTIVE').length,
@@ -121,6 +138,7 @@ export class SessionDetail implements OnInit {
           ),
         );
         this.loading.set(false);
+        this.loadPayout();
       },
       error: (err: HttpErrorResponse) => {
         this.notFound.set(err.status === 404 || err.status === 400);
@@ -130,12 +148,45 @@ export class SessionDetail implements OnInit {
     });
   }
 
+  loadPayout(): void {
+    if (!this.isStaff) {
+      return;
+    }
+    this.payoutError.set(false);
+    this.sessionService.payoutOverview(this.id()).subscribe({
+      next: (overview) => this.payout.set(overview),
+      error: () => this.payoutError.set(true),
+    });
+  }
+
+  openPayout(overview: PayoutOverview, share: PayoutBeneficiaryShare): void {
+    const data: PayoutDialogData = { sessionId: overview.sessionId, sessionLabel: overview.sessionLabel, share };
+    this.dialog
+      .open<PayoutDialog, PayoutDialogData, SessionPayout>(PayoutDialog, {
+        data,
+        width: '560px',
+        maxWidth: 'calc(100vw - 32px)',
+      })
+      .afterClosed()
+      .subscribe((payout) => {
+        if (!payout) {
+          return;
+        }
+        this.loadPayout();
+        this.snackBar.open(
+          `Remise de ${formatFcfa(payout.amount)} à ${payout.memberFullName} enregistrée`,
+          'OK',
+          { duration: 4000 },
+        );
+      });
+  }
+
   edit(session: Session): void {
     const data: SessionFormDialogData = { session };
     this.dialog
       .open<SessionFormDialog, SessionFormDialogData, Session>(SessionFormDialog, {
         data,
-        width: '520px',
+        width: '600px',
         maxWidth: 'calc(100vw - 32px)',
         autoFocus: 'first-tabbable',
       })
@@ -144,7 +195,8 @@ export class SessionDetail implements OnInit {
         if (!updated) {
           return;
         }
-        this.session.set(updated);
+        // Rechargement complet : les cotisations rattachées ont pu changer.
+        this.load();
         this.snackBar.open(`Séance « ${updated.label} » modifiée`, 'OK', { duration: 4000 });
       });
   }

@@ -10,6 +10,8 @@ import cm.aekd.tontine.loan.LoanService;
 import cm.aekd.tontine.loan.LoanStatus;
 import cm.aekd.tontine.member.Member;
 import cm.aekd.tontine.member.MemberRepository;
+import cm.aekd.tontine.savings.SavingsDepositRepository;
+import cm.aekd.tontine.savings.TestSavings;
 import cm.aekd.tontine.security.RoleName;
 import cm.aekd.tontine.user.Role;
 import cm.aekd.tontine.user.RoleRepository;
@@ -50,6 +52,7 @@ class LoanRepaymentDeclarationTest {
     @Autowired private UserRepository userRepository;
     @Autowired private MemberRepository memberRepository;
     @Autowired private PasswordEncoder passwordEncoder;
+    @Autowired private SavingsDepositRepository depositRepository;
 
     private Member treasurer;
     private Member borrower;
@@ -67,6 +70,7 @@ class LoanRepaymentDeclarationTest {
         policyService.create(new LoanPolicyRequest("Politique test", null, null, null, null, null, null, null, null));
         loginAs(borrower, RoleName.MEMBRE);
         LoanResponse requested = loanService.request(new LoanRequest(new BigDecimal(100000), 4, "Projet"));
+        TestSavings.seedValidated(depositRepository, other, new BigDecimal(100000));
         loginAs(treasurer, RoleName.TRESORIER);
         loanId = loanService.approve(requested.id(), new LoanApprovalRequest(new BigDecimal(100000), 4)).id();
     }

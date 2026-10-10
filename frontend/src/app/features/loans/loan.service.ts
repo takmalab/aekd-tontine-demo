@@ -72,6 +72,12 @@ export class LoanService {
     return this.http.get<Loan>(`${this.api}/loans/${id}`);
   }
 
+  /** Argent d'épargne disponible pour prêter : plafond de l'approbation (décision n° 46). */
+  availableForLending(): Observable<{ balance: number }> {
+    return this.http.get<{ balance: number }>(`${this.api}/funds/available-for-lending`);
+  }
+
+  /** Refusé (409) au-delà de l'argent disponible, (403) sur son propre prêt. */
   approve(id: string, request: LoanApprovalRequest): Observable<Loan> {
     return this.http.put<Loan>(`${this.api}/loans/${id}/approve`, request);
   }

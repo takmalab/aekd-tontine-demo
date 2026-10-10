@@ -1,0 +1,207 @@
+<div class="dialog-head">
+  <span class="dialog-head__icon"><mat-icon>event_repeat</mat-icon></span>
+  <div>
+    <h2 mat-dialog-title class="dialog-head__title">{{ editing ? 'Modifier le tournoi' : 'Nouveau tournoi' }}</h2>
+    <p class="dialog-head__subtitle">
+      Une séance par mois, créée automatiquement chez le membre suivant de l'ordre de passage.
+    </p>
+  </div>
+</div>
+
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <mat-dialog-content class="dialog-body">
+    @if (loading()) {
+      <p class="loading-line"><mat-spinner diameter="20" /> Chargement des membres et des cotisations…</p>
+    } @else if (loadError()) {
+      <p class="notice notice--error" role="alert">
+        <mat-icon>error_outline</mat-icon>
+        <span>Impossible de charger les membres et les cotisations.</span>
+        <button mat-button type="button" class="notice__action" (click)="load()">Réessayer</button>
+      </p>
+    } @else {
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Nom du tournoi</mat-label>
+        <input matInput formControlName="name" placeholder="Ex. : Tournoi 2026-2027" cdkFocusInitial />
+        @if (form.controls.name.hasError('required') && form.controls.name.touched) {
+          <mat-error>Le nom est requis</mat-error>
+        }
+        @if (form.controls.name.hasError('maxlength')) {
+          <mat-error>100 caractères maximum</mat-error>
+        }
+      </mat-form-field>
+
+      <h3 class="section-title"><mat-icon>calendar_month</mat-icon> Calendrier</h3>
+      @if (editing) {
+        <p class="readonly">
+          <mat-icon>lock</mat-icon>
+          <span>
+            {{ ruleLabel(editing.weekOfMonth, editing.dayOfWeek) }}, à partir de {{ monthLabel(editing.startMonth) }}.
+            Pour changer la règle ou l'ordre de passage, arrêtez ce tournoi et créez-en un nouveau.
+          </span>
+        </p>
+      } @else {
+        <div class="row row--3">
+          <mat-form-field appearance="outline">
+            <mat-label>Mois de départ</mat-label>
+            <mat-select formControlName="startMonth">
+              @for (month of months; track month) {
+                <mat-option [value]="month">{{ monthLabel(month) }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Rang</mat-label>
+            <mat-select formControlName="weekOfMonth">
+              @for (week of weeks; track week) {
+                <mat-option [value]="week">{{ weekLabels[week] }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Jour</mat-label>
+            <mat-select formControlName="dayOfWeek">
+              @for (day of days; track day) {
+                <mat-option [value]="day">{{ dayLabels[day] }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+      }
+
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Créer chaque séance</mat-label>
+        <input matInput type="number" min="0" max="365" formControlName="leadDays" />
+        <span matTextSuffix>jours avant sa date</span>
+        <mat-hint>Une seule séance à venir existe à la fois.</mat-hint>
+        @if (form.controls.leadDays.hasError('required') && form.controls.leadDays.touched) {
+          <mat-error>Le délai est requis</mat-error>
+        } @else if (form.controls.leadDays.invalid) {
+          <mat-error>Entre 0 et 365 jours</mat-error>
+        }
+      </mat-form-field>
+
+      <h3 class="section-title"><mat-icon>format_list_numbered</mat-icon> Ordre de passage</h3>
+      <p class="hint">
+        Chaque mois, le membre suivant reçoit la séance chez lui (récepteur et bénéficiaire). Quand tous sont passés,
+        le tournoi s'arrête.
+      </p>
+
+      @if (editing) {
+        <ol class="order order--readonly">
+          @for (slot of editing.slots; track slot.position) {
+            <li class="order__item">
+              <span class="order__rank">{{ slot.position + 1 }}</span>
+              <span class="order__name">{{ slot.memberFullName }}</span>
+              <span class="order__date">{{ slot.plannedDate | date: 'EEE d MMM y' }}</span>
+            </li>
+          }
+        </ol>
+      } @else {
+        <div class="order-add">
+          <mat-form-field appearance="outline" class="order-add__select" subscriptSizing="dynamic">
+            <mat-label>Ajouter un membre</mat-label>
+            <mat-select #picker (selectionChange)="addMember($event.value); picker.value = null">
+              @for (member of available(); track member.id) {
+                <mat-option [value]="member">{{ member.fullName }}</mat-option>
+              } @empty {
+                <mat-option disabled>Tous les membres actifs sont placés</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <button mat-stroked-button type="button" [disabled]="available().length === 0" (click)="addAllActive()">
+            <mat-icon>group_add</mat-icon>
+            Tous les actifs
+          </button>
+        </div>
+
+        @if (order().length === 0) {
+          <p class="empty" [class.empty--error]="submitted()">
+            <mat-icon>{{ submitted() ? 'error_outline' : 'info' }}</mat-icon>
+            Ajoutez au moins un membre à l'ordre de passage.
+          </p>
+        } @else {
+          <ol class="order" cdkDropList (cdkDropListDropped)="drop($event)">
+            @for (row of preview(); track row.member.id; let i = $index; let first = $first; let last = $last) {
+              <li class="order__item" cdkDrag>
+                <mat-icon class="order__handle" cdkDragHandle>drag_indicator</mat-icon>
+                <span class="order__rank">{{ i + 1 }}</span>
+                <span class="order__name">{{ row.member.fullName }}</span>
+                <span class="order__date">
+                  {{ row.date | date: 'EEE d MMM y' }}
+                  @if (row.createdOn) {
+                    <small>créée le {{ row.createdOn | date: 'd MMM' }}</small>
+                  }
+                </span>
+                <span class="order__actions">
+                  <button mat-icon-button type="button" [disabled]="first" (click)="move(i, -1)" matTooltip="Monter" aria-label="Monter">
+                    <mat-icon>arrow_upward</mat-icon>
+                  </button>
+                  <button mat-icon-button type="button" [disabled]="last" (click)="move(i, 1)" matTooltip="Descendre" aria-label="Descendre">
+                    <mat-icon>arrow_downward</mat-icon>
+                  </button>
+                  <button mat-icon-button type="button" (click)="removeMember(i)" matTooltip="Retirer" aria-label="Retirer">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                </span>
+              </li>
+            }
+          </ol>
+          @if (firstDateInPast()) {
+            <p class="empty empty--error">
+              <mat-icon>error_outline</mat-icon>
+              La première séance est déjà passée : choisissez un mois de départ ultérieur.
+            </p>
+          }
+        }
+      }
+
+      <h3 class="section-title"><mat-icon>payments</mat-icon> Cotisations par défaut</h3>
+      <p class="hint">
+        Rattachées à chaque séance générée ; vous pourrez ensuite les ajuster séance par séance.
+        @if (editing) {
+          Le changement s'applique aux séances générées à partir de maintenant.
+        }
+      </p>
+      @if (contributions().length === 0) {
+        <p class="empty"><mat-icon>info</mat-icon> Aucune cotisation active.</p>
+      } @else {
+        <div class="contribs">
+          @for (c of contributions(); track c.id) {
+            <mat-checkbox
+              class="contribs__item"
+              [checked]="isContributionSelected(c.id)"
+              (change)="toggleContribution(c.id, $event.checked)"
+            >
+              <span class="contribs__name">{{ c.name }}</span>
+              <span class="contribs__meta">
+                {{ c.amountMode === 'FIXED' ? formatFcfa(c.amount) : 'Montant libre' }} ·
+                {{ c.mandatory ? 'Obligatoire' : 'Facultative' }}
+                @if (c.status !== 'ACTIVE') {
+                  · <strong>inactive, ignorée</strong>
+                }
+              </span>
+            </mat-checkbox>
+          }
+        </div>
+      }
+    }
+
+    @if (errorMessage(); as message) {
+      <p class="notice notice--error" role="alert">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ message }}</span>
+      </p>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="dialog-actions">
+    <button mat-button type="button" mat-dialog-close [disabled]="saving()">Annuler</button>
+    <button mat-flat-button type="submit" [disabled]="saving() || loading() || loadError()">
+      @if (saving()) {
+        <mat-spinner diameter="20" />
+      } @else {
+        {{ editing ? 'Enregistrer' : 'Créer le tournoi' }}
+      }
+    </button>
+  </mat-dialog-actions>
+</form>

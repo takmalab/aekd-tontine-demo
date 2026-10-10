@@ -4,6 +4,9 @@ import cm.aekd.tontine.audit.AuditAction;
 import cm.aekd.tontine.audit.AuditLogService;
 import cm.aekd.tontine.common.CurrentUserProvider;
 import cm.aekd.tontine.contribution.StoredResource;
+import cm.aekd.tontine.document.DocumentFormat;
+import cm.aekd.tontine.notification.NotificationService;
+import cm.aekd.tontine.notification.NotificationType;
 import cm.aekd.tontine.loan.Loan;
 import cm.aekd.tontine.loan.LoanRepository;
 import cm.aekd.tontine.loan.LoanStatus;
@@ -50,10 +53,13 @@ public class LoanRepaymentService {
     private final UserRepository userRepository;
     private final AuditLogService auditLogService;
     private final FileStorageService fileStorageService;
+    private final NotificationService notificationService;
 
     public LoanRepaymentService(LoanRepository loanRepository, LoanRepaymentRepository repaymentRepository,
                                  CurrentUserProvider currentUserProvider, UserRepository userRepository,
-                                 AuditLogService auditLogService, FileStorageService fileStorageService) {
+                                 AuditLogService auditLogService, FileStorageService fileStorageService,
+                                 NotificationService notificationService) {
+        this.notificationService = notificationService;
         this.loanRepository = loanRepository;
         this.repaymentRepository = repaymentRepository;
         this.currentUserProvider = currentUserProvider;
@@ -62,9 +68,19 @@ public class LoanRepaymentService {
         this.fileStorageService = fileStorageService;
     }
 
-    /** Remboursement reçu et saisi par le trésorier : comptabilisé immédiatement. */
+    /**
+     * Remboursement reçu et saisi par le trésorier : comptabilisé immédiatement.
+     * Comme pour la validation (docs/decisions.md n° 40), le trésorier ne saisit
+     * pas ainsi un remboursement de son propre prêt : il le déclare et un autre
+     * membre du bureau le valide.
+     */
     public LoanRepaymentResponse record(UUID loanId, LoanRepaymentRequest request) {
         Loan loan = getLoanOrThrow(loanId);
+        UUID currentMemberId = currentUserProvider.currentMemberId().orElse(null);
+        if (currentMemberId != null && currentMemberId.equals(loan.getMember().getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Vous ne pouvez pas enregistrer directement un remboursement de votre propre prêt : déclarez-le");
+        }
         checkRepayable(loan);
 
         BigDecimal remaining = remainingBalance(loan);
@@ -83,6 +99,12 @@ public class LoanRepaymentService {
 
         auditLogService.record(AuditAction.LOAN_REPAYMENT_RECORDED, "LoanRepayment", repayment.getId(),
                 "Remboursement de " + request.amount() + " enregistré pour le prêt de " + loan.getMember().getFullName());
+        notificationService.notifyMember(loan.getMember(), NotificationType.LOAN_REPAYMENT_RECORDED,
+                "Remboursement enregistré",
+                "Le trésorier a enregistré votre remboursement de " + DocumentFormat.fcfa(request.amount())
+                        + ". Reste à rembourser : " + DocumentFormat.fcfa(remaining.subtract(request.amount())) + ".",
+                "/my-loans");
+        notifyOtherMembers(loan, request.amount());
 
         return LoanRepaymentResponse.from(repayment);
     }
@@ -115,6 +137,10 @@ public class LoanRepaymentService {
         auditLogService.record(AuditAction.LOAN_REPAYMENT_DECLARED, "LoanRepayment", repayment.getId(),
                 "Remboursement de " + request.amount() + " déclaré par " + loan.getMember().getFullName()
                         + " (en attente de validation)");
+        notificationService.notifyStaff(NotificationType.LOAN_REPAYMENT_DECLARED, "Remboursement à valider",
+                loan.getMember().getFullName() + " a déclaré un remboursement de "
+                        + DocumentFormat.fcfa(request.amount()) + ".",
+                "/payments");
 
         return LoanRepaymentResponse.from(repayment);
     }
@@ -139,8 +165,19 @@ public class LoanRepaymentService {
 
         auditLogService.record(AuditAction.LOAN_REPAYMENT_VALIDATED, "LoanRepayment", repayment.getId(),
                 "Remboursement de " + repayment.getAmount() + " validé pour le prêt de " + loan.getMember().getFullName());
+        notificationService.notifyMember(loan.getMember(), NotificationType.LOAN_REPAYMENT_VALIDATED,
+                "Remboursement validé",
+                "Votre remboursement de " + DocumentFormat.fcfa(repayment.getAmount()) + " a été validé. "
+                        + "Reste à rembourser : " + DocumentFormat.fcfa(remaining.subtract(repayment.getAmount())) + ".",
+                "/my-loans");
+        notifyOtherMembers(loan, repayment.getAmount());
 
         return LoanRepaymentResponse.from(repayment);
+    }
+
+    private void notifyOtherMembers(Loan loan, BigDecimal amount) {
+        notificationService.notifyOtherMembers(loan.getMember(), null, "Remboursement de prêt",
+                loan.getMember().getFullName() + " a remboursé " + DocumentFormat.fcfa(amount) + " sur son prêt.");
     }
 
     public LoanRepaymentResponse reject(UUID repaymentId) {
@@ -153,6 +190,11 @@ public class LoanRepaymentService {
         auditLogService.record(AuditAction.LOAN_REPAYMENT_REJECTED, "LoanRepayment", repayment.getId(),
                 "Remboursement de " + repayment.getAmount() + " rejeté pour le prêt de "
                         + repayment.getLoan().getMember().getFullName());
+        notificationService.notifyMember(repayment.getLoan().getMember(), NotificationType.LOAN_REPAYMENT_REJECTED,
+                "Remboursement rejeté",
+                "Votre remboursement de " + DocumentFormat.fcfa(repayment.getAmount())
+                        + " a été rejeté. Contactez le trésorier pour en savoir plus.",
+                "/my-loans");
 
         return LoanRepaymentResponse.from(repayment);
     }

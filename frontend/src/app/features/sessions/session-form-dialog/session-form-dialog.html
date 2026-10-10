@@ -2,7 +2,7 @@
   <span class="dialog-head__icon"><mat-icon>event</mat-icon></span>
   <div>
     <h2 mat-dialog-title class="dialog-head__title">{{ editing ? 'Modifier la séance' : 'Nouvelle séance' }}</h2>
-    <p class="dialog-head__subtitle">Réunion de la tontine : date, lieu, récepteur et bénéficiaire(s).</p>
+    <p class="dialog-head__subtitle">Réunion de la tontine : date, lieu, récepteur, bénéficiaire(s) et cotisations.</p>
   </div>
 </div>
 
@@ -87,6 +87,83 @@
       }
     </mat-form-field>
 
+    <section class="contribs" aria-labelledby="contribs-title">
+      <div class="contribs__head">
+        <h3 id="contribs-title" class="contribs__title">
+          <mat-icon>payments</mat-icon>
+          Cotisations de la séance
+        </h3>
+        @if (!contributionsLoading() && !contributionsError() && contributionOptions().length > 0) {
+          <span class="contribs__count">
+            {{ selectedCount() }} sélectionnée{{ selectedCount() > 1 ? 's' : '' }}
+          </span>
+        }
+      </div>
+      <p class="contribs__hint">
+        Cochez les cotisations dues lors de cette séance. Chacune reste distincte, avec ses propres participants.
+      </p>
+
+      @if (contributionsLoading()) {
+        <p class="contribs__state">
+          <mat-spinner diameter="18" />
+          Chargement des cotisations…
+        </p>
+      } @else if (contributionsError()) {
+        <p class="notice notice--error" role="alert">
+          <mat-icon>error_outline</mat-icon>
+          <span>Impossible de charger les cotisations{{ editing ? ' : celles de la séance resteront inchangées' : '' }}.</span>
+          <button mat-button type="button" class="notice__action" (click)="loadContributions()">Réessayer</button>
+        </p>
+      } @else if (contributionOptions().length === 0) {
+        <p class="contribs__state">
+          <mat-icon>info</mat-icon>
+          Aucune cotisation active. Créez et activez une cotisation depuis la page « Cotisations ».
+        </p>
+      } @else {
+        <div class="contribs__list" formArrayName="contributions">
+          @for (option of contributionOptions(); track option.definition.id; let i = $index) {
+            <div class="contrib" [class.contrib--selected]="isSelected(i)" [formGroupName]="i">
+              <mat-checkbox formControlName="selected" class="contrib__check">
+                <span class="contrib__name">{{ option.definition.name }}</span>
+              </mat-checkbox>
+              <div class="contrib__meta">
+                <span class="chip chip--amount">
+                  {{ option.definition.amountMode === 'FIXED' ? formatFcfa(option.definition.amount) : 'Montant libre' }}
+                </span>
+                <span class="chip" [class.chip--mandatory]="option.definition.mandatory">
+                  {{ option.definition.mandatory ? 'Obligatoire' : 'Facultative' }}
+                </span>
+                <span class="chip">{{ destinationLabels[option.definition.fundDestination] }}</span>
+                @if (option.definition.status !== 'ACTIVE') {
+                  <span class="chip chip--warn">{{ statusLabels[option.definition.status] }}</span>
+                }
+              </div>
+
+              @if (isSelected(i)) {
+                <mat-form-field appearance="outline" class="contrib__due" subscriptSizing="dynamic">
+                  <mat-label>Date limite (facultative)</mat-label>
+                  <input matInput [matDatepicker]="duePicker" formControlName="dueDate" (click)="duePicker.open()" />
+                  <mat-datepicker-toggle matIconSuffix [for]="duePicker" />
+                  <mat-datepicker #duePicker />
+                </mat-form-field>
+              } @else if (option.attached && option.definition.hasPayments) {
+                <p class="contrib__warn">
+                  <mat-icon>warning_amber</mat-icon>
+                  Des paiements existent pour cette cotisation : le retrait sera refusé s'ils concernent cette séance.
+                </p>
+              }
+            </div>
+          }
+        </div>
+
+        @if (mandatoryTotal() > 0) {
+          <p class="contribs__total">
+            Total obligatoire à montant fixe : <strong>{{ formatFcfa(mandatoryTotal()) }}</strong> par participant
+          </p>
+        }
+      }
+    </section>
+
     @if (errorMessage(); as message) {
       <p class="notice notice--error" role="alert">
         <mat-icon>error_outline</mat-icon>
@@ -97,7 +174,7 @@
 
   <mat-dialog-actions align="end" class="dialog-actions">
     <button mat-button type="button" mat-dialog-close [disabled]="saving()">Annuler</button>
-    <button mat-flat-button type="submit" [disabled]="saving()">
+    <button mat-flat-button type="submit" [disabled]="saving() || contributionsLoading()">
       @if (saving()) {
         <mat-spinner diameter="20" />
       } @else {

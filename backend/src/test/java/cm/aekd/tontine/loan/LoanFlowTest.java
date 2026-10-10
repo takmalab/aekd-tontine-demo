@@ -7,6 +7,8 @@ import cm.aekd.tontine.repayment.LoanRepaymentRequest;
 import cm.aekd.tontine.repayment.LoanRepaymentResponse;
 import cm.aekd.tontine.repayment.LoanRepaymentService;
 import cm.aekd.tontine.contribution.PaymentOperator;
+import cm.aekd.tontine.savings.SavingsDepositRepository;
+import cm.aekd.tontine.savings.TestSavings;
 import cm.aekd.tontine.security.RoleName;
 import cm.aekd.tontine.user.Role;
 import cm.aekd.tontine.user.RoleRepository;
@@ -58,6 +60,9 @@ class LoanFlowTest {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private SavingsDepositRepository depositRepository;
+
     @AfterEach
     void clearSecurityContext() {
         SecurityContextHolder.clearContext();
@@ -83,6 +88,7 @@ class LoanFlowTest {
         Member admin = createMember(RoleName.ADMIN, "loanadmin2", LocalDate.now());
         Member treasurer = createMember(RoleName.TRESORIER, "loantreso2", LocalDate.now());
         Member member = createMember(RoleName.MEMBRE, "loanmember2", LocalDate.of(2024, 1, 1));
+        TestSavings.seedValidated(depositRepository, member, new BigDecimal(500000));
 
         loginAsMember(admin, RoleName.ADMIN);
         LoanPolicyResponse policy = policyService.create(new LoanPolicyRequest(
@@ -127,6 +133,7 @@ class LoanFlowTest {
         Member admin = createMember(RoleName.ADMIN, "loanadmin3", LocalDate.now());
         Member treasurer = createMember(RoleName.TRESORIER, "loantreso3", LocalDate.now());
         Member member = createMember(RoleName.MEMBRE, "loanmember3", LocalDate.of(2024, 1, 1));
+        TestSavings.seedValidated(depositRepository, member, new BigDecimal(500000));
 
         loginAsMember(admin, RoleName.ADMIN);
         policyService.create(new LoanPolicyRequest("Politique simple", null, null, null, null, null, null, null, null));
@@ -148,6 +155,7 @@ class LoanFlowTest {
         Member treasurer = createMember(RoleName.TRESORIER, "loantreso4", LocalDate.now());
         // Membre très récent : ne respectera pas l'ancienneté minimale
         Member member = createMember(RoleName.MEMBRE, "loanmember4", LocalDate.now());
+        TestSavings.seedValidated(depositRepository, member, new BigDecimal(500000));
 
         loginAsMember(admin, RoleName.ADMIN);
         policyService.create(new LoanPolicyRequest(
@@ -194,10 +202,78 @@ class LoanFlowTest {
     }
 
     @Test
+    void treasurerCannotDecideOrDirectlyRepayOwnLoan() {
+        Member admin = createMember(RoleName.ADMIN, "loanadmin8", LocalDate.now());
+        Member treasurer = createMember(RoleName.TRESORIER, "loantreso8", LocalDate.now());
+        TestSavings.seedValidated(depositRepository, treasurer, new BigDecimal(500000));
+
+        loginAsMember(admin, RoleName.ADMIN);
+        policyService.create(new LoanPolicyRequest("Politique simple", null, null, null, null, null, null, null, null));
+
+        loginAsMember(treasurer, RoleName.TRESORIER);
+        LoanResponse requested = loanService.request(new LoanRequest(new BigDecimal(40000), 2, "Motif"));
+
+        assertThatThrownBy(() -> loanService.approve(requested.id(), new LoanApprovalRequest(new BigDecimal(40000), 2)))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("votre propre demande");
+        assertThatThrownBy(() -> loanService.reject(requested.id(), new LoanRejectionRequest("Motif")))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("votre propre demande");
+
+        loginAsMember(admin, RoleName.ADMIN);
+        LoanResponse approved = loanService.approve(requested.id(), new LoanApprovalRequest(new BigDecimal(40000), 2));
+
+        loginAsMember(treasurer, RoleName.TRESORIER);
+        assertThatThrownBy(() -> repaymentService.record(approved.id(),
+                new LoanRepaymentRequest(new BigDecimal(10000), LocalDate.now(), PaymentOperator.CASH, "REMB-SELF")))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("votre propre prêt");
+
+        LoanRepaymentResponse declared = repaymentService.declare(approved.id(),
+                new LoanRepaymentRequest(new BigDecimal(10000), LocalDate.now(), PaymentOperator.CASH, "REMB-DECL"));
+        assertThat(declared.amount()).isEqualByComparingTo(new BigDecimal(10000));
+        assertThat(repaymentService.balance(approved.id()).remainingBalance())
+                .isEqualByComparingTo(new BigDecimal(40000));
+    }
+
+    @Test
+    void approvalIsBlockedBeyondAvailableSavings() {
+        Member admin = createMember(RoleName.ADMIN, "loanadmin9", LocalDate.now());
+        Member treasurer = createMember(RoleName.TRESORIER, "loantreso9", LocalDate.now());
+        Member saver = createMember(RoleName.MEMBRE, "loansaver9", LocalDate.now());
+        Member borrower = createMember(RoleName.MEMBRE, "loanborrower9", LocalDate.now());
+        TestSavings.seedValidated(depositRepository, saver, new BigDecimal(100000));
+
+        loginAsMember(admin, RoleName.ADMIN);
+        policyService.create(new LoanPolicyRequest("Politique simple", null, null, null, null, null, null, null, null));
+
+        loginAsMember(borrower, RoleName.MEMBRE);
+        LoanResponse first = loanService.request(new LoanRequest(new BigDecimal(150000), 3, "Motif"));
+        LoanResponse second = loanService.request(new LoanRequest(new BigDecimal(40000), 3, "Motif"));
+
+        loginAsMember(treasurer, RoleName.TRESORIER);
+        assertThatThrownBy(() -> loanService.approve(first.id(), new LoanApprovalRequest(new BigDecimal(150000), 3)))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("épargne disponible");
+
+        // Montant réduit à l'argent disponible : accepté, l'encours est alors de 80 000.
+        loanService.approve(first.id(), new LoanApprovalRequest(new BigDecimal(80000), 3));
+        assertThatThrownBy(() -> loanService.approve(second.id(), new LoanApprovalRequest(new BigDecimal(40000), 3)))
+                .isInstanceOf(ResponseStatusException.class);
+
+        // Le capital remboursé redevient disponible.
+        repaymentService.record(first.id(),
+                new LoanRepaymentRequest(new BigDecimal(30000), LocalDate.now(), PaymentOperator.CASH, "REMB-9"));
+        LoanResponse approved = loanService.approve(second.id(), new LoanApprovalRequest(new BigDecimal(40000), 3));
+        assertThat(approved.status()).isEqualTo(LoanStatus.APPROVED);
+    }
+
+    @Test
     void cannotApproveTwice() {
         Member admin = createMember(RoleName.ADMIN, "loanadmin7", LocalDate.now());
         Member treasurer = createMember(RoleName.TRESORIER, "loantreso7", LocalDate.now());
         Member member = createMember(RoleName.MEMBRE, "loanmember7", LocalDate.now());
+        TestSavings.seedValidated(depositRepository, member, new BigDecimal(500000));
 
         loginAsMember(admin, RoleName.ADMIN);
         policyService.create(new LoanPolicyRequest("Politique simple", null, null, null, null, null, null, null, null));

@@ -3,7 +3,10 @@ package cm.aekd.tontine.contribution;
 import cm.aekd.tontine.audit.AuditAction;
 import cm.aekd.tontine.audit.AuditLogService;
 import cm.aekd.tontine.common.CurrentUserProvider;
+import cm.aekd.tontine.document.DocumentFormat;
 import cm.aekd.tontine.member.Member;
+import cm.aekd.tontine.notification.NotificationService;
+import cm.aekd.tontine.notification.NotificationType;
 import cm.aekd.tontine.member.MemberRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -35,6 +38,7 @@ public class ManualPaymentService implements PaymentService {
     private final CurrentUserProvider currentUserProvider;
     private final AuditLogService auditLogService;
     private final ContributionPeriodStatusService periodStatusService;
+    private final NotificationService notificationService;
 
     public ManualPaymentService(ContributionDefinitionRepository definitionRepository,
                                  ContributionPeriodRepository periodRepository,
@@ -43,7 +47,9 @@ public class ManualPaymentService implements PaymentService {
                                  MemberRepository memberRepository,
                                  CurrentUserProvider currentUserProvider,
                                  AuditLogService auditLogService,
-                                 ContributionPeriodStatusService periodStatusService) {
+                                 ContributionPeriodStatusService periodStatusService,
+                                 NotificationService notificationService) {
+        this.notificationService = notificationService;
         this.definitionRepository = definitionRepository;
         this.periodRepository = periodRepository;
         this.participantRepository = participantRepository;
@@ -88,6 +94,10 @@ public class ManualPaymentService implements PaymentService {
         auditLogService.record(AuditAction.PAYMENT_DECLARED, "ContributionTransaction", transaction.getId(),
                 "Déclaration d'un paiement de " + amount + " pour \"" + definition.getName() + "\" par "
                         + member.getFullName());
+        notificationService.notifyStaff(NotificationType.PAYMENT_DECLARED, "Paiement à valider",
+                member.getFullName() + " a déclaré " + DocumentFormat.fcfa(amount) + " pour \""
+                        + definition.getName() + "\" (" + period.getSession().getLabel() + ").",
+                "/payments");
 
         return ContributionTransactionResponse.from(transaction);
     }

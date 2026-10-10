@@ -58,6 +58,8 @@ export interface UserDeletionImpact {
   loanRepayments: number;
   savingsDeposits: number;
   appliedSanctions: number;
+  /** Remises de cagnotte reçues comme bénéficiaire d'une séance. */
+  sessionPayouts: number;
   /** Opérations sur les données d'autres membres (conservées, auteur effacé). */
   actionsAsAuthor: number;
 }

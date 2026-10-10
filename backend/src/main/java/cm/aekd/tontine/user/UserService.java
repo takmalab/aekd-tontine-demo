@@ -4,6 +4,8 @@ import cm.aekd.tontine.audit.AuditAction;
 import cm.aekd.tontine.audit.AuditLogService;
 import cm.aekd.tontine.member.Member;
 import cm.aekd.tontine.member.MemberRepository;
+import cm.aekd.tontine.notification.NotificationService;
+import cm.aekd.tontine.notification.NotificationType;
 import cm.aekd.tontine.security.RoleName;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -42,10 +44,12 @@ public class UserService {
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuditLogService auditLogService;
+    private final NotificationService notificationService;
 
     public UserService(UserRepository userRepository, RoleRepository roleRepository,
                         MemberRepository memberRepository, PasswordEncoder passwordEncoder,
-                        AuditLogService auditLogService) {
+                        AuditLogService auditLogService, NotificationService notificationService) {
+        this.notificationService = notificationService;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.memberRepository = memberRepository;
@@ -77,6 +81,8 @@ public class UserService {
 
         auditLogService.record(AuditAction.USER_REGISTERED, "User", user.getId(),
                 "Auto-inscription de " + user.getEmail() + " (en attente de validation)");
+        notificationService.notifyAdmins(NotificationType.USER_REGISTERED, "Inscription à valider",
+                fullName + " (" + user.getEmail() + ") a créé un compte et attend votre validation.", "/users");
 
         return new RegisterResponse(user.getEmail(),
                 "Compte créé avec succès. Il doit être validé par un administrateur avant de pouvoir vous connecter.");

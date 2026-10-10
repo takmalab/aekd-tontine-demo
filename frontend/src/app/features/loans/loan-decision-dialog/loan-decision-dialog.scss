@@ -39,6 +39,26 @@
   }
 }
 
+.available {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--aekd-gray-muted);
+
+  mat-icon {
+    flex: none;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  &--over {
+    color: var(--aekd-brown);
+  }
+}
+
 .btn-reject {
   --mat-button-filled-container-color: var(--aekd-brown);
 }

@@ -125,7 +125,10 @@ public class DashboardService {
                 late,
                 amountCollected,
                 fundService.tontineFundBalance(),
+                fundService.tontineFundCollected(),
+                fundService.tontineFundRemitted(),
                 fundService.totalIndividualSavings(),
+                fundService.availableForLending(),
                 loanRepository.countByStatus(LoanStatus.REQUESTED),
                 loanRepository.countByStatusIn(IN_PROGRESS_STATUSES),
                 appliedSanctionRepository.countByStatus(AppliedSanctionStatus.APPLIED)

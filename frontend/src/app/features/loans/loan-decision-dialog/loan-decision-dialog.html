@@ -37,6 +37,17 @@
           }
         </mat-form-field>
       </div>
+      @if (available() !== null) {
+        <p class="available" [class.available--over]="exceedsAvailable()">
+          <mat-icon>{{ exceedsAvailable() ? 'error_outline' : 'price_check' }}</mat-icon>
+          <span>
+            Épargne disponible pour prêter : <strong>{{ formatFcfa(available()!) }}</strong>
+            @if (exceedsAvailable()) {
+              — le montant approuvé la dépasse, l'approbation sera refusée.
+            }
+          </span>
+        </p>
+      }
     </form>
   } @else {
     <form [formGroup]="rejectForm" (ngSubmit)="submit()" class="decision" novalidate>

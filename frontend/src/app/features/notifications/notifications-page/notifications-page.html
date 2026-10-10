@@ -1,0 +1,142 @@
+<section class="page">
+  <header class="page__header">
+    <h1 class="page__title">Notifications</h1>
+    <p class="page__subtitle">
+      Paiements, prêts, épargne, sanctions et séances : vous êtes prévenu ici, et sur votre téléphone si vous activez
+      les notifications push.
+    </p>
+  </header>
+
+  <div class="layout">
+    <div class="feed">
+      <div class="feed__bar">
+        <mat-button-toggle-group [value]="filter()" (change)="filter.set($event.value)" hideSingleSelectionIndicator>
+          <mat-button-toggle value="all">Toutes</mat-button-toggle>
+          <mat-button-toggle value="unread">Non lues ({{ unreadCount() }})</mat-button-toggle>
+        </mat-button-toggle-group>
+        <button mat-button [disabled]="unreadCount() === 0" (click)="markAllRead()">
+          <mat-icon>done_all</mat-icon>
+          Tout marquer comme lu
+        </button>
+      </div>
+
+      @if (loading()) {
+        <div class="state"><mat-spinner diameter="40" /></div>
+      } @else if (error()) {
+        <div class="state state--card">
+          <mat-icon class="state__icon state__icon--brown">cloud_off</mat-icon>
+          <p class="state__title">Impossible de charger les notifications</p>
+          <button mat-stroked-button (click)="load()"><mat-icon>refresh</mat-icon> Réessayer</button>
+        </div>
+      } @else if (visible().length === 0) {
+        <div class="state state--card">
+          <mat-icon class="state__icon">notifications_none</mat-icon>
+          <p class="state__title">{{ filter() === 'unread' ? 'Aucune notification non lue' : 'Aucune notification' }}</p>
+        </div>
+      } @else {
+        <ul class="list">
+          @for (n of visible(); track n.id) {
+            <li>
+              <button type="button" class="item" [class.item--unread]="!n.read" (click)="open(n)">
+                <span [class]="'item__icon item__icon--' + styles[n.type].tone">
+                  <mat-icon>{{ styles[n.type].icon }}</mat-icon>
+                </span>
+                <span class="item__text">
+                  <span class="item__title">{{ n.title }}</span>
+                  <span class="item__message">{{ n.message }}</span>
+                  <span class="item__date">{{ n.createdAt | date: 'EEEE d MMMM y, HH:mm' }}</span>
+                </span>
+                @if (n.link) {
+                  <mat-icon class="item__go">chevron_right</mat-icon>
+                }
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+
+    <aside class="side">
+      <section class="card">
+        <h2 class="card__title"><mat-icon>phonelink_ring</mat-icon> Sur cet appareil</h2>
+        @switch (pushState()) {
+          @case ('on') {
+            <p class="card__text card__text--ok">
+              <mat-icon>check_circle</mat-icon> Les notifications push sont activées.
+            </p>
+            <div class="card__actions">
+              <button mat-stroked-button (click)="sendTest()"><mat-icon>send</mat-icon> Tester</button>
+              <button mat-button [disabled]="pushBusy()" (click)="disablePush()">Désactiver</button>
+            </div>
+          }
+          @case ('denied') {
+            <p class="card__text">
+              Les notifications sont bloquées pour ce site. Autorisez-les dans les réglages du navigateur, puis
+              rechargez la page.
+            </p>
+          }
+          @case ('unsupported') {
+            <p class="card__text">
+              Ce navigateur ne prend pas en charge les notifications push (ou la page n'est pas servie en HTTPS). Sur
+              iPhone, ajoutez d'abord l'application à l'écran d'accueil.
+            </p>
+          }
+          @default {
+            <p class="card__text">
+              Recevez une alerte même lorsque l'application est fermée. Le navigateur vous demandera votre accord.
+            </p>
+            <div class="card__actions">
+              <button mat-flat-button [disabled]="pushBusy()" (click)="enablePush()">
+                <mat-icon>notifications_active</mat-icon>
+                Activer les notifications push
+              </button>
+            </div>
+          }
+        }
+        <p class="card__hint">Elles sont désactivées automatiquement sur cet appareil à la déconnexion.</p>
+      </section>
+
+      <section class="card">
+        <h2 class="card__title"><mat-icon>volume_up</mat-icon> Son dans l'application</h2>
+        <p class="card__text">
+          Un carillon retentit quand une nouvelle notification arrive pendant que l'application est ouverte.
+        </p>
+        <div class="card__actions">
+          <mat-slide-toggle [checked]="soundEnabled()" (change)="setSound($event.checked)">
+            {{ soundEnabled() ? 'Activé' : 'Désactivé' }}
+          </mat-slide-toggle>
+          <button mat-button [disabled]="!soundEnabled()" (click)="playSound()">
+            <mat-icon>play_arrow</mat-icon> Écouter
+          </button>
+        </div>
+        <p class="card__hint">Réglage propre à cet appareil.</p>
+      </section>
+
+      @if (isStaff) {
+        <section class="card">
+          <h2 class="card__title"><mat-icon>alarm</mat-icon> Rappels de cotisation</h2>
+          <p class="card__text">
+            Rappel envoyé une fois aux membres qui n'ont pas encore payé une cotisation <strong>obligatoire</strong>,
+            quand la date limite de la séance approche. Laissez vide pour ne pas envoyer de rappel.
+          </p>
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>Rappeler</mat-label>
+            <input matInput type="number" min="0" max="60" [formControl]="reminderDays" placeholder="Aucun rappel" />
+            <span matTextSuffix>jour(s) avant</span>
+            @if (reminderDays.invalid) {
+              <mat-error>Entre 0 et 60 jours</mat-error>
+            }
+          </mat-form-field>
+          <div class="card__actions">
+            <button mat-flat-button [disabled]="settingsSaving() || reminderDays.invalid" (click)="saveSettings()">
+              Enregistrer
+            </button>
+            <span class="card__hint">
+              {{ savedReminderDays() === null ? 'Actuellement : aucun rappel' : 'Actuellement : ' + savedReminderDays() + ' jour(s) avant' }}
+            </span>
+          </div>
+        </section>
+      }
+    </aside>
+  </div>
+</section>

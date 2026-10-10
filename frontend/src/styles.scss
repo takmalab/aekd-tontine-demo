@@ -214,6 +214,13 @@ input:-webkit-autofill:focus {
   transition: background-color 9999s ease-out 0s;
 }
 
+// Menu de la cloche (shell) : panneau rendu hors du composant, donc stylé ici.
+.notif-menu.mat-mdc-menu-panel {
+  width: 380px;
+  max-width: calc(100vw - 24px);
+  max-height: min(560px, calc(100vh - 80px));
+}
+
 // Filled buttons: slightly bolder label for legibility of white text on orange.
 .mat-mdc-unelevated-button.mat-mdc-button-base,
 .mat-mdc-raised-button.mat-mdc-button-base {

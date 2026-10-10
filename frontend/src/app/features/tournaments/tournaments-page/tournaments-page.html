@@ -1,0 +1,97 @@
+<section class="page">
+  <header class="page__header page__header--row">
+    <div>
+      <a routerLink="/sessions" class="back"><mat-icon>arrow_back</mat-icon> Séances</a>
+      <h1 class="page__title">Tournois</h1>
+      <p class="page__subtitle">
+        Création automatique des séances : chaque mois, une séance est créée chez le membre suivant de l'ordre de
+        passage, avec les cotisations par défaut du tournoi.
+      </p>
+    </div>
+    <span [matTooltip]="hasActive() ? 'Un tournoi est déjà en cours : arrêtez-le avant d\'en créer un autre.' : ''">
+      <button mat-flat-button class="page__action" [disabled]="hasActive() || loading()" (click)="openForm()">
+        <mat-icon>add</mat-icon>
+        Nouveau tournoi
+      </button>
+    </span>
+  </header>
+
+  @if (loading()) {
+    <div class="state"><mat-spinner diameter="40" /></div>
+  } @else if (error()) {
+    <div class="state state--card">
+      <mat-icon class="state__icon state__icon--brown">cloud_off</mat-icon>
+      <p class="state__title">Impossible de charger les tournois</p>
+      <button mat-stroked-button (click)="load()"><mat-icon>refresh</mat-icon> Réessayer</button>
+    </div>
+  } @else if (tournaments().length === 0) {
+    <div class="state state--card">
+      <mat-icon class="state__icon">event_repeat</mat-icon>
+      <p class="state__title">Aucun tournoi</p>
+      <p class="state__text">
+        Créez un tournoi pour que les séances mensuelles soient générées automatiquement selon l'ordre de passage.
+      </p>
+    </div>
+  } @else {
+    <div class="list">
+      @for (t of sorted(); track t.id) {
+        <article class="tournament" [class.tournament--ended]="t.status !== 'ACTIVE'">
+          <div class="tournament__top">
+            <div>
+              <h2 class="tournament__name">{{ t.name }}</h2>
+              <p class="tournament__rule">
+                <mat-icon>event_repeat</mat-icon>
+                {{ ruleLabel(t.weekOfMonth, t.dayOfWeek) }} · séance créée {{ t.leadDays }} jour{{ t.leadDays > 1 ? 's' : '' }}
+                avant sa date
+              </p>
+            </div>
+            <span class="tournament__top-right">
+              <span class="badge" [class]="'badge badge--' + t.status.toLowerCase()">{{ statusLabels[t.status] }}</span>
+              @if (actionsFor(t).length > 0) {
+                <app-action-menu [actions]="actionsFor(t)" [disabled]="busyId() === t.id" (selected)="onAction($event, t)" />
+              }
+            </span>
+          </div>
+
+          <div class="tournament__progress">
+            <span>{{ generatedCount(t) }} / {{ t.slots.length }} séance{{ t.slots.length > 1 ? 's' : '' }} générée{{ generatedCount(t) > 1 ? 's' : '' }}</span>
+            @if (nextCreation(t); as next) {
+              <span class="tournament__next">
+                Prochaine : {{ next.slot.memberFullName }}, créée le {{ next.on | date: 'd MMMM y' }}
+              </span>
+            }
+          </div>
+          <mat-progress-bar mode="determinate" [value]="progress(t)" />
+
+          <div class="tournament__contribs">
+            @for (c of t.contributions; track c.id) {
+              <span class="chip" [class.chip--off]="c.status !== 'ACTIVE'" [matTooltip]="c.status !== 'ACTIVE' ? 'Inactive : ignorée à la génération' : ''">
+                {{ c.name }}
+              </span>
+            } @empty {
+              <span class="muted">Aucune cotisation par défaut</span>
+            }
+          </div>
+
+          <ol class="slots">
+            @for (slot of t.slots; track slot.position) {
+              @let state = slotState(t, slot);
+              <li class="slot" [class]="'slot slot--' + state.toLowerCase()">
+                <span class="slot__rank">{{ slot.position + 1 }}</span>
+                <span class="slot__name">{{ slot.memberFullName }}</span>
+                <span class="slot__date">{{ slot.plannedDate | date: 'EEE d MMM y' }}</span>
+                @if (state === 'CREATED') {
+                  <a class="slot__state" [routerLink]="['/sessions', slot.sessionId]">
+                    {{ slotStateLabels[state] }} <mat-icon>chevron_right</mat-icon>
+                  </a>
+                } @else {
+                  <span class="slot__state">{{ slotStateLabels[state] }}</span>
+                }
+              </li>
+            }
+          </ol>
+        </article>
+      }
+    </div>
+  }
+</section>

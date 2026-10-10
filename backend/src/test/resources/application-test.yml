@@ -7,6 +7,15 @@ spring:
     url: jdbc:postgresql://localhost:5432/aekd_tontine_test
 
 app:
+  tournament:
+    scheduler:
+      # Les tests appellent la generation explicitement, avec une date maitrisee.
+      enabled: false
+  notification:
+    reminders:
+      # Les tests appellent l'envoi des rappels explicitement, avec une date maitrisee.
+      enabled: false
+
   storage:
     local:
       # Isole les tests du dossier de stockage de dev (evite de laisser des

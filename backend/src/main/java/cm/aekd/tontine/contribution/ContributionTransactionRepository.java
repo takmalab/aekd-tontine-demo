@@ -52,6 +52,9 @@ public interface ContributionTransactionRepository extends JpaRepository<Contrib
     /** Au moins un paiement (quel que soit son statut) sur une période de la séance. */
     boolean existsByContributionPeriod_Session_Id(UUID sessionId);
 
+    /** Au moins un paiement (quel que soit son statut) sur cette période. */
+    boolean existsByContributionPeriod_Id(UUID contributionPeriodId);
+
     /** Cotisations ayant au moins un paiement (quel que soit son statut). */
     @Query("SELECT DISTINCT t.contributionPeriod.contributionDefinition.id FROM ContributionTransaction t")
     Set<UUID> findContributionDefinitionIdsWithPayments();

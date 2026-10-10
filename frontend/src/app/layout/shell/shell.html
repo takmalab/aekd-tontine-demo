@@ -25,6 +25,53 @@
     <span class="topbar__spacer"></span>
 
     @if (currentUser(); as user) {
+      <button
+        mat-icon-button
+        class="topbar__bell"
+        [matMenuTriggerFor]="notificationMenu"
+        (menuOpened)="loadRecent()"
+        [attr.aria-label]="unreadCount() > 0 ? unreadCount() + ' notification(s) non lue(s)' : 'Notifications'"
+      >
+        <mat-icon
+          [matBadge]="unreadCount() > 99 ? '99+' : unreadCount()"
+          [matBadgeHidden]="unreadCount() === 0"
+          matBadgeSize="small"
+          matBadgeColor="warn"
+          aria-hidden="false"
+          >{{ unreadCount() > 0 ? 'notifications_active' : 'notifications' }}</mat-icon
+        >
+      </button>
+      <mat-menu #notificationMenu="matMenu" xPosition="before" class="notif-menu">
+        <div class="notif-menu__head" (click)="$event.stopPropagation()">
+          <span class="notif-menu__title">Notifications</span>
+          @if (unreadCount() > 0) {
+            <button mat-button class="notif-menu__all" (click)="markAllRead()">Tout marquer comme lu</button>
+          }
+        </div>
+        @if (recentLoading()) {
+          <div class="notif-menu__empty">Chargement…</div>
+        } @else {
+          @for (n of recent(); track n.id) {
+            <button mat-menu-item class="notif-item" [class.notif-item--unread]="!n.read" (click)="openNotification(n)">
+              <span class="notif-item__icon" [class]="'notif-item__icon notif-item__icon--' + styles[n.type].tone">
+                <mat-icon>{{ styles[n.type].icon }}</mat-icon>
+              </span>
+              <span class="notif-item__text">
+                <span class="notif-item__title">{{ n.title }}</span>
+                <span class="notif-item__message">{{ n.message }}</span>
+                <span class="notif-item__date">{{ n.createdAt | date: 'd MMM, HH:mm' }}</span>
+              </span>
+            </button>
+          } @empty {
+            <div class="notif-menu__empty">Aucune notification</div>
+          }
+        }
+        <a mat-menu-item routerLink="/notifications" class="notif-menu__footer" (click)="onNavigate()">
+          <mat-icon>tune</mat-icon>
+          <span>Toutes les notifications et réglages</span>
+        </a>
+      </mat-menu>
+
       <button mat-button [matMenuTriggerFor]="userMenu" class="topbar__user">
         <span class="topbar__user-inner">
           <span class="avatar">{{ initials() }}</span>

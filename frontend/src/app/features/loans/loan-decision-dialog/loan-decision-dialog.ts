@@ -47,6 +47,23 @@ export class LoanDecisionDialog {
 
   readonly saving = signal(false);
   readonly errorMessage = signal<string | null>(null);
+  /** Argent d'épargne disponible pour prêter (null tant qu'il n'est pas chargé). */
+  readonly available = signal<number | null>(null);
+
+  constructor() {
+    if (this.approving) {
+      this.loanService.availableForLending().subscribe({
+        next: ({ balance }) => this.available.set(balance),
+        error: () => this.available.set(null),
+      });
+    }
+  }
+
+  exceedsAvailable(): boolean {
+    const available = this.available();
+    const amount = Number(this.approveForm.controls.approvedAmount.value);
+    return available !== null && amount > available;
+  }
 
   readonly approveForm = this.fb.group({
     approvedAmount: [
@@ -86,8 +103,8 @@ export class LoanDecisionDialog {
         this.errorMessage.set(
           error.status === 400
             ? "Ce prêt n'est plus en attente de décision, ou les informations sont invalides."
-            : error.status === 403
-              ? "Action réservée au trésorier et à l'administrateur."
+            : error.status === 403 || error.status === 409
+              ? error.error?.message || "Action réservée au trésorier et à l'administrateur."
               : 'Une erreur est survenue. Vérifiez que le serveur est démarré.',
         );
       },

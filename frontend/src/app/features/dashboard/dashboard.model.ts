@@ -14,8 +14,13 @@ export interface AdminDashboardResponse {
   paymentsPending: number;
   lateContributions: number;
   amountCollected: number;
+  /** Fonds commun restant : collecté − remis aux bénéficiaires (décision n° 46). */
   tontineFundBalance: number;
+  tontineFundCollected: number;
+  tontineFundRemitted: number;
   totalIndividualSavings: number;
+  /** Argent d'épargne disponible pour prêter (docs/decisions.md n° 46). */
+  availableForLending: number;
   loanRequestsPending: number;
   loansInProgress: number;
   activeSanctions: number;

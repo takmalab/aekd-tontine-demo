@@ -64,6 +64,7 @@ public class UserDeletionService {
             long loanRepayments,
             long savingsDeposits,
             long appliedSanctions,
+            long sessionPayouts,
             long actionsAsAuthor
     ) {
     }
@@ -84,6 +85,7 @@ public class UserDeletionService {
                         + "WHERE l.member_id = ?", memberId),
                 countByMember("SELECT count(*) FROM savings_deposit WHERE member_id = ?", memberId),
                 countByMember("SELECT count(*) FROM applied_sanction WHERE member_id = ?", memberId),
+                countByMember("SELECT count(*) FROM session_payout WHERE member_id = ?", memberId),
                 count("""
                         SELECT (SELECT count(*) FROM contribution_transaction WHERE validated_by = ?)
                              + (SELECT count(*) FROM loan WHERE decision_by = ?)
@@ -91,7 +93,8 @@ public class UserDeletionService {
                              + (SELECT count(*) FROM applied_sanction WHERE applied_by = ?)
                              + (SELECT count(*) FROM savings_deposit WHERE validated_by = ?)
                              + (SELECT count(*) FROM savings_interest_rate WHERE created_by = ?)
-                        """, userId, userId, userId, userId, userId, userId, userId));
+                             + (SELECT count(*) FROM session_payout WHERE recorded_by = ?)
+                        """, userId, userId, userId, userId, userId, userId, userId, userId));
     }
 
     public void delete(UUID userId) {
@@ -141,7 +144,7 @@ public class UserDeletionService {
                 + " et de son historique : " + impact.contributionPayments() + " paiement(s), "
                 + impact.loans() + " prêt(s), " + impact.loanRepayments() + " remboursement(s), "
                 + impact.savingsDeposits() + " versement(s) d'épargne, " + impact.appliedSanctions()
-                + " sanction(s). Auteur retiré de " + impact.actionsAsAuthor() + " opération(s) d'autres membres.";
+                + " sanction(s), " + impact.sessionPayouts() + " remise(s) de cagnotte reçue(s). Auteur retiré de " + impact.actionsAsAuthor() + " opération(s) d'autres membres.";
     }
 
     private List<String> proofStorageKeys(UUID memberId) {

@@ -6,6 +6,7 @@ import cm.aekd.tontine.contribution.ContributionDefinitionRepository;
 import cm.aekd.tontine.contribution.ContributionFrequency;
 import cm.aekd.tontine.contribution.ContributionPeriod;
 import cm.aekd.tontine.contribution.ContributionPeriodRepository;
+import cm.aekd.tontine.contribution.ContributionStatus;
 import cm.aekd.tontine.contribution.ContributionTransaction;
 import cm.aekd.tontine.contribution.ContributionTransactionRepository;
 import cm.aekd.tontine.contribution.FundDestination;
@@ -240,6 +241,129 @@ class SessionServiceTest {
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("paiements");
         assertThat(sessionRepository.findById(created.id())).isPresent();
+    }
+
+    @Test
+    void createAttachesSelectedContributionsWithOptionalDueDate() {
+        ContributionDefinition cotisation = activeDefinition("Cotisation 50 000");
+        ContributionDefinition ration = activeDefinition("Ration");
+
+        SessionResponse created = sessionService.create(withContributions("Séance avec cotisations", List.of(
+                new SessionContributionRequest(cotisation.getId(), LocalDate.of(2026, 10, 10)),
+                new SessionContributionRequest(ration.getId(), null))));
+
+        List<ContributionPeriod> periods = periodRepository.findBySessionId(created.id());
+        assertThat(periods).hasSize(2);
+        assertThat(periods).filteredOn(p -> p.getContributionDefinition().getId().equals(cotisation.getId()))
+                .singleElement()
+                .extracting(ContributionPeriod::getDueDate)
+                .isEqualTo(LocalDate.of(2026, 10, 10));
+        assertThat(periods).filteredOn(p -> p.getContributionDefinition().getId().equals(ration.getId()))
+                .singleElement()
+                .extracting(ContributionPeriod::getDueDate)
+                .isNull();
+    }
+
+    @Test
+    void createWithoutContributionsAttachesNothing() {
+        SessionResponse created = sessionService.create(request("Séance sans cotisation", LocalDate.of(2026, 10, 3),
+                host.getId(), List.of(beneficiaryA.getId())));
+
+        assertThat(periodRepository.findBySessionId(created.id())).isEmpty();
+    }
+
+    @Test
+    void createRejectsContributionThatIsNotActive() {
+        ContributionDefinition draft = definitionRepository.save(new ContributionDefinition(
+                "Voir bébé", null, null, AmountMode.VOLUNTARY,
+                ContributionFrequency.MONTHLY, false, Visibility.PUBLIC, FundDestination.TONTINE_FUND));
+
+        assertThatThrownBy(() -> sessionService.create(withContributions("Séance brouillon",
+                List.of(new SessionContributionRequest(draft.getId(), null)))))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("n'est pas active");
+    }
+
+    @Test
+    void createRejectsUnknownOrDuplicateContribution() {
+        ContributionDefinition cotisation = activeDefinition("Cotisation 10 000");
+
+        assertThatThrownBy(() -> sessionService.create(withContributions("Séance inconnue",
+                List.of(new SessionContributionRequest(UUID.randomUUID(), null)))))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("Cotisation introuvable");
+
+        assertThatThrownBy(() -> sessionService.create(withContributions("Séance doublon", List.of(
+                new SessionContributionRequest(cotisation.getId(), null),
+                new SessionContributionRequest(cotisation.getId(), null)))))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("qu'une fois");
+    }
+
+    @Test
+    void updateAddsRemovesAndChangesDueDateOfContributions() {
+        ContributionDefinition kept = activeDefinition("Cotisation 50 000");
+        ContributionDefinition removed = activeDefinition("Ration");
+        ContributionDefinition added = activeDefinition("Cotisation 10 000");
+        SessionResponse created = sessionService.create(withContributions("Séance à recomposer", List.of(
+                new SessionContributionRequest(kept.getId(), null),
+                new SessionContributionRequest(removed.getId(), null))));
+        UUID keptPeriodId = periodRepository.findBySessionId(created.id()).stream()
+                .filter(p -> p.getContributionDefinition().getId().equals(kept.getId()))
+                .findFirst().orElseThrow().getId();
+
+        sessionService.update(created.id(), withContributions("Séance à recomposer", List.of(
+                new SessionContributionRequest(kept.getId(), LocalDate.of(2026, 10, 15)),
+                new SessionContributionRequest(added.getId(), null))));
+
+        List<ContributionPeriod> periods = periodRepository.findBySessionId(created.id());
+        assertThat(periods).extracting(p -> p.getContributionDefinition().getId())
+                .containsExactlyInAnyOrder(kept.getId(), added.getId());
+        ContributionPeriod keptPeriod = periods.stream()
+                .filter(p -> p.getContributionDefinition().getId().equals(kept.getId()))
+                .findFirst().orElseThrow();
+        // La période conservée est la même (pas de recréation) : ses paiements éventuels restent attachés.
+        assertThat(keptPeriod.getId()).isEqualTo(keptPeriodId);
+        assertThat(keptPeriod.getDueDate()).isEqualTo(LocalDate.of(2026, 10, 15));
+    }
+
+    @Test
+    void updateWithoutContributionListKeepsAttachments() {
+        ContributionDefinition cotisation = activeDefinition("Cotisation 50 000");
+        SessionResponse created = sessionService.create(withContributions("Séance inchangée",
+                List.of(new SessionContributionRequest(cotisation.getId(), null))));
+
+        sessionService.update(created.id(), request("Séance renommée", LocalDate.of(2026, 10, 3),
+                host.getId(), List.of(beneficiaryA.getId())));
+
+        assertThat(periodRepository.findBySessionId(created.id())).hasSize(1);
+    }
+
+    @Test
+    void updateRefusesToRemoveContributionWithPayment() {
+        ContributionDefinition cotisation = activeDefinition("Cotisation 50 000");
+        SessionResponse created = sessionService.create(withContributions("Séance payée",
+                List.of(new SessionContributionRequest(cotisation.getId(), null))));
+        ContributionPeriod period = periodRepository.findBySessionId(created.id()).get(0);
+        transactionRepository.saveAndFlush(new ContributionTransaction(beneficiaryA, period, new BigDecimal(50000),
+                PaymentOperator.CASH, "RET-1", LocalDate.of(2026, 10, 3), null));
+
+        assertThatThrownBy(() -> sessionService.update(created.id(), withContributions("Séance payée", List.of())))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("paiements");
+        assertThat(periodRepository.findById(period.getId())).isPresent();
+    }
+
+    private SessionRequest withContributions(String label, List<SessionContributionRequest> contributions) {
+        return new SessionRequest(label, LocalDate.of(2026, 10, 3), "Douala – Bonamoussadi", host.getId(),
+                List.of(beneficiaryA.getId()), contributions);
+    }
+
+    private ContributionDefinition activeDefinition(String name) {
+        ContributionDefinition definition = new ContributionDefinition(name, null, new BigDecimal(2000),
+                AmountMode.FIXED, ContributionFrequency.MONTHLY, true, Visibility.PUBLIC, FundDestination.TONTINE_FUND);
+        definition.setStatus(ContributionStatus.ACTIVE);
+        return definitionRepository.save(definition);
     }
 
     private ContributionPeriod attachContribution(UUID sessionId) {

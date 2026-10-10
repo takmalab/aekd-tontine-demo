@@ -159,7 +159,8 @@ public class DemoDataSeeder implements ApplicationRunner {
         ContributionPeriodResponse period50k = definitionService.addPeriod(c50k.id(), new ContributionPeriodRequest(session.id(), dueDate));
         ContributionPeriodResponse period10k = definitionService.addPeriod(c10k.id(), new ContributionPeriodRequest(session.id(), dueDate));
         ContributionPeriodResponse periodRation = definitionService.addPeriod(ration.id(), new ContributionPeriodRequest(session.id(), dueDate));
-        definitionService.addPeriod(epargne.id(), new ContributionPeriodRequest(session.id(), null));
+        ContributionPeriodResponse periodEpargne = definitionService.addPeriod(epargne.id(),
+                new ContributionPeriodRequest(session.id(), null));
 
         declareAndValidate(jean, tresorier, c50k.id(), period50k.id(), new BigDecimal(50000),
                 PaymentOperator.MTN_MOMO, "MOMO-DEMO-001", currentMonthStart().plusDays(3));
@@ -169,6 +170,18 @@ public class DemoDataSeeder implements ApplicationRunner {
                 PaymentOperator.MTN_MOMO, "MOMO-DEMO-003", currentMonthStart().plusDays(3));
         declareAndValidate(paul, tresorier, ration.id(), periodRation.id(), new BigDecimal(2000),
                 PaymentOperator.CASH, "CASH-DEMO-004", currentMonthStart().plusDays(6));
+
+        // Épargne fictive : l'argent prêté vient de l'épargne des membres et une
+        // approbation au-delà de l'épargne disponible est bloquée (decisions.md n° 46).
+        // 400 000 FCFA au total, assez pour la démo (prêt de 300 000 FCFA, CLAUDE.md §33).
+        declareAndValidate(jean, tresorier, epargne.id(), periodEpargne.id(), new BigDecimal(150000),
+                PaymentOperator.BANK_TRANSFER, "BANK-DEMO-005", currentMonthStart().plusDays(2));
+        declareAndValidate(paul, tresorier, epargne.id(), periodEpargne.id(), new BigDecimal(100000),
+                PaymentOperator.MTN_MOMO, "MOMO-DEMO-006", currentMonthStart().plusDays(4));
+        declareAndValidate(sylvie, tresorier, epargne.id(), periodEpargne.id(), new BigDecimal(100000),
+                PaymentOperator.ORANGE_MONEY, "OM-DEMO-007", currentMonthStart().plusDays(4));
+        declareAndValidate(robert, tresorier, epargne.id(), periodEpargne.id(), new BigDecimal(50000),
+                PaymentOperator.CASH, "CASH-DEMO-008", currentMonthStart().plusDays(5));
 
         loginAs(tresorier);
         // Exemple du CLAUDE.md §18, repris tel quel pour la démo (pas une décision définitive).

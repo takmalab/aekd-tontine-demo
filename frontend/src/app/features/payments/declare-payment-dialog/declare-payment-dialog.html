@@ -1,7 +1,7 @@
 <div class="head">
   <span class="head__icon"><mat-icon>send_money</mat-icon></span>
   <div class="head__text">
-    <h2 mat-dialog-title class="head__title">{{ isComplement ? 'Compléter le paiement' : 'Déclarer un paiement' }}</h2>
+    <h2 mat-dialog-title class="head__title">{{ isComplement ? 'Compléter le paiement' : 'Cotiser' }}</h2>
     <p class="head__subtitle">
       {{ data.definition.name }} · {{ data.period.sessionLabel }}
       @if (data.period.dueDate) {
@@ -97,7 +97,7 @@
       @if (saving()) {
         <mat-spinner diameter="20" />
       } @else {
-        Déclarer le paiement
+        Cotiser
       }
     </button>
   </mat-dialog-actions>

@@ -1,0 +1,240 @@
+.page__header--row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.page__action {
+  flex: none;
+  height: 44px;
+  border-radius: 12px;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 6px;
+  color: var(--aekd-brown);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.list {
+  display: grid;
+  gap: 16px;
+}
+
+.tournament {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-top: 5px solid var(--aekd-orange);
+  box-shadow: var(--aekd-shadow);
+
+  &--ended {
+    border-top-color: #dcd7d2;
+    background: #fcfbfa;
+  }
+
+  &__top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  &__top-right {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  &__name {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+  }
+
+  &__rule {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: var(--aekd-gray-muted);
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      color: var(--aekd-orange);
+    }
+  }
+
+  &__progress {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--aekd-gray);
+  }
+
+  &__next {
+    font-weight: 400;
+    color: var(--aekd-gray-muted);
+  }
+
+  &__contribs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+}
+
+.badge {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #ece8e4;
+  color: var(--aekd-gray-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+
+  &--active {
+    background: var(--aekd-orange);
+    color: #fff;
+  }
+
+  &--completed {
+    background: var(--aekd-green-soft);
+    color: var(--aekd-green-dark);
+  }
+}
+
+.chip {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--aekd-orange-soft);
+  color: var(--aekd-orange-dark);
+  font-size: 12px;
+  font-weight: 600;
+
+  &--off {
+    background: #ece8e4;
+    color: var(--aekd-gray-muted);
+    text-decoration: line-through;
+  }
+}
+
+.muted {
+  font-size: 13px;
+  color: var(--aekd-gray-muted);
+}
+
+.slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.slot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: #f6f3f0;
+  font-size: 13px;
+
+  &__rank {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #fff;
+    color: var(--aekd-gray);
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  &__name {
+    flex: 1;
+    min-width: 0;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__date {
+    color: var(--aekd-gray-muted);
+    white-space: nowrap;
+  }
+
+  &__state {
+    display: inline-flex;
+    align-items: center;
+    flex: none;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--aekd-gray-muted);
+    text-decoration: none;
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+  }
+
+  &--created {
+    background: var(--aekd-green-soft);
+
+    .slot__state {
+      color: var(--aekd-green-dark);
+    }
+  }
+
+  &--next {
+    background: var(--aekd-orange-soft);
+    outline: 1px solid var(--aekd-orange);
+
+    .slot__state {
+      color: var(--aekd-orange-dark);
+    }
+  }
+
+  &--deleted .slot__state,
+  &--cancelled .slot__state {
+    color: var(--aekd-brown);
+  }
+}
+
+@media (max-width: 599.98px) {
+  .page__header--row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

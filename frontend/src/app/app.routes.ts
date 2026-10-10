@@ -31,6 +31,13 @@ export const routes: Routes = [
           import('./features/sessions/session-detail/session-detail').then((m) => m.SessionDetail),
       },
       {
+        path: 'tournaments',
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN', 'TRESORIER'] },
+        loadComponent: () =>
+          import('./features/tournaments/tournaments-page/tournaments-page').then((m) => m.TournamentsPage),
+      },
+      {
         path: 'contributions',
         loadComponent: () =>
           import('./features/contributions/contributions-list/contributions-list').then(
@@ -113,6 +120,11 @@ export const routes: Routes = [
         canActivate: [roleGuard],
         data: { roles: ['ADMIN'] },
         loadComponent: () => import('./features/audit/audit-log/audit-log').then((m) => m.AuditLogPage),
+      },
+      {
+        path: 'notifications',
+        loadComponent: () =>
+          import('./features/notifications/notifications-page/notifications-page').then((m) => m.NotificationsPage),
       },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],

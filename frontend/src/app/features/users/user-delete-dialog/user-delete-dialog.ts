@@ -53,6 +53,7 @@ import { UserService } from '../user.service';
           <li><span>Remboursements de prêts</span><strong>{{ i.loanRepayments }}</strong></li>
           <li><span>Versements d'épargne</span><strong>{{ i.savingsDeposits }}</strong></li>
           <li><span>Sanctions</span><strong>{{ i.appliedSanctions }}</strong></li>
+          <li><span>Remises de cagnotte reçues</span><strong>{{ i.sessionPayouts }}</strong></li>
         </ul>
         @if (i.actionsAsAuthor > 0) {
           <p class="note">

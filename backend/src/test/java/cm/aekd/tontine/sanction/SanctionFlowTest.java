@@ -239,4 +239,29 @@ class SanctionFlowTest {
                 new ApplySanctionRequest(member.getId(), period.id()));
         assertThat(reapplied.status()).isEqualTo(AppliedSanctionStatus.APPLIED);
     }
+
+    @Test
+    void treasurerCannotApplyOrCancelOwnSanction() {
+        Member admin = createMember(RoleName.ADMIN, "sancadmin7");
+        Member treasurer = createMember(RoleName.TRESORIER, "sanctreso7");
+        ContributionPeriodResponse period = setupMandatoryDefinition(treasurer, treasurer,
+                LocalDate.of(2026, 9, 5), new BigDecimal(10000));
+
+        loginAsMember(treasurer, RoleName.TRESORIER);
+        SanctionRuleResponse rule = ruleService.create(new SanctionRuleRequest(
+                period.contributionDefinitionId(), SanctionType.MONETARY, 3, new BigDecimal(2000), null));
+        assertThatThrownBy(() -> appliedService.apply(rule.id(),
+                new ApplySanctionRequest(treasurer.getId(), period.id())))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("vous concerne");
+
+        loginAsMember(admin, RoleName.ADMIN);
+        AppliedSanctionResponse applied = appliedService.apply(rule.id(),
+                new ApplySanctionRequest(treasurer.getId(), period.id()));
+
+        loginAsMember(treasurer, RoleName.TRESORIER);
+        assertThatThrownBy(() -> appliedService.cancel(applied.id()))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("vous concerne");
+    }
 }

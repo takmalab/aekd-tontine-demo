@@ -3,6 +3,16 @@ export type AuditAction =
   | 'SESSION_CREATED'
   | 'SESSION_UPDATED'
   | 'SESSION_DELETED'
+  | 'SESSION_CONTRIBUTION_ADDED'
+  | 'SESSION_CONTRIBUTION_REMOVED'
+  | 'SESSION_CONTRIBUTION_DUE_DATE_CHANGED'
+  | 'SESSION_PAYOUT_RECORDED'
+  | 'TOURNAMENT_CREATED'
+  | 'TOURNAMENT_UPDATED'
+  | 'TOURNAMENT_STOPPED'
+  | 'TOURNAMENT_COMPLETED'
+  | 'TOURNAMENT_DELETED'
+  | 'TOURNAMENT_SESSION_GENERATED'
   | 'CONTRIBUTION_CREATED'
   | 'CONTRIBUTION_ACTIVATED'
   | 'CONTRIBUTION_UPDATED'
@@ -51,6 +61,16 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   SESSION_CREATED: 'Séance créée',
   SESSION_UPDATED: 'Séance modifiée',
   SESSION_DELETED: 'Séance supprimée',
+  SESSION_CONTRIBUTION_ADDED: 'Cotisation rattachée à une séance',
+  SESSION_CONTRIBUTION_REMOVED: "Cotisation retirée d'une séance",
+  SESSION_CONTRIBUTION_DUE_DATE_CHANGED: 'Date limite modifiée',
+  SESSION_PAYOUT_RECORDED: 'Cagnotte remise',
+  TOURNAMENT_CREATED: 'Tournoi créé',
+  TOURNAMENT_UPDATED: 'Tournoi modifié',
+  TOURNAMENT_STOPPED: 'Tournoi arrêté',
+  TOURNAMENT_COMPLETED: 'Tournoi terminé',
+  TOURNAMENT_DELETED: 'Tournoi supprimé',
+  TOURNAMENT_SESSION_GENERATED: 'Séance générée automatiquement',
   CONTRIBUTION_CREATED: 'Cotisation créée',
   CONTRIBUTION_ACTIVATED: 'Cotisation activée',
   CONTRIBUTION_UPDATED: 'Cotisation modifiée',

@@ -4,7 +4,11 @@ import cm.aekd.tontine.common.CurrentUserProvider;
 import cm.aekd.tontine.contribution.ContributionTransactionRepository;
 import cm.aekd.tontine.contribution.ContributionTransactionStatus;
 import cm.aekd.tontine.contribution.FundDestination;
+import cm.aekd.tontine.loan.LoanRepository;
+import cm.aekd.tontine.loan.LoanStatus;
 import cm.aekd.tontine.member.MemberRepository;
+import cm.aekd.tontine.payout.SessionPayoutRepository;
+import cm.aekd.tontine.repayment.LoanRepaymentRepository;
 import cm.aekd.tontine.savings.SavingsDepositRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -12,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -36,26 +41,72 @@ public class FundService {
     private final MemberRepository memberRepository;
     private final CurrentUserProvider currentUserProvider;
     private final SavingsDepositRepository depositRepository;
+    private final LoanRepository loanRepository;
+    private final LoanRepaymentRepository repaymentRepository;
+    private final SessionPayoutRepository payoutRepository;
+
+    private static final List<LoanStatus> OUTSTANDING_LOAN_STATUSES =
+            List.of(LoanStatus.APPROVED, LoanStatus.IN_PROGRESS);
 
     public FundService(ContributionTransactionRepository transactionRepository,
                         MemberRepository memberRepository,
                         CurrentUserProvider currentUserProvider,
-                        SavingsDepositRepository depositRepository) {
+                        SavingsDepositRepository depositRepository,
+                        LoanRepository loanRepository,
+                        LoanRepaymentRepository repaymentRepository,
+                        SessionPayoutRepository payoutRepository) {
+        this.payoutRepository = payoutRepository;
         this.transactionRepository = transactionRepository;
         this.memberRepository = memberRepository;
         this.currentUserProvider = currentUserProvider;
         this.depositRepository = depositRepository;
+        this.loanRepository = loanRepository;
+        this.repaymentRepository = repaymentRepository;
     }
 
-    public BigDecimal tontineFundBalance() {
+    /** Total des paiements validés destinés au fonds commun, depuis le début. */
+    public BigDecimal tontineFundCollected() {
         return transactionRepository.sumAmountByStatusAndFundDestination(
                 ContributionTransactionStatus.VALIDATED, FundDestination.TONTINE_FUND);
+    }
+
+    /** Total déjà remis aux bénéficiaires des séances (docs/decisions.md n° 46). */
+    public BigDecimal tontineFundRemitted() {
+        return payoutRepository.sumAll();
+    }
+
+    /**
+     * Fonds commun restant : collecté − remis aux bénéficiaires. L'argent du fonds
+     * commun n'est pas conservé comme une caisse, il est remis au bénéficiaire de
+     * la séance (docs/decisions.md n° 46).
+     */
+    public BigDecimal tontineFundBalance() {
+        return tontineFundCollected().subtract(tontineFundRemitted());
     }
 
     public BigDecimal totalIndividualSavings() {
         return transactionRepository.sumAmountByStatusAndFundDestination(
                 ContributionTransactionStatus.VALIDATED, FundDestination.INDIVIDUAL_SAVINGS)
                 .add(depositRepository.sumValidated());
+    }
+
+    /**
+     * Encours des prêts : capital approuvé des prêts APPROVED ou IN_PROGRESS,
+     * moins leurs remboursements validés. Un prêt REPAID ne pèse plus rien.
+     */
+    public BigDecimal outstandingLoanCapital() {
+        return loanRepository.sumApprovedAmountByStatusIn(OUTSTANDING_LOAN_STATUSES)
+                .subtract(repaymentRepository.sumValidatedAmountByLoanStatusIn(OUTSTANDING_LOAN_STATUSES));
+    }
+
+    /**
+     * Argent d'épargne disponible pour prêter (docs/decisions.md n° 46,
+     * formule validée le 2026-10-05) : capital d'épargne validé − capital
+     * des prêts approuvés ou en cours + capital déjà remboursé. Les intérêts
+     * (d'épargne comme de prêts) n'en font pas partie.
+     */
+    public BigDecimal availableForLending() {
+        return totalIndividualSavings().subtract(outstandingLoanCapital());
     }
 
     public BigDecimal individualSavingsOf(UUID memberId) {

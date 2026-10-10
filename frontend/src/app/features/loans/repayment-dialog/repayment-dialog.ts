@@ -119,7 +119,7 @@ export class RepaymentDialog {
               ? error.error?.message ||
                   `Remboursement refusé : il ne doit pas dépasser ${formatFcfa(this.remaining)} et le prêt doit être en cours.`
               : error.status === 403
-                ? "Action réservée au trésorier et à l'administrateur."
+                ? error.error?.message || "Action réservée au trésorier et à l'administrateur."
                 : error.status === 404
                   ? 'Ce prêt est introuvable.'
                   : 'Une erreur est survenue. Vérifiez que le serveur est démarré.',

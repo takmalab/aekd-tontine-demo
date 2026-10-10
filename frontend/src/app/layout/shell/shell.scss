@@ -86,6 +86,11 @@
     flex: 1 1 auto;
   }
 
+  &__bell {
+    margin-right: 6px;
+    color: #fff !important;
+  }
+
   &__user {
     color: #fff !important;
     height: 44px;
@@ -130,6 +135,123 @@
 
   &--brown {
     background: var(--aekd-brown);
+  }
+}
+
+.notif-menu {
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 8px 8px 16px;
+    border-bottom: 1px solid var(--mat-sys-outline-variant);
+  }
+
+  &__title {
+    font-weight: 700;
+    color: var(--aekd-gray);
+  }
+
+  &__all {
+    font-size: 12px;
+  }
+
+  &__empty {
+    padding: 20px 16px;
+    font-size: 13px;
+    color: var(--aekd-gray-muted);
+    text-align: center;
+  }
+
+  &__footer {
+    border-top: 1px solid var(--mat-sys-outline-variant);
+    font-size: 13px;
+  }
+}
+
+.notif-item {
+  height: auto !important;
+  min-height: 64px;
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
+
+  ::ng-deep .mat-mdc-menu-item-text {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+  }
+
+  &--unread {
+    background: var(--aekd-orange-soft);
+  }
+
+  &__icon {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #ece8e4;
+
+    mat-icon {
+      margin: 0 !important;
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      color: var(--aekd-gray);
+    }
+
+    &--good {
+      background: var(--aekd-green-soft);
+
+      mat-icon {
+        color: var(--aekd-green-dark);
+      }
+    }
+
+    &--bad {
+      background: var(--aekd-brown-soft);
+
+      mat-icon {
+        color: var(--aekd-brown-dark);
+      }
+    }
+
+    &--todo {
+      background: var(--aekd-orange-soft);
+
+      mat-icon {
+        color: var(--aekd-orange-dark);
+      }
+    }
+  }
+
+  &__text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    white-space: normal;
+    line-height: 1.35;
+  }
+
+  &__title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--aekd-gray);
+  }
+
+  &__message {
+    font-size: 12.5px;
+    color: var(--aekd-gray);
+  }
+
+  &__date {
+    margin-top: 2px;
+    font-size: 11px;
+    color: var(--aekd-gray-muted);
   }
 }
 

@@ -8,7 +8,10 @@ import cm.aekd.tontine.contribution.ContributionTransactionRepository;
 import cm.aekd.tontine.contribution.ContributionTransactionStatus;
 import cm.aekd.tontine.contribution.FundDestination;
 import cm.aekd.tontine.contribution.StoredResource;
+import cm.aekd.tontine.document.DocumentFormat;
 import cm.aekd.tontine.member.Member;
+import cm.aekd.tontine.notification.NotificationService;
+import cm.aekd.tontine.notification.NotificationType;
 import cm.aekd.tontine.member.MemberRepository;
 import cm.aekd.tontine.savings.SavingsDtos.DepositRequest;
 import cm.aekd.tontine.savings.SavingsDtos.EntryResponse;
@@ -75,6 +78,7 @@ public class SavingsService {
     private final CurrentUserProvider currentUserProvider;
     private final FileStorageService fileStorageService;
     private final AuditLogService auditLogService;
+    private final NotificationService notificationService;
 
     public SavingsService(SavingsDepositRepository depositRepository,
                           SavingsInterestRateRepository rateRepository,
@@ -83,7 +87,9 @@ public class SavingsService {
                           UserRepository userRepository,
                           CurrentUserProvider currentUserProvider,
                           FileStorageService fileStorageService,
-                          AuditLogService auditLogService) {
+                          AuditLogService auditLogService,
+                          NotificationService notificationService) {
+        this.notificationService = notificationService;
         this.depositRepository = depositRepository;
         this.rateRepository = rateRepository;
         this.transactionRepository = transactionRepository;
@@ -106,6 +112,10 @@ public class SavingsService {
         auditLogService.record(AuditAction.SAVINGS_DEPOSIT_DECLARED, "SavingsDeposit", deposit.getId(),
                 "Versement d'épargne de " + request.amount() + " déclaré par " + member.getFullName()
                         + " (en attente de validation)");
+        notificationService.notifyStaff(NotificationType.SAVINGS_DEPOSIT_DECLARED, "Versement d'épargne à valider",
+                member.getFullName() + " a déclaré un versement d'épargne de " + DocumentFormat.fcfa(request.amount())
+                        + ".",
+                "/savings");
         return toEntry(deposit, LocalDate.now(ZONE), rates());
     }
 
@@ -118,6 +128,13 @@ public class SavingsService {
 
         auditLogService.record(AuditAction.SAVINGS_DEPOSIT_VALIDATED, "SavingsDeposit", deposit.getId(),
                 "Versement d'épargne de " + deposit.getAmount() + " validé pour " + deposit.getMember().getFullName());
+        notificationService.notifyMember(deposit.getMember(), NotificationType.SAVINGS_DEPOSIT_VALIDATED,
+                "Versement d'épargne validé",
+                "Votre versement de " + DocumentFormat.fcfa(deposit.getAmount()) + " est ajouté à votre épargne.",
+                "/my-savings");
+        notificationService.notifyOtherMembers(deposit.getMember(), null, "Versement d'épargne",
+                deposit.getMember().getFullName() + " a versé " + DocumentFormat.fcfa(deposit.getAmount())
+                        + " sur son épargne.");
         return toEntry(deposit, LocalDate.now(ZONE), rates());
     }
 
@@ -130,6 +147,11 @@ public class SavingsService {
 
         auditLogService.record(AuditAction.SAVINGS_DEPOSIT_REJECTED, "SavingsDeposit", deposit.getId(),
                 "Versement d'épargne de " + deposit.getAmount() + " rejeté pour " + deposit.getMember().getFullName());
+        notificationService.notifyMember(deposit.getMember(), NotificationType.SAVINGS_DEPOSIT_REJECTED,
+                "Versement d'épargne rejeté",
+                "Votre versement de " + DocumentFormat.fcfa(deposit.getAmount())
+                        + " a été rejeté. Contactez le trésorier pour en savoir plus.",
+                "/my-savings");
         return toEntry(deposit, LocalDate.now(ZONE), rates());
     }
 

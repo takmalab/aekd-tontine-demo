@@ -26,6 +26,13 @@ public class FundController {
         return new FundBalanceResponse(fundService.tontineFundBalance());
     }
 
+    /** Argent d'épargne disponible pour prêter (docs/decisions.md n° 46). */
+    @GetMapping("/api/funds/available-for-lending")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TRESORIER')")
+    public FundBalanceResponse availableForLending() {
+        return new FundBalanceResponse(fundService.availableForLending());
+    }
+
     @GetMapping("/api/savings")
     @PreAuthorize("hasAnyRole('ADMIN', 'TRESORIER')")
     public FundBalanceResponse totalIndividualSavings() {

@@ -3,6 +3,9 @@ package cm.aekd.tontine.contribution;
 import cm.aekd.tontine.audit.AuditAction;
 import cm.aekd.tontine.audit.AuditLogService;
 import cm.aekd.tontine.common.CurrentUserProvider;
+import cm.aekd.tontine.document.DocumentFormat;
+import cm.aekd.tontine.notification.NotificationService;
+import cm.aekd.tontine.notification.NotificationType;
 import cm.aekd.tontine.user.User;
 import cm.aekd.tontine.user.UserRepository;
 import org.springframework.http.HttpStatus;
@@ -29,11 +32,14 @@ public class ContributionTransactionService {
     private final UserRepository userRepository;
     private final CurrentUserProvider currentUserProvider;
     private final AuditLogService auditLogService;
+    private final NotificationService notificationService;
 
     public ContributionTransactionService(ContributionTransactionRepository transactionRepository,
                                            UserRepository userRepository,
                                            CurrentUserProvider currentUserProvider,
-                                           AuditLogService auditLogService) {
+                                           AuditLogService auditLogService,
+                                           NotificationService notificationService) {
+        this.notificationService = notificationService;
         this.transactionRepository = transactionRepository;
         this.userRepository = userRepository;
         this.currentUserProvider = currentUserProvider;
@@ -92,6 +98,23 @@ public class ContributionTransactionService {
                 (newStatus == ContributionTransactionStatus.VALIDATED ? "Validation" : "Rejet")
                         + " du paiement de " + transaction.getAmount() + " de "
                         + transaction.getMember().getFullName());
+
+        boolean validated = newStatus == ContributionTransactionStatus.VALIDATED;
+        ContributionPeriod period = transaction.getContributionPeriod();
+        notificationService.notifyMember(transaction.getMember(),
+                validated ? NotificationType.PAYMENT_VALIDATED : NotificationType.PAYMENT_REJECTED,
+                validated ? "Paiement validé" : "Paiement rejeté",
+                "Votre paiement de " + DocumentFormat.fcfa(transaction.getAmount()) + " pour \""
+                        + period.getContributionDefinition().getName() + "\" (" + period.getSession().getLabel()
+                        + ") a été " + (validated ? "validé." : "rejeté. Contactez le trésorier pour en savoir plus."),
+                "/my-contributions");
+        if (validated) {
+            notificationService.notifyOtherMembers(transaction.getMember(), period.getContributionDefinition(),
+                    "Paiement de cotisation",
+                    transaction.getMember().getFullName() + " a payé " + DocumentFormat.fcfa(transaction.getAmount())
+                            + " pour \"" + period.getContributionDefinition().getName() + "\" ("
+                            + period.getSession().getLabel() + ").");
+        }
 
         return ContributionTransactionResponse.from(transaction);
     }

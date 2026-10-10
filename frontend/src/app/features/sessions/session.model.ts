@@ -1,4 +1,4 @@
-import { ContributionDefinition, ContributionPeriod } from '../contributions/contribution.model';
+import { ContributionDefinition, ContributionPeriod, PaymentOperator } from '../contributions/contribution.model';
 
 /** Membre résumé (id + nom), tel que renvoyé pour le récepteur de la séance. */
 export interface SessionMember {
@@ -25,13 +25,23 @@ export interface Session {
   beneficiaries: SessionBeneficiary[];
 }
 
-/** Miroir de SessionRequest (backend). */
+/** Miroir de SessionContributionRequest (backend) : cotisation existante rattachée à la séance. */
+export interface SessionContributionRequest {
+  contributionDefinitionId: string;
+  dueDate: string | null;
+}
+
+/**
+ * Miroir de SessionRequest (backend). `contributions` remplace l'ensemble des
+ * cotisations rattachées à la séance ; absent, les rattachements sont inchangés.
+ */
 export interface SessionRequest {
   label: string;
   date: string;
   location: string;
   hostMemberId: string;
   beneficiaryMemberIds: string[];
+  contributions?: SessionContributionRequest[];
 }
 
 /** Situation calendaire d'une séance, déduite uniquement de sa date (affichage). */
@@ -47,4 +57,52 @@ export const SESSION_TIMING_LABELS: Record<SessionTiming, string> = {
 export interface SessionContribution {
   definition: ContributionDefinition;
   period: ContributionPeriod;
+}
+
+// ---------- Cagnotte de la séance (docs/decisions.md n° 46) ----------
+
+export interface SessionPayout {
+  id: string;
+  sessionId: string;
+  memberId: string;
+  memberFullName: string;
+  amount: number;
+  payoutDate: string;
+  operator: PaymentOperator;
+  reference: string | null;
+  observation: string | null;
+  recordedByEmail: string | null;
+  createdAt: string;
+}
+
+export interface PayoutBeneficiaryShare {
+  memberId: string;
+  memberFullName: string;
+  /** Part égale de la cagnotte collectée, arrondie au franc inférieur. */
+  share: number;
+  remitted: number;
+  due: number;
+}
+
+/** Miroir de PayoutOverview (backend). */
+export interface PayoutOverview {
+  sessionId: string;
+  sessionLabel: string;
+  contributions: { contributionDefinitionId: string; name: string; collected: number }[];
+  collected: number;
+  remitted: number;
+  remaining: number;
+  /** Reliquat de la division en parts égales, non attribué (règle à valider). */
+  unallocated: number;
+  beneficiaries: PayoutBeneficiaryShare[];
+  payouts: SessionPayout[];
+}
+
+export interface PayoutRequest {
+  memberId: string;
+  amount: number;
+  payoutDate: string;
+  operator: PaymentOperator;
+  reference: string | null;
+  observation: string | null;
 }

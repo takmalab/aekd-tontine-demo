@@ -8,8 +8,11 @@ import cm.aekd.tontine.contribution.ContributionParticipantRepository;
 import cm.aekd.tontine.contribution.ContributionPeriod;
 import cm.aekd.tontine.contribution.ContributionPeriodRepository;
 import cm.aekd.tontine.contribution.ContributionPeriodStatusService;
+import cm.aekd.tontine.document.DocumentFormat;
 import cm.aekd.tontine.member.Member;
 import cm.aekd.tontine.member.MemberRepository;
+import cm.aekd.tontine.notification.NotificationService;
+import cm.aekd.tontine.notification.NotificationType;
 import cm.aekd.tontine.user.User;
 import cm.aekd.tontine.user.UserRepository;
 import org.springframework.http.HttpStatus;
@@ -43,6 +46,7 @@ public class AppliedSanctionService {
     private final CurrentUserProvider currentUserProvider;
     private final UserRepository userRepository;
     private final AuditLogService auditLogService;
+    private final NotificationService notificationService;
 
     public AppliedSanctionService(SanctionRuleRepository ruleRepository,
                                    AppliedSanctionRepository appliedRepository,
@@ -52,7 +56,9 @@ public class AppliedSanctionService {
                                    MemberRepository memberRepository,
                                    CurrentUserProvider currentUserProvider,
                                    UserRepository userRepository,
-                                   AuditLogService auditLogService) {
+                                   AuditLogService auditLogService,
+                                   NotificationService notificationService) {
+        this.notificationService = notificationService;
         this.ruleRepository = ruleRepository;
         this.appliedRepository = appliedRepository;
         this.periodRepository = periodRepository;
@@ -80,6 +86,7 @@ public class AppliedSanctionService {
 
         Member member = memberRepository.findById(request.memberId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Membre introuvable"));
+        checkNotSelf(member);
         if (!participantRepository.existsByContributionDefinitionIdAndMemberId(
                 rule.getContributionDefinition().getId(), member.getId())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
@@ -109,8 +116,28 @@ public class AppliedSanctionService {
 
         auditLogService.record(AuditAction.SANCTION_APPLIED, "AppliedSanction", sanction.getId(),
                 "Application d'une sanction " + rule.getType() + " à " + member.getFullName());
+        notificationService.notifyMember(member, NotificationType.SANCTION_APPLIED, "Sanction appliquée",
+                describe(sanction) + " pour \"" + period.getContributionDefinition().getName() + "\" ("
+                        + period.getSession().getLabel() + ").",
+                "/sanctions");
+        notificationService.notifyOtherMembers(member, period.getContributionDefinition(), "Sanction appliquée",
+                member.getFullName() + " : " + describe(sanction) + " pour \""
+                        + period.getContributionDefinition().getName() + "\" (" + period.getSession().getLabel() + ").");
 
         return AppliedSanctionResponse.from(sanction);
+    }
+
+    /**
+     * Personne ne décide pour lui-même (docs/decisions.md n° 40, étendu aux
+     * sanctions le 2026-10-05) : un trésorier ou administrateur qui est aussi
+     * membre n'applique ni n'annule une sanction le concernant.
+     */
+    private void checkNotSelf(Member member) {
+        UUID currentMemberId = currentUserProvider.currentMemberId().orElse(null);
+        if (currentMemberId != null && currentMemberId.equals(member.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Vous ne pouvez pas appliquer ou annuler une sanction qui vous concerne");
+        }
     }
 
     public AppliedSanctionResponse cancel(UUID id) {
@@ -119,13 +146,31 @@ public class AppliedSanctionService {
         if (sanction.getStatus() != AppliedSanctionStatus.APPLIED) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cette sanction n'est pas active");
         }
+        checkNotSelf(sanction.getMember());
         sanction.setStatus(AppliedSanctionStatus.CANCELLED);
         sanction = appliedRepository.save(sanction);
 
         auditLogService.record(AuditAction.SANCTION_CANCELLED, "AppliedSanction", sanction.getId(),
                 "Annulation de la sanction appliquée à " + sanction.getMember().getFullName());
+        ContributionPeriod period = sanction.getContributionPeriod();
+        notificationService.notifyMember(sanction.getMember(), NotificationType.SANCTION_CANCELLED,
+                "Sanction annulée",
+                "La sanction (" + describe(sanction) + ") pour \"" + period.getContributionDefinition().getName()
+                        + "\" (" + period.getSession().getLabel() + ") a été annulée.",
+                "/sanctions");
+        notificationService.notifyOtherMembers(sanction.getMember(), period.getContributionDefinition(),
+                "Sanction annulée",
+                "La sanction de " + sanction.getMember().getFullName() + " (" + describe(sanction) + ") pour \""
+                        + period.getContributionDefinition().getName() + "\" (" + period.getSession().getLabel()
+                        + ") a été annulée.");
 
         return AppliedSanctionResponse.from(sanction);
+    }
+
+    private static String describe(AppliedSanction sanction) {
+        return sanction.getAmount() != null
+                ? "Amende de " + DocumentFormat.fcfa(sanction.getAmount())
+                : "Sanction en nature : " + sanction.getDescription();
     }
 
     public List<AppliedSanctionResponse> findMine() {

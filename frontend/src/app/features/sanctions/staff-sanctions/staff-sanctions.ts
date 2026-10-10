@@ -273,7 +273,9 @@ export class StaffSanctions implements OnInit {
             this.snackBar.open(
               err.status === 409
                 ? 'Cette sanction est déjà appliquée pour ce membre et cette séance.'
-                : err.status === 400
+                : err.status === 403
+                  ? err.error?.message || 'Action non autorisée.'
+                  : err.status === 400
                   ? "Le membre n'est plus éligible (paiement régularisé ou règle désactivée)."
                   : "L'application a échoué.",
               'OK',
@@ -308,9 +310,15 @@ export class StaffSanctions implements OnInit {
             this.applied.update((list) => list.map((s) => (s.id === updated.id ? updated : s)));
             this.snackBar.open('Sanction annulée', 'OK', { duration: 4000 });
           },
-          error: () => {
+          error: (err: HttpErrorResponse) => {
             this.busy.set(null);
-            this.snackBar.open("L'annulation a échoué (sanction déjà annulée ?).", 'OK', { duration: 6000 });
+            this.snackBar.open(
+              err.status === 403
+                ? err.error?.message || 'Action non autorisée.'
+                : "L'annulation a échoué (sanction déjà annulée ?).",
+              'OK',
+              { duration: 6000 },
+            );
             this.loadDetail();
           },
         });

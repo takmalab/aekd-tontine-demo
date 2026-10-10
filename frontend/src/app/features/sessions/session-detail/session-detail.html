@@ -21,7 +21,7 @@
             <mat-icon>edit</mat-icon>
             Modifier
           </button>
-          <span [matTooltip]="canDelete() ? '' : 'Des paiements existent sur les cotisations de cette séance.'">
+          <span [matTooltip]="canDelete() ? '' : 'Des paiements ou des remises de cagnotte existent pour cette séance.'">
             <button mat-stroked-button type="button" class="manage__danger" [disabled]="!canDelete()" (click)="remove(s)">
               <mat-icon>delete</mat-icon>
               Supprimer
@@ -111,6 +111,88 @@
       </div>
     </div>
 
+    <!-- Cagnotte remise aux bénéficiaires (docs/decisions.md n° 46) -->
+    @if (isStaff) {
+      @if (payout(); as p) {
+        <section class="payout">
+          <h2 class="section-title">
+            <mat-icon>redeem</mat-icon>
+            Cagnotte du bénéficiaire
+          </h2>
+          <p class="payout__hint">
+            Paiements validés des cotisations obligatoires du fonds commun de la séance, remis à parts égales
+            aux bénéficiaires.
+          </p>
+
+          <div class="payout__totals">
+            <div><span>Collecté</span><strong>{{ formatFcfa(p.collected) }}</strong></div>
+            <div><span>Remis</span><strong>{{ formatFcfa(p.remitted) }}</strong></div>
+            <div class="payout__remaining"><span>Reste à remettre</span><strong>{{ formatFcfa(p.remaining) }}</strong></div>
+          </div>
+
+          @if (p.contributions.length > 0) {
+            <p class="payout__lines">
+              @for (line of p.contributions; track line.contributionDefinitionId; let last = $last) {
+                {{ line.name }} : {{ formatFcfa(line.collected) }}{{ last ? '' : ' · ' }}
+              }
+            </p>
+          } @else {
+            <p class="payout__hint">Aucune cotisation obligatoire du fonds commun n'est rattachée à cette séance.</p>
+          }
+
+          @if (p.beneficiaries.length === 0) {
+            <p class="payout__hint">Aucun bénéficiaire : modifiez la séance pour en désigner un.</p>
+          }
+          <ul class="payout__shares">
+            @for (b of p.beneficiaries; track b.memberId) {
+              <li>
+                <span class="avatar avatar--brown">{{ initials(b.memberFullName) }}</span>
+                <span class="payout__who">
+                  <strong>{{ b.memberFullName }}</strong>
+                  <small>Part {{ formatFcfa(b.share) }} · remis {{ formatFcfa(b.remitted) }}</small>
+                </span>
+                @if (b.due > 0) {
+                  <button mat-flat-button type="button" (click)="openPayout(p, b)">
+                    Remettre {{ formatFcfa(b.due) }}
+                  </button>
+                } @else if (b.share > 0) {
+                  <span class="chip chip--outline"><mat-icon>check</mat-icon> Part remise</span>
+                }
+              </li>
+            }
+          </ul>
+
+          @if (p.unallocated > 0) {
+            <p class="payout__hint">
+              <mat-icon>info</mat-icon>
+              Reliquat non réparti : {{ formatFcfa(p.unallocated) }} (division en parts égales arrondie au franc ;
+              son usage reste à valider).
+            </p>
+          }
+
+          @if (p.payouts.length > 0) {
+            <h3 class="payout__subtitle">Remises enregistrées</h3>
+            <ul class="payout__history">
+              @for (h of p.payouts; track h.id) {
+                <li>
+                  <span>{{ fromIsoDate(h.payoutDate) | date: 'd MMM yyyy' }}</span>
+                  <span>{{ h.memberFullName }}</span>
+                  <strong>{{ formatFcfa(h.amount) }}</strong>
+                  <span class="payout__op">{{ operatorLabels[h.operator] }}{{ h.reference ? ' · ' + h.reference : '' }}</span>
+                </li>
+              }
+            </ul>
+          }
+        </section>
+      } @else if (payoutError()) {
+        <p class="info">
+          <mat-icon>error_outline</mat-icon>
+          <span>Impossible de charger la cagnotte de la séance.</span>
+          <button mat-button type="button" (click)="loadPayout()">Réessayer</button>
+        </p>
+      }
+    }
+
     @if (isStaff && draftCount() > 0) {
       <p class="info">
         <mat-icon>info</mat-icon>
@@ -128,11 +210,19 @@
         <p class="state__title">Aucune cotisation rattachée à cette séance</p>
         <p class="state__text">
           @if (isStaff) {
-            Les cotisations sont rattachées à une séance lors de leur configuration.
+            Choisissez les cotisations dues lors de cette séance parmi les cotisations actives.
           } @else {
             Les cotisations de cette séance apparaîtront ici dès qu'elles seront publiées.
           }
         </p>
+        @if (isStaff) {
+          @if (session(); as current) {
+            <button mat-flat-button type="button" (click)="edit(current)">
+              <mat-icon>playlist_add</mat-icon>
+              Choisir les cotisations
+            </button>
+          }
+        }
       </div>
     } @else {
       @for (group of groups(); track group.title) {

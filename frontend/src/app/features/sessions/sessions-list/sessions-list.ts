@@ -103,7 +103,7 @@ export class SessionsList implements OnInit {
   openCreateDialog(): void {
     this.dialog
       .open<SessionFormDialog, void, Session>(SessionFormDialog, {
-        width: '520px',
+        width: '600px',
         maxWidth: 'calc(100vw - 32px)',
         autoFocus: 'first-tabbable',
       })

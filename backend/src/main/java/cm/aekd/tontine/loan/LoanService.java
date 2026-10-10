@@ -3,7 +3,10 @@ package cm.aekd.tontine.loan;
 import cm.aekd.tontine.audit.AuditAction;
 import cm.aekd.tontine.audit.AuditLogService;
 import cm.aekd.tontine.common.CurrentUserProvider;
+import cm.aekd.tontine.document.DocumentFormat;
 import cm.aekd.tontine.fund.FundService;
+import cm.aekd.tontine.notification.NotificationService;
+import cm.aekd.tontine.notification.NotificationType;
 import cm.aekd.tontine.member.Member;
 import cm.aekd.tontine.member.MemberRepository;
 import cm.aekd.tontine.user.User;
@@ -28,6 +31,9 @@ import java.util.UUID;
  * du trésorier : docs/decisions.md ne tranche l'automatisation que pour
  * les sanctions (§10), pas pour les prêts, donc le trésorier garde toute
  * latitude pour approuver malgré une règle non respectée.
+ *
+ * Seule exception : l'approbation est bloquée si le montant dépasse l'argent
+ * d'épargne disponible pour prêter (docs/decisions.md n° 46).
  */
 @Service
 @Transactional
@@ -44,11 +50,14 @@ public class LoanService {
     private final CurrentUserProvider currentUserProvider;
     private final UserRepository userRepository;
     private final AuditLogService auditLogService;
+    private final NotificationService notificationService;
 
     public LoanService(LoanRepository loanRepository, LoanPolicyRepository policyRepository,
                         LoanRuleEvaluationRepository evaluationRepository, MemberRepository memberRepository,
                         FundService fundService, CurrentUserProvider currentUserProvider,
-                        UserRepository userRepository, AuditLogService auditLogService) {
+                        UserRepository userRepository, AuditLogService auditLogService,
+                        NotificationService notificationService) {
+        this.notificationService = notificationService;
         this.loanRepository = loanRepository;
         this.policyRepository = policyRepository;
         this.evaluationRepository = evaluationRepository;
@@ -84,6 +93,15 @@ public class LoanService {
 
         auditLogService.record(AuditAction.LOAN_REQUESTED, "Loan", loan.getId(),
                 "Demande de prêt de " + loan.getRequestedAmount() + " par " + member.getFullName());
+        long unmet = evaluations.stream().filter(e -> !e.isRespected()).count();
+        notificationService.notifyStaff(NotificationType.LOAN_REQUESTED, "Nouvelle demande de prêt",
+                member.getFullName() + " demande " + DocumentFormat.fcfa(loan.getRequestedAmount()) + " sur "
+                        + loan.getRequestedDurationMonths() + " mois"
+                        + (unmet > 0 ? " (" + unmet + " règle(s) non respectée(s))." : "."),
+                "/loans");
+        notificationService.notifyOtherMembersExceptStaff(member, null, "Demande de prêt",
+                member.getFullName() + " demande un prêt de " + DocumentFormat.fcfa(loan.getRequestedAmount())
+                        + " sur " + loan.getRequestedDurationMonths() + " mois.");
 
         return toResponse(loan);
     }
@@ -93,7 +111,18 @@ public class LoanService {
         if (loan.getStatus() != LoanStatus.REQUESTED) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ce prêt n'est plus en attente de décision");
         }
+        checkNotOwnLoan(loan);
         User decider = currentDeciderOrThrow();
+
+        // L'argent prêté vient de l'épargne des membres (docs/decisions.md n° 46) :
+        // l'approbation est bloquée au-delà de l'argent d'épargne disponible.
+        BigDecimal available = fundService.availableForLending();
+        if (request.approvedAmount().compareTo(available) > 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Approbation impossible : le montant approuvé (" + DocumentFormat.fcfa(request.approvedAmount())
+                            + ") dépasse l'argent d'épargne disponible pour prêter ("
+                            + DocumentFormat.fcfa(available.max(BigDecimal.ZERO)) + ").");
+        }
 
         loan.setApprovedAmount(request.approvedAmount());
         loan.setApprovedDurationMonths(request.approvedDurationMonths());
@@ -104,6 +133,13 @@ public class LoanService {
 
         auditLogService.record(AuditAction.LOAN_APPROVED, "Loan", loan.getId(),
                 "Approbation du prêt pour " + request.approvedAmount());
+        notificationService.notifyMember(loan.getMember(), NotificationType.LOAN_APPROVED, "Prêt approuvé",
+                "Votre prêt est approuvé : " + DocumentFormat.fcfa(request.approvedAmount()) + " sur "
+                        + request.approvedDurationMonths() + " mois.",
+                "/my-loans");
+        notificationService.notifyOtherMembers(loan.getMember(), null, "Prêt accordé",
+                loan.getMember().getFullName() + " a obtenu un prêt de " + DocumentFormat.fcfa(request.approvedAmount())
+                        + " sur " + request.approvedDurationMonths() + " mois.");
 
         return toResponse(loan);
     }
@@ -113,6 +149,7 @@ public class LoanService {
         if (loan.getStatus() != LoanStatus.REQUESTED) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ce prêt n'est plus en attente de décision");
         }
+        checkNotOwnLoan(loan);
         User decider = currentDeciderOrThrow();
 
         loan.setStatus(LoanStatus.REJECTED);
@@ -123,6 +160,14 @@ public class LoanService {
 
         auditLogService.record(AuditAction.LOAN_REJECTED, "Loan", loan.getId(),
                 "Rejet du prêt : " + request.rejectionReason());
+        notificationService.notifyMember(loan.getMember(), NotificationType.LOAN_REJECTED, "Prêt refusé",
+                "Votre demande de prêt de " + DocumentFormat.fcfa(loan.getRequestedAmount()) + " a été refusée : "
+                        + request.rejectionReason(),
+                "/my-loans");
+        // Le motif du refus reste réservé au demandeur.
+        notificationService.notifyOtherMembers(loan.getMember(), null, "Prêt refusé",
+                "La demande de prêt de " + DocumentFormat.fcfa(loan.getRequestedAmount()) + " de "
+                        + loan.getMember().getFullName() + " a été refusée.");
 
         return toResponse(loan);
     }
@@ -196,6 +241,19 @@ public class LoanService {
                     : "Nombre de prêts actifs déjà atteint (" + activeLoansBeforeThisRequest + "/" + policy.getMaxActiveLoans() + ")"));
         }
         return evaluations;
+    }
+
+    /**
+     * Personne ne décide pour lui-même (docs/decisions.md n° 23 et 40) : un
+     * trésorier ou administrateur qui est aussi membre ne statue pas sur son
+     * propre prêt.
+     */
+    private void checkNotOwnLoan(Loan loan) {
+        UUID currentMemberId = currentUserProvider.currentMemberId().orElse(null);
+        if (currentMemberId != null && currentMemberId.equals(loan.getMember().getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Vous ne pouvez pas approuver ou rejeter votre propre demande de prêt");
+        }
     }
 
     private User currentDeciderOrThrow() {

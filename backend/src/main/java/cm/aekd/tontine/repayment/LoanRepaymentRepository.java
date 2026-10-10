@@ -24,6 +24,11 @@ public interface LoanRepaymentRepository extends JpaRepository<LoanRepayment, UU
 
     List<LoanRepayment> findByStatusOrderByCreatedAtAsc(LoanRepaymentStatus status);
 
+    /** Remboursements VALIDÉS des prêts dans l'un des statuts donnés (encours, décision n° 46). */
+    @Query("SELECT COALESCE(SUM(r.amount), 0) FROM LoanRepayment r WHERE r.loan.status IN :statuses "
+            + "AND r.status = cm.aekd.tontine.repayment.LoanRepaymentStatus.VALIDATED")
+    BigDecimal sumValidatedAmountByLoanStatusIn(@Param("statuses") List<cm.aekd.tontine.loan.LoanStatus> statuses);
+
     @Query("SELECT COALESCE(SUM(r.amount), 0) FROM LoanRepayment r WHERE r.loan.member.id = :memberId "
             + "AND r.status = cm.aekd.tontine.repayment.LoanRepaymentStatus.VALIDATED")
     BigDecimal sumAmountByLoanMemberId(@Param("memberId") UUID memberId);

@@ -4,7 +4,15 @@ import { Observable, forkJoin, map, of, switchMap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { toIsoDate } from '../../shared/utils/format';
 import { ContributionService } from '../contributions/contribution.service';
-import { Session, SessionContribution, SessionRequest, SessionTiming } from './session.model';
+import {
+  PayoutOverview,
+  PayoutRequest,
+  Session,
+  SessionContribution,
+  SessionPayout,
+  SessionRequest,
+  SessionTiming,
+} from './session.model';
 
 @Injectable({ providedIn: 'root' })
 export class SessionService {
@@ -32,6 +40,16 @@ export class SessionService {
   /** Refusé (409) si des paiements ou des sanctions existent sur ses cotisations. */
   delete(id: string): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  }
+
+  /** Cagnotte de la séance : collecté, remis, part de chaque bénéficiaire (ADMIN, TRESORIER). */
+  payoutOverview(sessionId: string): Observable<PayoutOverview> {
+    return this.http.get<PayoutOverview>(`${this.baseUrl}/${sessionId}/payouts`);
+  }
+
+  /** Refusé (400) au-delà de la part restante, (403) pour une remise à son propre profit. */
+  recordPayout(sessionId: string, request: PayoutRequest): Observable<SessionPayout> {
+    return this.http.post<SessionPayout>(`${this.baseUrl}/${sessionId}/payouts`, request);
   }
 
   /**

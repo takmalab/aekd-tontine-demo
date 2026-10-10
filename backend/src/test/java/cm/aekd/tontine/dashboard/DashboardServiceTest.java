@@ -24,6 +24,8 @@ import cm.aekd.tontine.repayment.LoanRepaymentRequest;
 import cm.aekd.tontine.repayment.LoanRepaymentService;
 import cm.aekd.tontine.member.Member;
 import cm.aekd.tontine.member.MemberRepository;
+import cm.aekd.tontine.savings.SavingsDepositRepository;
+import cm.aekd.tontine.savings.TestSavings;
 import cm.aekd.tontine.security.RoleName;
 import cm.aekd.tontine.session.Session;
 import cm.aekd.tontine.session.SessionRepository;
@@ -89,6 +91,9 @@ class DashboardServiceTest {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private SavingsDepositRepository depositRepository;
 
     @AfterEach
     void clearSecurityContext() {
@@ -282,6 +287,8 @@ class DashboardServiceTest {
         loginAsMember(member, RoleName.MEMBRE);
         LoanResponse requested = loanService.request(new LoanRequest(new BigDecimal(100000), 3, "Motif"));
 
+        // Épargne d'un autre membre pour couvrir le prêt (decisions.md n° 46).
+        TestSavings.seedValidated(depositRepository, treasurer, new BigDecimal(100000));
         loginAsMember(treasurer, RoleName.TRESORIER);
         loanService.approve(requested.id(), new LoanApprovalRequest(new BigDecimal(100000), 3));
         repaymentService.record(requested.id(),

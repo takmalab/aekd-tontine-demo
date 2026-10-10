@@ -1,0 +1,86 @@
+@let share = data.share;
+<div class="head">
+  <span class="head__icon"><mat-icon>redeem</mat-icon></span>
+  <div class="head__text">
+    <h2 mat-dialog-title class="head__title">Remettre la cagnotte</h2>
+    <p class="head__subtitle">{{ share.memberFullName }} · {{ data.sessionLabel }}</p>
+  </div>
+</div>
+
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <mat-dialog-content class="body">
+    <dl class="summary">
+      <div><dt>Part du bénéficiaire</dt><dd>{{ formatFcfa(share.share) }}</dd></div>
+      <div><dt>Déjà remis</dt><dd>{{ formatFcfa(share.remitted) }}</dd></div>
+      <div class="summary__due"><dt>Reste à remettre</dt><dd>{{ formatFcfa(share.due) }}</dd></div>
+    </dl>
+
+    <mat-form-field appearance="outline" class="full">
+      <mat-label>Montant remis</mat-label>
+      <input matInput type="number" inputmode="numeric" min="1" step="1" [max]="share.due" formControlName="amount" cdkFocusInitial />
+      <span matTextSuffix>FCFA</span>
+      @if (form.controls.amount.hasError('required')) {
+        <mat-error>Le montant est requis</mat-error>
+      } @else if (form.controls.amount.hasError('max')) {
+        <mat-error>Au plus {{ formatFcfa(share.due) }}</mat-error>
+      } @else if (form.controls.amount.invalid) {
+        <mat-error>Montant entier strictement positif</mat-error>
+      }
+    </mat-form-field>
+
+    <p class="label">Moyen de remise</p>
+    <div class="operators" role="radiogroup" aria-label="Moyen de remise">
+      @for (op of operators; track op[0]) {
+        <label class="operator" [class.operator--selected]="form.controls.operator.value === op[0]">
+          <input type="radio" formControlName="operator" [value]="op[0]" />
+          <mat-icon>{{ operatorIcons[op[0]] }}</mat-icon>
+          <span>{{ op[1] }}</span>
+        </label>
+      }
+    </div>
+    @if (form.controls.operator.invalid && form.controls.operator.touched) {
+      <p class="field-error">Choisissez le moyen de remise.</p>
+    }
+
+    <div class="row">
+      <mat-form-field appearance="outline">
+        <mat-label>Référence (facultatif)</mat-label>
+        <input matInput formControlName="reference" />
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Date de la remise</mat-label>
+        <input matInput [matDatepicker]="picker" [max]="today" formControlName="payoutDate" (click)="picker.open()" />
+        <mat-datepicker-toggle matIconSuffix [for]="picker" />
+        <mat-datepicker #picker />
+        @if (form.controls.payoutDate.hasError('matDatepickerParse')) {
+          <mat-error>Date invalide (JJ/MM/AAAA)</mat-error>
+        } @else if (form.controls.payoutDate.hasError('required')) {
+          <mat-error>La date est requise</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    <mat-form-field appearance="outline" class="full">
+      <mat-label>Observation (facultatif)</mat-label>
+      <textarea matInput rows="2" formControlName="observation"></textarea>
+    </mat-form-field>
+
+    @if (errorMessage(); as message) {
+      <p class="notice" role="alert">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ message }}</span>
+      </p>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="actions">
+    <button mat-button type="button" mat-dialog-close [disabled]="saving()">Annuler</button>
+    <button mat-flat-button type="submit" [disabled]="saving()">
+      @if (saving()) {
+        <mat-spinner diameter="20" />
+      } @else {
+        Enregistrer la remise
+      }
+    </button>
+  </mat-dialog-actions>
+</form>
