@@ -473,6 +473,11 @@ Les cotisations actuellement affectées au fonds commun sont :
 
 Seuls les paiements validés doivent être comptabilisés.
 
+L'argent des cotisations obligatoires du fonds commun choisies à la création
+de la séance est remis directement au bénéficiaire de cette séance : le fonds commun n'est pas une
+caisse qui s'accumule. L'argent prêté vient de l'épargne individuelle, pas du
+fonds commun (docs/decisions.md n° 46).
+
 ---
 
 # 21. Épargne individuelle

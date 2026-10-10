@@ -379,6 +379,8 @@ DÉCIDÉ
 
 La mécanique exacte permettant de déterminer les fonds effectivement disponibles pour les prêts reste à préciser si nécessaire.
 
+Précisé le 2026-10-05 : voir la décision n° 46.
+
 ---
 
 # 19. Remboursement
@@ -577,8 +579,11 @@ les membres  doivent pouvoir êtres notifiés (push) des différentes actions. O
 ## Statut
 
 ```text
-VALIDER
+DÉCIDÉ
 ```
+
+Mis en œuvre le 2026-10-05 : voir la décision n° 44. WhatsApp et SMS restent
+reportés.
 
 ---
 
@@ -999,6 +1004,12 @@ CLAUDE.md §6, où l'ADMIN ne faisait que consulter les paiements et les prêts.
   `CurrentUserProvider.hasAnyRole`. Toute future règle « TRESORIER » inclut
   automatiquement l'ADMIN.
 * Frontend : même hiérarchie dans `AuthService.hasRole` / `hasAnyRole`.
+* Contrôle « pas pour soi-même » étendu le 2026-10-05 à l'approbation et au rejet
+  d'un prêt (`LoanService`) et à la saisie directe d'un remboursement
+  (`LoanRepaymentService.record`) : un trésorier ou administrateur emprunteur
+  déclare son remboursement, qui est validé par un autre membre du bureau.
+  Étendu le même jour aux **sanctions** (validé par le propriétaire du projet) :
+  personne n'applique ni n'annule une sanction qui le concerne.
 
 ---
 
@@ -1038,4 +1049,391 @@ recalculés sans ces opérations. Action irréversible.
 * API : `GET /api/users/{id}/deletion-impact` et `DELETE /api/users/{id}` (ADMIN).
 * Interface : bouton « Supprimer » sur la page Utilisateurs ; la fenêtre affiche
   ce qui sera effacé et exige de retaper l'e-mail du compte.
+
+---
+
+# 42. Choix des cotisations lors de la création d'une séance
+
+## Question
+
+Comment rattacher des cotisations à une séance sans recréer une cotisation pour
+chaque séance ?
+
+## Statut
+
+```text
+DÉCIDÉ
+```
+
+## Décision
+
+Demandée par le propriétaire du projet le 2026-10-05.
+
+* Une cotisation reste un **modèle réutilisable** (montant, participants,
+  bénéficiaires, sanctions…). À la création ou à la modification d'une séance, le
+  trésorier ou l'administrateur **coche** les cotisations dues lors de cette
+  séance. Les cotisations **diffèrent d'une séance à l'autre** : rien n'est
+  pré-coché.
+* Seules les cotisations **actives** peuvent être rattachées. Une cotisation déjà
+  rattachée reste affichée même si elle a été désactivée depuis.
+* Chaque cotisation rattachée peut avoir une **date limite facultative** propre.
+  Aucune date n'est calculée automatiquement (le délai de paiement reste à
+  valider, décision n° 6).
+* **Retirer** une cotisation d'une séance est refusé dès qu'un paiement (quel que
+  soit son statut) ou une sanction appliquée existe pour cette cotisation sur
+  cette séance, comme pour la suppression (décision n° 35).
+* L'assistant de création de cotisation garde son étape « séance » facultative.
+
+## Points à valider
+
+```text
+À VALIDER
+```
+
+* La date limite d'une cotisation reste modifiable sur la séance même si des
+  paiements existent déjà : le changement peut faire passer des membres en retard
+  (ou les en sortir). Faut-il la verrouiller dans ce cas ?
+* Création automatique des séances : voir la décision n° 43.
+
+## Conséquence technique
+
+* `SessionRequest.contributions` (liste de `{contributionDefinitionId, dueDate}`) sur
+  `POST /api/sessions` et `PUT /api/sessions/{id}`. En modification, la liste
+  remplace les rattachements actuels ; absente (`null`), ils restent inchangés.
+  Les périodes conservées gardent leur identifiant (paiements préservés).
+* Séance et rattachements sont enregistrés dans la même transaction : tout est
+  refusé si un rattachement est invalide (`400`) ou un retrait impossible (`409`).
+* Audit : `SESSION_CONTRIBUTION_ADDED`, `SESSION_CONTRIBUTION_REMOVED`,
+  `SESSION_CONTRIBUTION_DUE_DATE_CHANGED`.
+* Interface : section « Cotisations de la séance » dans la fenêtre de création ou
+  de modification d'une séance (cases à cocher, date limite, total obligatoire
+  indicatif) ; bouton « Choisir les cotisations » sur une séance sans cotisation.
+
+---
+
+# 43. Création automatique des séances : les tournois
+
+## Question
+
+Comment créer automatiquement les séances, avec leur récepteur, leurs
+bénéficiaires et leurs cotisations ?
+
+## Statut
+
+```text
+DÉCIDÉ
+```
+
+## Décision
+
+Choix du propriétaire du projet le 2026-10-05.
+
+* Le trésorier ou l'administrateur crée un **tournoi** : un calendrier de séances
+  mensuelles que le serveur crée **automatiquement**.
+* **Date** : règle « n-ième jour de semaine du mois » (1er, 2e, 3e, 4e ou dernier
+  lundi… dimanche), un passage par mois à partir du mois de départ.
+* **Ordre de passage** : liste ordonnée des membres. Le membre de chaque passage
+  est **récepteur et bénéficiaire** de sa séance.
+* **Lieu** : « Chez <nom du récepteur> » ; **libellé** : « Séance de <mois> <année> ».
+  Tout reste modifiable ensuite sur la séance.
+* **Cotisations** : une liste par défaut choisie dans le tournoi, rattachée à
+  chaque séance générée (sans date limite, décision n° 6), puis ajustable séance
+  par séance (décision n° 42). Une cotisation désactivée entre-temps est ignorée.
+* **Délai** : chaque séance est créée un nombre de jours **configurable** avant sa
+  date, avec **une seule séance à venir à la fois**.
+* **Fin** : quand tous les membres de l'ordre ont eu leur séance, le tournoi est
+  **terminé** ; aucun nouveau cycle ne démarre seul. Le trésorier crée un nouveau
+  tournoi avec un nouvel ordre.
+
+## Règles de cohérence ajoutées
+
+Elles évitent des incohérences techniques et ne fixent aucun montant ni délai :
+
+* **Un seul tournoi en cours** à la fois (sinon deux séances seraient créées
+  chaque mois).
+* La première séance ne peut pas être déjà passée à la création du tournoi.
+* Un tournoi en cours peut changer de nom, de délai et de cotisations par défaut.
+  L'**ordre de passage et la règle de date ne changent pas**, pour que les dates
+  annoncées restent stables : pour les changer, arrêter le tournoi et en créer un
+  nouveau.
+* **Arrêter** un tournoi est définitif ; les séances déjà créées sont conservées.
+  La **suppression** n'est possible que si aucune séance n'a été générée.
+* Une séance générée puis supprimée n'est pas recréée.
+* Si le serveur a été arrêté, les passages manqués sont rattrapés au démarrage
+  (séances créées à leur date prévue).
+
+## Points à valider
+
+```text
+À VALIDER
+```
+
+* Si le compte d'un membre de l'ordre est supprimé (décision n° 41), son passage
+  disparaît : son mois reste sans séance et les autres membres gardent leur date.
+  Faut-il plutôt avancer les passages suivants ?
+* Un membre devenu inactif garde son passage dans l'ordre.
+
+## Conséquence technique
+
+* Migration V16 : tables `tournament`, `tournament_slot` (ordre de passage, séance
+  générée) et `tournament_contribution`.
+* Module backend `tournament/` : `TournamentCalendar` (calcul des dates),
+  `TournamentService` (création des séances via `SessionService`, donc mêmes
+  contrôles et même audit), `TournamentScheduler` (au démarrage du serveur puis
+  chaque jour à 6 h, heure de Douala ; désactivé en test par
+  `app.tournament.scheduler.enabled=false`).
+* API `/api/tournaments` (ADMIN, TRESORIER) : `GET`, `POST`, `PUT /{id}`,
+  `PUT /{id}/stop`, `DELETE /{id}`.
+* Audit : `TOURNAMENT_CREATED`, `_UPDATED`, `_STOPPED`, `_COMPLETED`, `_DELETED`,
+  `TOURNAMENT_SESSION_GENERATED`. Les séances créées par la tâche planifiée n'ont
+  pas d'auteur dans l'audit.
+* Interface : page « Tournois » (menu, ADMIN et TRESORIER) avec l'avancement et
+  l'ordre de passage ; fenêtre de création avec glisser-déposer de l'ordre et
+  aperçu des dates.
+
+---
+
+# 44. Notifications (dans l'application et Web Push)
+
+## Question
+
+De quoi notifier les membres et le personnel, par quel canal, et faut-il des
+rappels avant les dates limites ?
+
+## Statut
+
+```text
+DÉCIDÉ
+```
+
+## Décision
+
+Choix du propriétaire du projet le 2026-10-05.
+
+* **Canaux** : une cloche dans l'application (compteur et liste) **et** de vraies
+  notifications **Web Push** sur le téléphone ou l'ordinateur, même application
+  fermée, si l'utilisateur les active sur cet appareil.
+* **Membres** :
+  * nouvelle séance comportant des cotisations auxquelles ils participent, et
+    cotisation ajoutée à une séance existante ;
+  * paiement, remboursement ou versement d'épargne validé ou rejeté, ainsi que
+    remboursement enregistré directement par le trésorier ;
+  * prêt approuvé ou refusé ;
+  * sanction appliquée ou annulée.
+* **Trésorier et administrateur** :
+  * paiement, remboursement ou versement d'épargne déclaré (à valider) ;
+  * demande de prêt ;
+  * séance générée par un tournoi, tournoi terminé.
+* **Administrateur seul** : inscription d'un compte à valider.
+* **Rappels** : délai **configurable** par le trésorier ou l'administrateur (aucun
+  rappel tant qu'il n'est pas fixé). Un rappel **unique** est envoyé aux
+  participants qui n'ont pas encore payé, entièrement ou en partie, une cotisation
+  **obligatoire** dont la date limite approche. Aucun rappel pour les cotisations
+  facultatives (CLAUDE.md §18), ni pour un paiement déjà déclaré et en attente de
+  validation.
+
+## Règles ajoutées
+
+* L'auteur d'une action n'est jamais notifié de sa propre action.
+* Une notification n'est envoyée en push qu'après l'enregistrement effectif de
+  l'opération : une opération refusée ne notifie personne.
+* À la **déconnexion**, le push est désactivé sur l'appareil : sur un appareil
+  partagé, les notifications d'un membre ne doivent pas arriver chez un autre.
+  Il faut le réactiver après chaque connexion.
+* Le délai de rappel est limité à 60 jours.
+
+## Points à valider
+
+```text
+À VALIDER
+```
+
+* Rappels pour les séances sans date limite : aucun rappel n'est envoyé tant que
+  la date limite n'est pas fixée (décision n° 6). Faut-il utiliser la date de la
+  séance à la place ?
+* Le motif d'un rejet de paiement n'existe pas encore : la notification invite à
+  contacter le trésorier.
+
+## Conséquence technique
+
+* Migration V17 : tables `notification`, `push_subscription`,
+  `notification_settings` (délai des rappels, clés VAPID) et
+  `contribution_reminder` (rappels déjà envoyés).
+* Module backend `notification/`. Web Push implémenté avec le JDK seul :
+  chiffrement RFC 8291 (vérifié avec le vecteur de test officiel) et
+  authentification VAPID RFC 8292. Les clés VAPID sont générées au premier
+  démarrage et conservées en base, ou fournies par `APP_PUSH_VAPID_PUBLIC_KEY` /
+  `APP_PUSH_VAPID_PRIVATE_KEY` ; contact : `APP_PUSH_SUBJECT`.
+* Les rappels sont envoyés au démarrage du serveur puis chaque jour à 7 h (heure
+  de Douala).
+* API `/api/notifications` : liste, compteur des non-lues, marquer comme lu,
+  clé publique, abonnement et désabonnement push, test ; `settings` (ADMIN,
+  TRESORIER).
+* Frontend : cloche dans la barre du haut (rafraîchie toutes les 60 s), page
+  « Notifications » (liste, activation du push sur l'appareil, réglage des
+  rappels). Le service worker `public/push-sw.js` a la portée `/push/`, pour ne
+  pas remplacer celui d'Angular.
+* Le push exige HTTPS en production (localhost est accepté en développement). Sur
+  iPhone, l'application doit d'abord être ajoutée à l'écran d'accueil.
+
+---
+
+# 45. Informer tous les membres des mouvements des autres membres
+
+## Question
+
+Les membres doivent-ils être informés des mouvements des autres membres
+(paiements, prêts, remboursements, épargne, sanctions) ?
+
+## Statut
+
+```text
+DÉCIDÉ
+```
+
+## Décision
+
+Demande du propriétaire du projet le 2026-10-05 : oui, en complément de la
+décision n° 44. Une notification « mouvement d'un membre » (`MEMBER_ACTIVITY`) est
+envoyée à tous les autres membres actifs lorsque :
+
+* un paiement de cotisation est **validé** ;
+* un versement d'épargne est **validé** ;
+* un remboursement de prêt est **validé** ou enregistré par le trésorier ;
+* un membre **demande** un prêt, et lorsque ce prêt est **accordé** ou **refusé** ;
+* une sanction est **appliquée** ou **annulée**.
+
+Le message indique le nom du membre, le montant et, le cas échéant, la cotisation
+et la séance.
+
+## Règles ajoutées
+
+* Seules les opérations **validées** sont annoncées : une déclaration en attente
+  ou rejetée n'est pas diffusée (la demande de prêt fait exception, elle est
+  annoncée dès son dépôt).
+* Le membre concerné ne reçoit pas cette notification (il reçoit déjà la sienne,
+  décision n° 44), ni l'auteur de l'action.
+* Cotisation **PRIVATE** : seuls ses participants sont informés (CLAUDE.md §11).
+* Le **motif** d'un refus de prêt reste réservé au demandeur.
+* Pour une demande de prêt, le trésorier et l'administrateur, déjà notifiés
+  (`LOAN_REQUESTED`), ne reçoivent pas la notification en double.
+* La notification n'a pas de lien : les pages de détail des autres membres sont
+  réservées au personnel.
+* Seuls les membres actifs dont le compte est actif sont informés.
+
+## Points à valider
+
+```text
+À VALIDER
+```
+
+* Les montants des prêts, de l'épargne et le détail des sanctions de chaque
+  membre deviennent visibles de tous les membres. À confirmer, notamment pour
+  l'épargne individuelle et les sanctions.
+* Faut-il permettre à un membre de désactiver ces notifications ?
+
+## Conséquence technique
+
+* `NotificationType.MEMBER_ACTIVITY` (backend et frontend, icône « groups »).
+* `NotificationService.notifyOtherMembers` et `notifyOtherMembersExceptStaff`,
+  appelés depuis `ContributionTransactionService`, `SavingsService`,
+  `LoanRepaymentService`, `LoanService` et `AppliedSanctionService`.
+* `MemberRepository.findActiveByUserStatus`. Pas de migration : la colonne `type`
+  de `notification` est déjà un texte.
+
+---
+
+# 46. Origine de l'argent prêté et remise du fonds commun au bénéficiaire
+
+## Question
+
+D'où vient l'argent prêté, et que devient l'argent des cotisations versées au
+fonds commun ?
+
+## Statut
+
+```text
+DÉCIDÉ
+```
+
+## Décision
+
+Précision du propriétaire du projet le 2026-10-05 :
+
+* **Prêts** : l'argent prêté vient de l'**épargne des membres** qui choisissent
+  d'épargner (versements libres et cotisations destinées à l'épargne
+  individuelle). Cette épargne rapporte des intérêts aux épargnants.
+* **Fonds commun** : l'argent des cotisations du fonds commun n'est pas conservé
+  comme une caisse. Il est **remis directement au bénéficiaire de la séance**.
+* **Cotisations remises au bénéficiaire** : le choix se fait **à la création de
+  la séance**, qui définit déjà le ou les bénéficiaires et les cotisations
+  rattachées (décisions n° 42 et 43). Le bénéficiaire reçoit l'argent des
+  cotisations **obligatoires** du **fonds commun** choisies pour sa séance
+  (ex. 10 000 FCFA et Ration 2 000 FCFA). Aucune liste n'est fixée dans le code,
+  même pour la cotisation de 50 000 FCFA. Une cotisation destinée à l'épargne
+  individuelle (ex. « Banque / Épargne ») rattachée à la séance reste sur
+  l'épargne du membre et n'est jamais remise au bénéficiaire.
+* **Plafond des prêts** : un prêt ne peut pas être approuvé s'il dépasse l'argent
+  d'épargne disponible. L'approbation est **bloquée**, avec un message explicatif.
+* **Intérêts** : les intérêts payés par les emprunteurs sont **partagés entre les
+  épargnants**.
+
+## Précisions validées le 2026-10-05
+
+* **Argent disponible pour prêter** = capital d'épargne validé − capital des prêts
+  approuvés ou en cours + capital déjà remboursé. Les intérêts (d'épargne comme de
+  prêts) n'en font **pas** partie.
+* **Montant remis au bénéficiaire** = paiements **validés** des cotisations
+  obligatoires du fonds commun rattachées à la séance.
+* **Plusieurs bénéficiaires** : **parts égales**.
+
+## Points à valider
+
+```text
+À VALIDER
+```
+
+* **Arrondi des parts égales** : chaque part est arrondie au franc inférieur ;
+  le reliquat (ex. 20 000 / 3 → 3 × 6 666, reliquat 2) reste « non réparti » dans
+  le fonds commun. Que faire de ce reliquat ?
+* **Correction d'une remise** saisie par erreur : aucune annulation n'est prévue
+  pour l'instant.
+* Les membres (dont le bénéficiaire) ne voient pas encore le détail de la
+  cagnotte dans l'application ; le bénéficiaire est notifié de chaque remise.
+* **Clé de partage** des intérêts des prêts entre épargnants : au prorata du
+  capital épargné ? En tenant compte de la durée ? À quel moment le partage
+  a-t-il lieu ?
+* Lien avec le taux d'épargne mensuel de la décision n° 39 : le taux reste-t-il
+  utilisé, ou les intérêts d'épargne deviennent-ils uniquement la part des
+  intérêts des prêts ?
+* Les cotisations obligatoires du fonds commun **non** remises au bénéficiaire
+  (si la configuration le prévoit) : à quoi servent-elles ? (lié à la décision
+  n° 5, usage de la Ration.)
+
+## Règles de cohérence ajoutées
+
+* Une remise ne dépasse jamais la part restante du bénéficiaire.
+* Personne n'enregistre une remise à son propre profit (n° 40).
+* Une séance ayant donné lieu à une remise ne peut pas être supprimée, et un
+  bénéficiaire qui a reçu une remise ne peut pas être retiré de la séance (n° 35).
+* La suppression d'un compte (n° 41) efface aussi les remises qu'il a reçues.
+
+## Conséquence technique (réalisée le 2026-10-05)
+
+* Plafond des prêts : `FundService.availableForLending()` ;
+  `LoanService.approve` renvoie `409` au-delà, avec l'argent disponible dans le
+  message. `GET /api/funds/available-for-lending` (ADMIN, TRESORIER) ; champ
+  `availableForLending` du tableau de bord ; montant affiché dans la fenêtre
+  d'approbation d'un prêt.
+* Migration V18 : table `session_payout`. Module backend `payout/` :
+  `GET /api/sessions/{id}/payouts` (collecté, remis, reste, part de chaque
+  bénéficiaire, reliquat, historique) et `POST /api/sessions/{id}/payouts`
+  (ADMIN, TRESORIER). Audit `SESSION_PAYOUT_RECORDED` ; notification
+  `SESSION_PAYOUT_RECEIVED` au bénéficiaire.
+* `FundService.tontineFundBalance()` = collecté − remis ; le tableau de bord
+  affiche aussi le total remis.
+* Interface : section « Cagnotte du bénéficiaire » sur la page d'une séance
+  (personnel) et fenêtre « Remettre la cagnotte ».
+* Jeu de démonstration : 400 000 FCFA d'épargne fictive validée, pour que
+  l'approbation du prêt de 300 000 FCFA (CLAUDE.md §33) reste possible.
 
