@@ -10,6 +10,9 @@ frontend/node_modules/
 frontend/dist/
 frontend/.angular/
 
+# Outils telecharges par partager.bat (cloudflared, journal et adresse du tunnel)
+tools/
+
 # IDE
 .idea/
 *.iml
@@ -24,3 +27,10 @@ Thumbs.db
 .env
 *.local.yml
 *.local.properties
+
+# Journaux de plantage JVM
+hs_err_pid*.log
+replay_pid*.log
+
+# Sauvegardes locales de la base (peuvent contenir des données personnelles)
+backups/
