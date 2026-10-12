@@ -29,6 +29,12 @@
       </mat-select>
     </mat-form-field>
 
+    <mat-form-field appearance="outline" class="full">
+      <mat-label>Téléphone de connexion (facultatif)</mat-label>
+      <input matInput type="tel" formControlName="phone" placeholder="6XX XX XX XX" />
+      <mat-hint>Pour se connecter avec un code SMS. Laisser vide pour le retirer.</mat-hint>
+    </mat-form-field>
+
     @if (errorMessage(); as message) {
       <p class="notice" role="alert">
         <mat-icon>error_outline</mat-icon>

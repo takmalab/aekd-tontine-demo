@@ -61,10 +61,13 @@ export class Register {
         },
         error: (error: HttpErrorResponse) => {
           this.loading.set(false);
+          const message = error.error?.message;
           this.errorMessage.set(
-            error.status === 409
-              ? 'Un compte existe déjà avec cet email.'
-              : "Une erreur est survenue. Vérifiez que le serveur est démarré.",
+            (error.status === 400 || error.status === 409) && message
+              ? message
+              : error.status === 409
+                ? 'Un compte existe déjà avec cet email.'
+                : "Une erreur est survenue. Vérifiez que le serveur est démarré.",
           );
         },
       });

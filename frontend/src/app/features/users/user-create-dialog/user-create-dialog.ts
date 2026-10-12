@@ -93,6 +93,8 @@ export class UserCreateDialog {
         email: v.email!.trim(),
         password: v.password!,
         roles: v.roles!,
+        // Numéro de connexion par OTP, recopié sur le profil membre (decisions.md n° 47).
+        phone: v.phone?.trim() || null,
         member: v.withMember
           ? {
               fullName: v.fullName!.trim(),
@@ -105,12 +107,15 @@ export class UserCreateDialog {
         next: (user) => this.dialogRef.close(user),
         error: (error: HttpErrorResponse) => {
           this.saving.set(false);
+          const message = error.error?.message;
           this.errorMessage.set(
-            error.status === 409
-              ? 'Un compte existe déjà avec cet email.'
-              : error.status === 400
-                ? 'Informations invalides.'
-                : 'Une erreur est survenue. Vérifiez que le serveur est démarré.',
+            (error.status === 400 || error.status === 409) && message
+              ? message
+              : error.status === 409
+                ? 'Un compte existe déjà avec cet email.'
+                : error.status === 400
+                  ? 'Informations invalides.'
+                  : 'Une erreur est survenue. Vérifiez que le serveur est démarré.',
           );
         },
       });

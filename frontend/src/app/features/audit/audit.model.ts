@@ -44,6 +44,7 @@ export type AuditAction =
   | 'USER_REGISTERED'
   | 'USER_APPROVED'
   | 'USER_UPDATED'
+  | 'USER_LOGIN_OTP'
   | 'USER_DELETED';
 
 /** Miroir de AuditLogResponse (backend). */
@@ -102,5 +103,6 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   USER_REGISTERED: 'Auto-inscription',
   USER_APPROVED: 'Compte validé',
   USER_UPDATED: 'Compte modifié',
+  USER_LOGIN_OTP: 'Connexion par code SMS',
   USER_DELETED: 'Compte supprimé',
 };

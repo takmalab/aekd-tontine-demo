@@ -42,6 +42,13 @@
       }
     </mat-form-field>
 
+    <mat-form-field appearance="outline" class="full">
+      <mat-label>Téléphone (facultatif)</mat-label>
+      <span matTextPrefix>+237&nbsp;</span>
+      <input matInput type="tel" formControlName="phone" placeholder="6XX XX XX XX" />
+      <mat-hint>Permet aussi de se connecter avec un code SMS.</mat-hint>
+    </mat-form-field>
+
     <mat-checkbox formControlName="withMember" class="checkbox-row">Associer un profil membre</mat-checkbox>
 
     @if (form.controls.withMember.value) {
@@ -54,10 +61,6 @@
       </mat-form-field>
 
       <div class="grid">
-        <mat-form-field appearance="outline">
-          <mat-label>Téléphone (facultatif)</mat-label>
-          <input matInput formControlName="phone" />
-        </mat-form-field>
         <mat-form-field appearance="outline">
           <mat-label>Date d'adhésion</mat-label>
           <input matInput [matDatepicker]="joinDatePicker" formControlName="joinDate" (click)="joinDatePicker.open()" />

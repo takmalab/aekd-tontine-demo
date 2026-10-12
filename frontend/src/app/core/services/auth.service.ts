@@ -6,6 +6,9 @@ import {
   CurrentUser,
   LoginRequest,
   LoginResponse,
+  OtpRequest,
+  OtpRequestResponse,
+  OtpVerifyRequest,
   RegisterRequest,
   RegisterResponse,
   RoleName,
@@ -39,6 +42,18 @@ export class AuthService {
   login(request: LoginRequest): Observable<LoginResponse> {
     return this.http
       .post<LoginResponse>(`${environment.apiUrl}/auth/login`, request)
+      .pipe(tap((response) => this.setSession(response)));
+  }
+
+  /** Connexion par OTP, étape 1 : envoi d'un code par SMS. */
+  requestOtp(request: OtpRequest): Observable<OtpRequestResponse> {
+    return this.http.post<OtpRequestResponse>(`${environment.apiUrl}/auth/otp/request`, request);
+  }
+
+  /** Connexion par OTP, étape 2 : même session qu'une connexion par email. */
+  verifyOtp(request: OtpVerifyRequest): Observable<LoginResponse> {
+    return this.http
+      .post<LoginResponse>(`${environment.apiUrl}/auth/otp/verify`, request)
       .pipe(tap((response) => this.setSession(response)));
   }
 

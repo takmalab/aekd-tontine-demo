@@ -5,6 +5,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { RoleName } from '../../../core/models/auth.model';
@@ -15,9 +16,10 @@ const ALL_ROLES: RoleName[] = ['ADMIN', 'TRESORIER', 'MEMBRE'];
 const ALL_STATUSES: UserStatus[] = ['PENDING_VALIDATION', 'ACTIVE', 'DISABLED'];
 
 /**
- * Édition des rôles et du statut d'un compte existant (CLAUDE.md §6,
- * ADMIN uniquement). Ne touche pas au profil membre associé, géré
- * séparément (écran Membres).
+ * Édition des rôles, du statut et du numéro de connexion par code SMS
+ * d'un compte existant (CLAUDE.md §6, ADMIN uniquement). Le numéro est
+ * recopié sur le profil membre ; le reste du profil est géré séparément
+ * (écran Membres).
  */
 @Component({
   selector: 'app-user-edit-dialog',
@@ -26,6 +28,7 @@ const ALL_STATUSES: UserStatus[] = ['PENDING_VALIDATION', 'ACTIVE', 'DISABLED'];
     MatDialogModule,
     MatFormFieldModule,
     MatSelectModule,
+    MatInputModule,
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
@@ -50,6 +53,7 @@ export class UserEditDialog {
   readonly form = this.fb.group({
     roles: [[...this.user.roles], [Validators.required]],
     status: [this.user.status, [Validators.required]],
+    phone: [this.user.phone ?? ''],
   });
 
   submit(): void {
@@ -60,13 +64,16 @@ export class UserEditDialog {
     const v = this.form.getRawValue();
     this.saving.set(true);
     this.errorMessage.set(null);
-    this.userService.update(this.user.id, { roles: v.roles!, status: v.status! }).subscribe({
+    this.userService
+      .update(this.user.id, { roles: v.roles!, status: v.status!, phone: v.phone?.trim() ?? '' })
+      .subscribe({
       next: (user) => this.dialogRef.close(user),
       error: (error: HttpErrorResponse) => {
         this.saving.set(false);
+        const message = error.error?.message;
         this.errorMessage.set(
-          error.status === 400
-            ? 'Un utilisateur doit avoir au moins un rôle.'
+          (error.status === 400 || error.status === 409) && message
+            ? message
             : 'Une erreur est survenue. Vérifiez que le serveur est démarré.',
         );
       },

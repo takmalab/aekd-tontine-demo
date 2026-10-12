@@ -11,6 +11,23 @@ export interface LoginResponse {
   roles: RoleName[];
 }
 
+/** Connexion par code SMS (docs/decisions.md n° 47). */
+export interface OtpRequest {
+  phone: string;
+}
+
+export interface OtpRequestResponse {
+  phone: string;
+  message: string;
+  expiresInSeconds: number;
+  resendAfterSeconds: number;
+}
+
+export interface OtpVerifyRequest {
+  phone: string;
+  code: string;
+}
+
 export interface RegisterRequest {
   email: string;
   password: string;

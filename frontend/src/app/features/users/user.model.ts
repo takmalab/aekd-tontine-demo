@@ -7,6 +7,8 @@ export type UserStatus = 'PENDING_VALIDATION' | 'ACTIVE' | 'DISABLED';
 export interface AppUser {
   id: string;
   email: string;
+  /** Numéro de connexion par code SMS, format +237XXXXXXXXX (decisions.md n° 47). */
+  phone: string | null;
   status: UserStatus;
   roles: RoleName[];
   memberId: string | null;
@@ -27,12 +29,16 @@ export interface CreateUserRequest {
   password: string;
   roles: RoleName[];
   member?: MemberProfileRequest | null;
+  /** Numéro de connexion par code SMS ; à défaut, celui du profil membre. */
+  phone?: string | null;
 }
 
 /** Miroir de UpdateUserRequest (backend) : seuls les champs fournis sont appliqués. */
 export interface UpdateUserRequest {
   status?: UserStatus;
   roles?: RoleName[];
+  /** Numéro de connexion par code SMS ; une chaîne vide le retire. */
+  phone?: string;
 }
 
 export const USER_STATUS_LABELS: Record<UserStatus, string> = {

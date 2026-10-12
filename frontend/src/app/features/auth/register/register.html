@@ -47,7 +47,9 @@
         <mat-form-field appearance="outline" class="register-form__field">
           <mat-label>Téléphone (facultatif)</mat-label>
           <mat-icon matPrefix>call</mat-icon>
-          <input matInput formControlName="phone" />
+          <span matTextPrefix>+237&nbsp;</span>
+          <input matInput type="tel" formControlName="phone" autocomplete="tel-national" placeholder="6XX XX XX XX" />
+          <mat-hint>Vous pourrez aussi vous connecter avec un code SMS.</mat-hint>
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="register-form__field">

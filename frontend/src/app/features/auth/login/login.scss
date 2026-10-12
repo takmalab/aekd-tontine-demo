@@ -211,6 +211,29 @@
   }
 }
 
+/* ---------- Choix de la méthode de connexion (email / téléphone) ---------- */
+.method {
+  display: flex;
+  width: 100%;
+  margin-bottom: 20px;
+  border-radius: 12px;
+  --mat-standard-button-toggle-shape: 12px;
+  --mat-standard-button-toggle-selected-state-background-color: var(--aekd-orange-soft);
+  --mat-standard-button-toggle-selected-state-text-color: var(--aekd-brown-dark);
+
+  mat-button-toggle {
+    flex: 1;
+  }
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    margin-right: 4px;
+    vertical-align: -3px;
+  }
+}
+
 .form {
   display: flex;
   flex-direction: column;
@@ -244,6 +267,31 @@
       width: 20px;
       height: 20px;
     }
+  }
+
+  &__hint {
+    margin: 0 0 14px;
+    color: var(--aekd-gray-muted);
+    font-size: 13px;
+    line-height: 1.5;
+
+    strong {
+      color: var(--aekd-brown-dark);
+      white-space: nowrap;
+    }
+  }
+
+  &__code {
+    font-size: 20px;
+    letter-spacing: 0.4em;
+  }
+
+  &__otp-actions {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 8px;
   }
 
   &__submit {
