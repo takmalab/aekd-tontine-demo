@@ -152,4 +152,57 @@ class UserServiceTest {
         assertThat(userService.findPending()).extracting(UserResponse::email)
                 .doesNotContain("approve1@test.aekd.cm");
     }
+
+    @Test
+    void phoneIsNormalizedOnTheAccountAndTheMemberProfile() {
+        UserResponse created = userService.create(new CreateUserRequest(
+                "phone1@test.aekd.cm", "Secret@123", List.of(RoleName.MEMBRE),
+                new MemberProfileRequest("Avec Tel", "6 99 00 00 11", LocalDate.of(2025, 1, 1))));
+
+        assertThat(created.phone()).isEqualTo("+237699000011");
+        assertThat(memberRepository.findById(created.memberId()).orElseThrow().getPhone())
+                .isEqualTo("+237699000011");
+    }
+
+    @Test
+    void staffAccountCanHaveItsOwnLoginPhone() {
+        UserResponse created = userService.create(new CreateUserRequest(
+                "phone2@test.aekd.cm", "Secret@123", List.of(RoleName.TRESORIER), null, "699000012"));
+
+        assertThat(created.phone()).isEqualTo("+237699000012");
+    }
+
+    @Test
+    void aPhoneCanOnlyBelongToOneAccount() {
+        userService.create(new CreateUserRequest(
+                "phone3@test.aekd.cm", "Secret@123", List.of(RoleName.TRESORIER), null, "699000013"));
+
+        assertThatThrownBy(() -> userService.create(new CreateUserRequest(
+                "phone4@test.aekd.cm", "Secret@123", List.of(RoleName.TRESORIER), null, "+237 699 000 013")))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("déjà utilisé");
+    }
+
+    @Test
+    void invalidPhoneIsRejectedAtCreation() {
+        assertThatThrownBy(() -> userService.create(new CreateUserRequest(
+                "phone5@test.aekd.cm", "Secret@123", List.of(RoleName.TRESORIER), null, "12345")))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("Numéro de téléphone invalide");
+    }
+
+    @Test
+    void adminCanChangeOrRemoveTheLoginPhone() {
+        UserResponse created = userService.create(new CreateUserRequest(
+                "phone6@test.aekd.cm", "Secret@123", List.of(RoleName.MEMBRE),
+                new MemberProfileRequest("Change Tel", "699000014", LocalDate.of(2025, 1, 1))));
+
+        UserResponse changed = userService.update(created.id(), new UpdateUserRequest(null, null, "699000015"));
+        assertThat(changed.phone()).isEqualTo("+237699000015");
+        assertThat(memberRepository.findById(created.memberId()).orElseThrow().getPhone())
+                .isEqualTo("+237699000015");
+
+        UserResponse removed = userService.update(created.id(), new UpdateUserRequest(null, null, ""));
+        assertThat(removed.phone()).isNull();
+    }
 }

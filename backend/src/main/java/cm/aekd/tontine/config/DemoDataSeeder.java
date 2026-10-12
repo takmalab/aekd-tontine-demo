@@ -130,14 +130,14 @@ public class DemoDataSeeder implements ApplicationRunner {
         Role tresorierRole = roleRepository.findByName(RoleName.TRESORIER).orElseThrow();
         Role membreRole = roleRepository.findByName(RoleName.MEMBRE).orElseThrow();
 
-        User admin = createUser("admin@aekd.cm", DEFAULT_PASSWORD_ADMIN, adminRole);
-        User tresorier = createUser("tresorier@aekd.cm", DEFAULT_PASSWORD_TRESORIER, tresorierRole);
+        User admin = createUser("admin@aekd.cm", "+237600000001", DEFAULT_PASSWORD_ADMIN, adminRole);
+        User tresorier = createUser("tresorier@aekd.cm", "+237600000002", DEFAULT_PASSWORD_TRESORIER, tresorierRole);
 
-        Member jean = createMemberAccount("jean.mbarga@aekd.cm", "Jean Mbarga", LocalDate.of(2024, 1, 15), membreRole);
-        Member marie = createMemberAccount("marie.ngobikoro@aekd.cm", "Marie Ngo Bikoro", LocalDate.of(2024, 6, 10), membreRole);
-        Member paul = createMemberAccount("paul.etoundi@aekd.cm", "Paul Etoundi", LocalDate.of(2025, 1, 20), membreRole);
-        Member sylvie = createMemberAccount("sylvie.abena@aekd.cm", "Sylvie Abena", LocalDate.of(2025, 8, 5), membreRole);
-        Member robert = createMemberAccount("robert.fouda@aekd.cm", "Robert Fouda", LocalDate.of(2026, 6, 1), membreRole);
+        Member jean = createMemberAccount("jean.mbarga@aekd.cm", "+237600000003", "Jean Mbarga", LocalDate.of(2024, 1, 15), membreRole);
+        Member marie = createMemberAccount("marie.ngobikoro@aekd.cm", "+237600000004", "Marie Ngo Bikoro", LocalDate.of(2024, 6, 10), membreRole);
+        Member paul = createMemberAccount("paul.etoundi@aekd.cm", "+237600000005", "Paul Etoundi", LocalDate.of(2025, 1, 20), membreRole);
+        Member sylvie = createMemberAccount("sylvie.abena@aekd.cm", "+237600000006", "Sylvie Abena", LocalDate.of(2025, 8, 5), membreRole);
+        Member robert = createMemberAccount("robert.fouda@aekd.cm", "+237600000007", "Robert Fouda", LocalDate.of(2026, 6, 1), membreRole);
         List<Member> allMembers = List.of(jean, marie, paul, sylvie, robert);
 
         loginAs(tresorier);
@@ -206,15 +206,21 @@ public class DemoDataSeeder implements ApplicationRunner {
                 new BigDecimal(20000), currentMonthStart().plusDays(10), PaymentOperator.CASH, "REMB-DEMO-001"));
     }
 
-    private User createUser(String email, String rawPassword, Role role) {
+    /**
+     * Numéros fictifs (+2376000000xx) pour démontrer la connexion par OTP
+     * avec app.sms.provider=log : le code s'affiche dans le journal du backend.
+     */
+    private User createUser(String email, String phone, String rawPassword, Role role) {
         User user = new User(email, passwordEncoder.encode(rawPassword));
+        user.setPhone(phone);
         user.addRole(role);
         return userRepository.save(user);
     }
 
-    private Member createMemberAccount(String email, String fullName, LocalDate joinDate, Role role) {
-        User user = createUser(email, DEFAULT_PASSWORD_MEMBRE, role);
+    private Member createMemberAccount(String email, String phone, String fullName, LocalDate joinDate, Role role) {
+        User user = createUser(email, phone, DEFAULT_PASSWORD_MEMBRE, role);
         Member member = new Member(user, fullName, joinDate);
+        member.setPhone(phone);
         return memberRepository.save(member);
     }
 

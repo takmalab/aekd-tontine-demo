@@ -55,7 +55,9 @@ class MemberServiceTest {
                 new MemberUpdateRequest("Nouveau Nom", "699111222", false));
 
         assertThat(updated.fullName()).isEqualTo("Nouveau Nom");
-        assertThat(updated.phone()).isEqualTo("699111222");
+        // Normalisé, et recopié comme numéro de connexion OTP du compte (decisions.md n° 47).
+        assertThat(updated.phone()).isEqualTo("+237699111222");
+        assertThat(userService.findById(created.id()).phone()).isEqualTo("+237699111222");
         assertThat(updated.active()).isFalse();
     }
 

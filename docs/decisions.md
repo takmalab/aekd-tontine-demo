@@ -1437,3 +1437,87 @@ Précision du propriétaire du projet le 2026-10-05 :
 * Jeu de démonstration : 400 000 FCFA d'épargne fictive validée, pour que
   l'approbation du prêt de 300 000 FCFA (CLAUDE.md §33) reste possible.
 
+---
+
+# 47. Connexion par code SMS (OTP) en plus de email + mot de passe
+
+## Question
+
+Comment se connecter à l'application : uniquement par email et mot de passe, ou
+aussi avec le numéro de téléphone ?
+
+## Statut
+
+```text
+DÉCIDÉ
+```
+
+## Décision
+
+Validé par le propriétaire du projet le 2026-10-13 :
+
+* Deux façons de se connecter : **email + mot de passe** (inchangé), ou
+  **numéro de téléphone + code reçu par SMS** (OTP).
+* Cette décision fait entrer l'envoi de **SMS** dans le périmètre, alors que
+  CLAUDE.md §3 le classait hors du MVP. Seul l'envoi des codes de connexion est
+  concerné : les notifications par SMS restent hors périmètre (décision n° 44).
+* Fournisseur SMS : **Igor SMS Gateway** (https://sms.igortek.com/fr/docs).
+* Le numéro de connexion est porté par le **compte** : ADMIN, TRESORIER et
+  MEMBRE peuvent tous se connecter par code SMS.
+* Numéros acceptés : **Cameroun uniquement** (+237 suivi de 9 chiffres
+  commençant par 6 ou 2). L'utilisateur peut taper le numéro local ; il est
+  enregistré au format `+237XXXXXXXXX`.
+* Paramètres retenus (tous configurables, `app.otp`) : code de **6 chiffres**,
+  valable **5 minutes**, **5 essais** au maximum, **60 secondes** avant de
+  pouvoir redemander un code, **5 demandes par heure** et par numéro.
+* À l'auto-inscription, le téléphone reste **facultatif**. Email et mot de
+  passe restent obligatoires.
+
+## Règles ajoutées
+
+* Un numéro n'appartient qu'à un seul compte.
+* Le téléphone de la fiche membre et le numéro de connexion du compte restent
+  identiques : modifier l'un modifie l'autre.
+* Seuls les comptes **actifs** reçoivent un code. La réponse est la même que le
+  numéro soit inscrit ou non, pour ne pas révéler quels numéros ont un compte.
+* Seul le hash du code est conservé. Un code ne sert qu'une fois ; un nouveau
+  code annule le précédent.
+* Chaque connexion par code SMS est inscrite dans le journal d'audit.
+
+## Points à valider
+
+```text
+À VALIDER
+```
+
+* **Texte du SMS** proposé : « AEKD Tontine : votre code de connexion est
+  123456. Il expire dans 5 min. Ne le communiquez a personne. » (sans accents,
+  pour qu'un SMS ne compte que pour un seul message).
+* **Formule Igor SMS** (BYOD avec un téléphone passerelle, ou Cloud Pool) et
+  budget mensuel des SMS.
+* Un membre peut-il **modifier lui-même** son numéro ? Pour l'instant, seul un
+  administrateur le peut (écrans Utilisateurs et Membres).
+* Un compte **sans mot de passe** (connexion uniquement par SMS) est-il
+  souhaitable ? Pour l'instant, un mot de passe reste obligatoire.
+* Les numéros déjà saisis sur les fiches membres qui ne sont pas au format
+  camerounais n'ont pas été repris comme numéro de connexion : ils sont à
+  corriger à la main.
+
+## Conséquence technique (réalisée le 2026-10-13)
+
+* Migration V19 : colonne `users.phone` (unique, format vérifié), reprise des
+  numéros valides des fiches membres, table `otp_challenge`.
+* `POST /api/auth/otp/request` `{ phone }` puis `POST /api/auth/otp/verify`
+  `{ phone, code }` : renvoie le même jeton que `POST /api/auth/login`.
+  Erreurs : 400 numéro invalide, 401 code faux ou expiré (avec les essais
+  restants), 429 délai ou limite horaire, 503 échec d'envoi du SMS.
+* Abstraction `SmsSender` (même principe que `PaymentService`) :
+  * `LogSmsSender` (`APP_SMS_PROVIDER=log`, par défaut) : aucun SMS réel, le
+    code s'affiche dans le journal du backend (développement, démonstration) ;
+  * `IgortekSmsSender` (`APP_SMS_PROVIDER=igortek`) : clé API uniquement par la
+    variable d'environnement `IGORTEK_SMS_API_KEY`.
+* Interface : page de connexion à deux onglets (Email / Téléphone), saisie du
+  code avec « Renvoyer le code » et « Changer de numéro » ; numéro de connexion
+  dans la création et la modification d'un compte.
+* Jeu de démonstration : numéros fictifs `+237600000001` (admin) à
+  `+237600000007`.

@@ -40,9 +40,21 @@ app:
     # Dossier du frontend compile (frontend/dist/tontine-frontend/browser) a servir
     # par le backend. Vide en developpement : le frontend tourne avec ng serve.
     dir: ${APP_FRONTEND_DIR:}
-      
-scmchost:
-  api-url: ${SCMCHOST_API_URL:https://api.scmchost.com}
-  # Secret : à fournir par la variable d'environnement, jamais en clair dans ce fichier.
-  api-key: ${SCMCHOST_API_KEY:}
-  otp-template-id: ${SCMCHOST_OTP_TEMPLATE_ID:b045f9d9-ba98-4ba1-9884-faab98aa169c}
+
+  # Envoi de SMS (codes de connexion OTP, docs/decisions.md n° 47).
+  #   log     : simulation, le SMS (et son code) est ecrit dans le journal du backend
+  #   igortek : Igor SMS Gateway (https://sms.igortek.com/fr/docs)
+  sms:
+    provider: ${APP_SMS_PROVIDER:log}
+    igortek:
+      base-url: ${IGORTEK_SMS_BASE_URL:https://api.sms.igortek.com}
+      # Secret : uniquement par variable d environnement, jamais en clair dans ce fichier.
+      api-key: ${IGORTEK_SMS_API_KEY:}
+
+  # Connexion par code SMS (valeurs validees, decisions.md n° 47).
+  otp:
+    code-length: 6
+    ttl: 5m
+    max-attempts: 5
+    resend-cooldown: 60s
+    max-requests-per-hour: 5

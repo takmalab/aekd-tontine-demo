@@ -21,3 +21,7 @@ app:
       # Isole les tests du dossier de stockage de dev (evite de laisser des
       # fichiers orphelins dans backend/storage a chaque execution).
       root: ${java.io.tmpdir}/aekd-tontine-test-storage
+
+  # Aucun SMS reel pendant les tests.
+  sms:
+    provider: log

@@ -1,6 +1,9 @@
 package cm.aekd.tontine.member;
 
 import cm.aekd.tontine.common.CurrentUserProvider;
+import cm.aekd.tontine.common.PhoneNumbers;
+import cm.aekd.tontine.user.User;
+import cm.aekd.tontine.user.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,9 +24,12 @@ public class MemberService {
 
     private final MemberRepository memberRepository;
     private final CurrentUserProvider currentUserProvider;
+    private final UserRepository userRepository;
 
-    public MemberService(MemberRepository memberRepository, CurrentUserProvider currentUserProvider) {
+    public MemberService(MemberRepository memberRepository, CurrentUserProvider currentUserProvider,
+                         UserRepository userRepository) {
         this.memberRepository = memberRepository;
+        this.userRepository = userRepository;
         this.currentUserProvider = currentUserProvider;
     }
 
@@ -49,13 +55,35 @@ public class MemberService {
         if (request.fullName() != null) {
             member.setFullName(request.fullName());
         }
-        if (request.phone() != null) {
-            member.setPhone(request.phone());
+        // Seul un numéro modifié est contrôlé : un ancien numéro saisi librement ne
+        // bloque pas la modification des autres champs.
+        if (request.phone() != null && !request.phone().equals(member.getPhone())) {
+            updatePhone(member, PhoneNumbers.normalizeOrNull(request.phone()));
         }
         if (request.active() != null) {
             member.setActive(request.active());
         }
         return MemberResponse.from(memberRepository.save(member));
+    }
+
+    /**
+     * Le téléphone de la fiche est aussi le numéro de connexion par OTP du
+     * compte lié (decisions.md n° 47) : les deux restent identiques.
+     */
+    private void updatePhone(Member member, String phone) {
+        User owner = member.getUser();
+        if (phone != null) {
+            userRepository.findByPhone(phone)
+                    .filter(existing -> !existing.equals(owner))
+                    .ifPresent(existing -> {
+                        throw new ResponseStatusException(HttpStatus.CONFLICT,
+                                "Ce numéro de téléphone est déjà utilisé par un autre compte");
+                    });
+        }
+        member.setPhone(phone);
+        if (owner != null) {
+            owner.setPhone(phone);
+        }
     }
 
     private Member getOrThrow(UUID id) {

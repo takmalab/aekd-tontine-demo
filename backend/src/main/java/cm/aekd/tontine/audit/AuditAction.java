@@ -50,5 +50,6 @@ public enum AuditAction {
     USER_REGISTERED,
     USER_APPROVED,
     USER_UPDATED,
+    USER_LOGIN_OTP,
     USER_DELETED
 }

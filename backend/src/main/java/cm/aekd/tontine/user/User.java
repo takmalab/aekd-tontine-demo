@@ -37,6 +37,10 @@ public class User {
     @Column(name = "email", nullable = false, unique = true, length = 255)
     private String email;
 
+    /** Numéro de connexion par OTP, format E.164 +237XXXXXXXXX (decisions.md n° 47). */
+    @Column(name = "phone", unique = true, length = 13)
+    private String phone;
+
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
 
@@ -88,6 +92,14 @@ public class User {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
     }
 
     public String getPasswordHash() {

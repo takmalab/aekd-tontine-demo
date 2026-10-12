@@ -16,6 +16,10 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     boolean existsByEmail(String email);
 
+    Optional<User> findByPhone(String phone);
+
+    boolean existsByPhone(String phone);
+
     List<User> findByStatus(UserStatus status);
 
     @Query("SELECT DISTINCT u FROM User u JOIN u.roles r WHERE r.name IN :roles AND u.status = :status")

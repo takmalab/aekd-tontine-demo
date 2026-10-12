@@ -30,6 +30,15 @@ public class AuthService {
                 .filter(candidate -> passwordEncoder.matches(request.password(), candidate.getPasswordHash()))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Email ou mot de passe incorrect"));
 
+        return issueToken(user);
+    }
+
+    /**
+     * Jeton de session, identique quelle que soit la méthode de connexion
+     * (email + mot de passe ou OTP) : le reste de l'application ne
+     * distingue pas les deux.
+     */
+    public LoginResponse issueToken(User user) {
         List<String> roles = user.getRoles().stream()
                 .map(role -> role.getName().name())
                 .toList();

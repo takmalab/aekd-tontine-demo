@@ -2,6 +2,7 @@ package cm.aekd.tontine.user;
 
 import cm.aekd.tontine.audit.AuditAction;
 import cm.aekd.tontine.audit.AuditLogService;
+import cm.aekd.tontine.common.PhoneNumbers;
 import cm.aekd.tontine.member.Member;
 import cm.aekd.tontine.member.MemberRepository;
 import cm.aekd.tontine.notification.NotificationService;
@@ -60,7 +61,8 @@ public class UserService {
     public UserResponse create(CreateUserRequest request) {
         User user = createInternal(request.email(), request.password(), request.roles(),
                 request.member() != null ? request.member().fullName() : null,
-                request.member() != null ? request.member().phone() : null,
+                request.phone() != null ? request.phone()
+                        : request.member() != null ? request.member().phone() : null,
                 request.member() != null ? request.member().joinDate() : null,
                 UserStatus.ACTIVE);
 
@@ -123,6 +125,13 @@ public class UserService {
             user.setStatus(request.status());
         }
 
+        if (request.phone() != null) {
+            String phone = PhoneNumbers.normalizeOrNull(request.phone());
+            checkPhoneAvailable(phone, user);
+            user.setPhone(phone);
+            memberRepository.findByUserId(id).ifPresent(member -> member.setPhone(phone));
+        }
+
         if (request.roles() != null) {
             if (request.roles().isEmpty()) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
@@ -147,18 +156,38 @@ public class UserService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Un compte existe déjà avec cet email");
         }
 
+        String normalizedPhone = PhoneNumbers.normalizeOrNull(phone);
+        checkPhoneAvailable(normalizedPhone, null);
+
         User user = new User(email, passwordEncoder.encode(password));
+        user.setPhone(normalizedPhone);
         resolveRoles(roleNames).forEach(user::addRole);
         user.setStatus(status);
         user = userRepository.save(user);
 
         if (fullName != null) {
             Member member = new Member(user, fullName, joinDate);
-            member.setPhone(phone);
+            member.setPhone(normalizedPhone);
             memberRepository.save(member);
         }
 
         return user;
+    }
+
+    /**
+     * Le numéro sert à se connecter par OTP : il ne peut appartenir qu'à un
+     * seul compte (decisions.md n° 47).
+     */
+    private void checkPhoneAvailable(String phone, User owner) {
+        if (phone == null) {
+            return;
+        }
+        userRepository.findByPhone(phone)
+                .filter(existing -> !existing.equals(owner))
+                .ifPresent(existing -> {
+                    throw new ResponseStatusException(HttpStatus.CONFLICT,
+                            "Ce numéro de téléphone est déjà utilisé par un autre compte");
+                });
     }
 
     private Set<Role> resolveRoles(List<RoleName> names) {
@@ -181,6 +210,7 @@ public class UserService {
         return new UserResponse(
                 user.getId(),
                 user.getEmail(),
+                user.getPhone(),
                 user.getStatus(),
                 roleNames,
                 member != null ? member.getId() : null,
