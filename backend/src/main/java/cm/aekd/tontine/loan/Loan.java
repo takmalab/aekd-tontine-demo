@@ -56,6 +56,14 @@ public class Loan {
     @Column(name = "approved_duration_months")
     private Integer approvedDurationMonths;
 
+    /** Taux mensuel (%) de la politique, figé à l'approbation (decisions.md n° 14). */
+    @Column(name = "interest_rate", precision = 6, scale = 2)
+    private BigDecimal interestRate;
+
+    /** Intérêts dus, calculés à l'approbation ; 0 pour les prêts approuvés avant le 2026-10-14. */
+    @Column(name = "interest_amount", nullable = false, precision = 14, scale = 0)
+    private BigDecimal interestAmount = BigDecimal.ZERO;
+
     @Column(name = "reason", nullable = false)
     private String reason;
 
@@ -137,6 +145,29 @@ public class Loan {
 
     public void setApprovedDurationMonths(Integer approvedDurationMonths) {
         this.approvedDurationMonths = approvedDurationMonths;
+    }
+
+    /**
+     * Fige le taux mensuel de la politique et calcule les intérêts sur le capital
+     * et la durée approuvés (LoanInterest).
+     */
+    public void applyInterest(BigDecimal monthlyRatePercent) {
+        this.interestRate = monthlyRatePercent;
+        this.interestAmount = LoanInterest.interest(approvedAmount, monthlyRatePercent,
+                approvedDurationMonths != null ? approvedDurationMonths : 0);
+    }
+
+    public BigDecimal getInterestRate() {
+        return interestRate;
+    }
+
+    public BigDecimal getInterestAmount() {
+        return interestAmount;
+    }
+
+    /** Capital + intérêts à rembourser ; null tant que le prêt n'est pas approuvé. */
+    public BigDecimal getTotalDue() {
+        return approvedAmount != null ? approvedAmount.add(interestAmount) : null;
     }
 
     public String getReason() {

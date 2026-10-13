@@ -14,14 +14,13 @@ public interface LoanRepository extends JpaRepository<Loan, UUID> {
 
     List<Loan> findByStatus(LoanStatus status);
 
+    List<Loan> findByStatusIn(List<LoanStatus> statuses);
+
     long countByMemberIdAndStatusIn(UUID memberId, List<LoanStatus> statuses);
 
     long countByStatus(LoanStatus status);
 
     long countByStatusIn(List<LoanStatus> statuses);
-
-    @Query("SELECT COALESCE(SUM(l.approvedAmount), 0) FROM Loan l WHERE l.status IN :statuses")
-    BigDecimal sumApprovedAmountByStatusIn(@Param("statuses") List<LoanStatus> statuses);
 
     /** Empêche de modifier/supprimer une politique déjà utilisée par un prêt (intégrité de l'historique). */
     boolean existsByLoanPolicyId(UUID loanPolicyId);

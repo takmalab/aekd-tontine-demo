@@ -81,7 +81,7 @@ export class LoanPolicies implements OnInit {
     if (p.minSeniorityMonths !== null)
       terms.push({ icon: 'badge', label: 'Ancienneté minimale', value: `${p.minSeniorityMonths} mois` });
     if (p.interestRate !== null)
-      terms.push({ icon: 'percent', label: "Taux d'intérêt (indicatif)", value: `${p.interestRate} %` });
+      terms.push({ icon: 'percent', label: "Taux d'intérêt", value: `${p.interestRate} % par mois` });
     return terms;
   }
 

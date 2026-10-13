@@ -5,7 +5,7 @@
       {{ declaring ? 'Rembourser mon prêt' : 'Enregistrer un remboursement' }}
     </h2>
     <p class="head__subtitle">
-      {{ data.loan.memberFullName }} · prêt de {{ formatFcfa(data.balance.totalAmount) }}
+      {{ data.loan.memberFullName }} · {{ formatFcfa(data.balance.totalAmount) }} à rembourser (capital + intérêts)
     </p>
   </div>
 </div>

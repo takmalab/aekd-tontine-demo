@@ -46,10 +46,10 @@
         @if (form.controls.maxDurationMonths.invalid) { <mat-error>Entier positif</mat-error> }
       </mat-form-field>
       <mat-form-field appearance="outline">
-        <mat-label>Taux d'intérêt</mat-label>
+        <mat-label>Taux d'intérêt mensuel</mat-label>
         <input matInput type="number" min="0" step="0.1" formControlName="interestRate" />
         <span matTextSuffix>%</span>
-        <mat-hint>Indicatif : non appliqué au calcul du solde</mat-hint>
+        <mat-hint>Par mois, sur le capital : 5 % x 6 mois = 30 %</mat-hint>
         @if (form.controls.interestRate.invalid) { <mat-error>Valeur positive</mat-error> }
       </mat-form-field>
     </div>

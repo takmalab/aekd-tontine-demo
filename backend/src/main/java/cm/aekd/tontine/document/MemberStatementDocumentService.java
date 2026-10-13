@@ -180,13 +180,15 @@ public class MemberStatementDocumentService {
                     Cell.of(date(loan.getCreatedAt())),
                     Cell.of(fcfa(loan.getRequestedAmount())),
                     Cell.of(hasBalance ? fcfa(loan.getApprovedAmount()) : "–"),
+                    Cell.of(hasBalance ? fcfa(loan.getTotalDue()) : "–"),
                     Cell.colored(DocumentFormat.loanStatus(loan.getStatus()), loanColor(loan.getStatus())),
                     Cell.of(hasBalance ? fcfa(repaid(repayments)) : "–"),
                     Cell.of(hasBalance ? fcfa(remaining(loan, repayments)) : "–")
             });
         }
-        pdf.table(new String[]{"Demandé le", "Montant demandé", "Montant approuvé", "Statut", "Remboursé", "Reste"},
-                new float[]{1.3f, 1.6f, 1.6f, 1.6f, 1.5f, 1.5f}, loanRows, 1, 2, 4, 5);
+        // À rembourser = capital approuvé + intérêts (decisions.md n° 19).
+        pdf.table(new String[]{"Demandé le", "Demandé", "Approuvé", "À rembourser", "Statut", "Remboursé", "Reste"},
+                new float[]{1.3f, 1.4f, 1.4f, 1.5f, 1.5f, 1.4f, 1.4f}, loanRows, 1, 2, 3, 5, 6);
 
         pdf.section("Remboursements");
         List<Cell[]> repaymentRows = loans.stream()
@@ -245,8 +247,8 @@ public class MemberStatementDocumentService {
     }
 
     private static BigDecimal remaining(Loan loan, List<LoanRepayment> repayments) {
-        BigDecimal approved = loan.getApprovedAmount() != null ? loan.getApprovedAmount() : BigDecimal.ZERO;
-        return approved.subtract(repaid(repayments));
+        BigDecimal due = loan.getTotalDue() != null ? loan.getTotalDue() : BigDecimal.ZERO;
+        return due.subtract(repaid(repayments));
     }
 
     private static Color savingsColor(String status) {

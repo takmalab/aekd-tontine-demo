@@ -1,5 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -8,6 +9,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { formatFcfa } from '../../../shared/utils/format';
+import { LoanCost } from '../loan-cost/loan-cost';
 import { Loan } from '../loan.model';
 import { LoanService } from '../loan.service';
 import { RuleChecklist } from '../rule-checklist/rule-checklist';
@@ -33,6 +35,7 @@ export interface LoanDecisionData {
     MatIconModule,
     MatProgressSpinnerModule,
     RuleChecklist,
+    LoanCost,
   ],
   templateUrl: './loan-decision-dialog.html',
   styleUrl: './loan-decision-dialog.scss',
@@ -75,6 +78,9 @@ export class LoanDecisionDialog {
       [Validators.required, Validators.min(1), Validators.pattern(/^\d+$/)],
     ],
   });
+
+  /** Montant et durée accordés : les intérêts se recalculent pendant la saisie. */
+  readonly approveValues = toSignal(this.approveForm.valueChanges, { initialValue: this.approveForm.getRawValue() });
 
   readonly rejectForm = this.fb.group({
     rejectionReason: ['', [Validators.required, Validators.maxLength(500)]],

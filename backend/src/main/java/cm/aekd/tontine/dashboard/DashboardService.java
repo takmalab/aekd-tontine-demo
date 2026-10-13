@@ -225,12 +225,12 @@ public class DashboardService {
         return new ContributionCounts(mandatoryCount, paidCount, pendingCount, lateCount, optionalCount);
     }
 
-    /** Même calcul que LoanRepaymentService : principal approuvé moins remboursements. */
+    /** Même calcul que LoanRepaymentService : capital + intérêts moins remboursements validés. */
     private BigDecimal remainingBalance(Loan loan) {
-        if (loan.getApprovedAmount() == null) {
+        if (loan.getTotalDue() == null) {
             return BigDecimal.ZERO;
         }
-        return loan.getApprovedAmount().subtract(loanRepaymentRepository.sumAmountByLoanId(loan.getId()));
+        return loan.getTotalDue().subtract(loanRepaymentRepository.sumAmountByLoanId(loan.getId()));
     }
 
     private Optional<Session> currentSession() {

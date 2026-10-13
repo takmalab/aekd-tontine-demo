@@ -7,6 +7,7 @@ import cm.aekd.tontine.repayment.LoanRepaymentRequest;
 import cm.aekd.tontine.repayment.LoanRepaymentResponse;
 import cm.aekd.tontine.repayment.LoanRepaymentService;
 import cm.aekd.tontine.contribution.PaymentOperator;
+import cm.aekd.tontine.fund.FundService;
 import cm.aekd.tontine.savings.SavingsDepositRepository;
 import cm.aekd.tontine.savings.TestSavings;
 import cm.aekd.tontine.security.RoleName;
@@ -63,6 +64,9 @@ class LoanFlowTest {
     @Autowired
     private SavingsDepositRepository depositRepository;
 
+    @Autowired
+    private FundService fundService;
+
     @AfterEach
     void clearSecurityContext() {
         SecurityContextHolder.clearContext();
@@ -101,25 +105,39 @@ class LoanFlowTest {
         assertThat(requested.status()).isEqualTo(LoanStatus.REQUESTED);
         assertThat(requested.ruleEvaluations()).isNotEmpty();
         assertThat(requested.ruleEvaluations()).allMatch(LoanRuleEvaluationResponse::respected);
+        // Avant décision : intérêts estimés sur la demande (5 % x 6 mois, decisions.md n° 14).
+        assertThat(requested.interestEstimated()).isTrue();
+        assertThat(requested.interestAmount()).isEqualByComparingTo("90000");
+        assertThat(requested.totalDue()).isEqualByComparingTo("390000");
 
         loginAsMember(treasurer, RoleName.TRESORIER);
         LoanResponse approved = loanService.approve(requested.id(),
                 new LoanApprovalRequest(new BigDecimal(300000), 6));
         assertThat(approved.status()).isEqualTo(LoanStatus.APPROVED);
         assertThat(approved.approvedAmount()).isEqualByComparingTo(new BigDecimal(300000));
+        // Taux figé sur le prêt : le membre rembourse capital + intérêts (decisions.md n° 19).
+        assertThat(approved.interestEstimated()).isFalse();
+        assertThat(approved.interestRate()).isEqualByComparingTo("5");
+        assertThat(approved.totalDue()).isEqualByComparingTo("390000");
+        BigDecimal capitalBefore = fundService.outstandingLoanCapital();
 
         LoanRepaymentResponse repayment1 = repaymentService.record(approved.id(),
                 new LoanRepaymentRequest(new BigDecimal(50000), LocalDate.now(), PaymentOperator.CASH, "REMB-1"));
         assertThat(repayment1.amount()).isEqualByComparingTo(new BigDecimal(50000));
 
         LoanBalanceResponse balanceAfterFirst = repaymentService.balance(approved.id());
-        assertThat(balanceAfterFirst.remainingBalance()).isEqualByComparingTo(new BigDecimal(250000));
+        assertThat(balanceAfterFirst.totalAmount()).isEqualByComparingTo("390000");
+        assertThat(balanceAfterFirst.principalAmount()).isEqualByComparingTo("300000");
+        assertThat(balanceAfterFirst.interestAmount()).isEqualByComparingTo("90000");
+        assertThat(balanceAfterFirst.remainingBalance()).isEqualByComparingTo(new BigDecimal(340000));
+        // Répartition proportionnelle : 50 000 x 300 000 / 390 000 = 38 461 de capital redevenu prêtable.
+        assertThat(capitalBefore.subtract(fundService.outstandingLoanCapital())).isEqualByComparingTo("38461");
 
         LoanResponse afterFirstRepayment = loanService.findById(approved.id());
         assertThat(afterFirstRepayment.status()).isEqualTo(LoanStatus.IN_PROGRESS);
 
         repaymentService.record(approved.id(),
-                new LoanRepaymentRequest(new BigDecimal(250000), LocalDate.now(), PaymentOperator.CASH, "REMB-2"));
+                new LoanRepaymentRequest(new BigDecimal(340000), LocalDate.now(), PaymentOperator.CASH, "REMB-2"));
 
         LoanResponse afterFullRepayment = loanService.findById(approved.id());
         assertThat(afterFullRepayment.status()).isEqualTo(LoanStatus.REPAID);

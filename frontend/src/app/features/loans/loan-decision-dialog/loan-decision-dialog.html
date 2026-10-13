@@ -37,6 +37,16 @@
           }
         </mat-form-field>
       </div>
+      @if (approveValues().approvedAmount && approveValues().approvedDurationMonths) {
+        <!-- Taux de la politique, figé sur le prêt à l'approbation (decisions.md n° 14). -->
+        <app-loan-cost
+          class="cost"
+          [capital]="+approveValues().approvedAmount!"
+          [rate]="loan.interestRate"
+          [months]="+approveValues().approvedDurationMonths!"
+          [estimated]="false"
+        />
+      }
       @if (available() !== null) {
         <p class="available" [class.available--over]="exceedsAvailable()">
           <mat-icon>{{ exceedsAvailable() ? 'error_outline' : 'price_check' }}</mat-icon>

@@ -289,15 +289,42 @@ Les prêts sont-ils soumis à un intérêt ? : OUI
 ## Statut
 
 ```text
+DÉCIDÉ (mode de calcul) — taux À DÉFINIR par le trésorier
+```
+
+## Décision
+
+Validé par le propriétaire du projet le 2026-10-14 :
+
+* **taux** : défini par le trésorier dans la politique de prêt ; c'est un taux
+  **mensuel** en % ;
+* **mode de calcul** : intérêts **simples**, sur le **capital de départ**, pour
+  chaque mois de la durée accordée :
+  intérêts = capital × taux × nombre de mois ;
+  exemple : 300 000 FCFA sur 6 mois à 5 % → 90 000 FCFA d'intérêts ;
+* **arrondi** : aux **5 FCFA supérieurs** ;
+* le taux est **figé sur le prêt à l'approbation** : modifier la politique
+  ensuite ne change pas les prêts déjà accordés ;
+* seuls les prêts approuvés **à partir du 2026-10-14** portent des intérêts ;
+  les prêts accordés avant restent sans intérêt ;
+* le membre voit le **total à rembourser** dès sa demande (estimation avec le
+  taux actuel), puis le montant fixé à l'approbation.
+
+## Points à valider
+
+```text
 À VALIDER
 ```
 
-Si oui :
+* valeur du taux ;
+* éventuels frais supplémentaires (aucun pour l'instant) ;
+* remboursement anticipé : les intérêts restent dus en totalité (calcul actuel)
+  ou sont réduits ?
 
-* taux : A définir par le trésorier ;
-* mode de calcul: A définir par le trésorier;
-* fréquence: A définir par le trésorier ;
-* éventuels frais supplémentaires: A définir par le trésorier.
+## Conséquence technique (réalisée le 2026-10-14)
+
+* `LoanInterest` (serveur) et `loanInterest` (interface), même règle ;
+  migration V21 : `loan.interest_rate` et `loan.interest_amount`.
 
 ---
 
@@ -396,8 +423,21 @@ Le membre rembourse-t-il :
 ## Statut
 
 ```text
-À VALIDER
+DÉCIDÉ
 ```
+
+## Décision
+
+Validé par le propriétaire du projet le 2026-10-14 :
+
+* le membre rembourse **capital + intérêts** (décision n° 14) ; aucun frais
+  pour l'instant ;
+* solde restant = capital + intérêts − remboursements validés ; le prêt passe à
+  REPAID quand il atteint zéro ;
+* chaque remboursement est réparti **proportionnellement** entre capital et
+  intérêts (ex. 390 000 dus dont 90 000 d'intérêts : 23 % de chaque versement
+  sont des intérêts) ; seule la part de capital redevient disponible pour
+  prêter (décision n° 46).
 
 ---
 

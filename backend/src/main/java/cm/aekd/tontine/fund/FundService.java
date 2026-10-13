@@ -4,6 +4,7 @@ import cm.aekd.tontine.common.CurrentUserProvider;
 import cm.aekd.tontine.contribution.ContributionTransactionRepository;
 import cm.aekd.tontine.contribution.ContributionTransactionStatus;
 import cm.aekd.tontine.contribution.FundDestination;
+import cm.aekd.tontine.loan.LoanInterest;
 import cm.aekd.tontine.loan.LoanRepository;
 import cm.aekd.tontine.loan.LoanStatus;
 import cm.aekd.tontine.member.MemberRepository;
@@ -92,11 +93,16 @@ public class FundService {
 
     /**
      * Encours des prêts : capital approuvé des prêts APPROVED ou IN_PROGRESS,
-     * moins leurs remboursements validés. Un prêt REPAID ne pèse plus rien.
+     * moins la part de capital de leurs remboursements validés. Un remboursement
+     * couvre capital et intérêts en proportion (decisions.md n° 19) : seule sa
+     * part de capital redevient prêtable. Un prêt REPAID ne pèse plus rien.
      */
     public BigDecimal outstandingLoanCapital() {
-        return loanRepository.sumApprovedAmountByStatusIn(OUTSTANDING_LOAN_STATUSES)
-                .subtract(repaymentRepository.sumValidatedAmountByLoanStatusIn(OUTSTANDING_LOAN_STATUSES));
+        return loanRepository.findByStatusIn(OUTSTANDING_LOAN_STATUSES).stream()
+                .map(loan -> loan.getApprovedAmount().subtract(LoanInterest.capitalShare(
+                        repaymentRepository.sumAmountByLoanId(loan.getId()), loan.getApprovedAmount(),
+                        loan.getTotalDue())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     /**

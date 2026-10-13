@@ -126,16 +126,20 @@ public class LoanService {
 
         loan.setApprovedAmount(request.approvedAmount());
         loan.setApprovedDurationMonths(request.approvedDurationMonths());
+        // Taux de la politique figé sur le prêt : la modifier ensuite ne change pas ce prêt.
+        loan.applyInterest(loan.getLoanPolicy().getInterestRate());
         loan.setStatus(LoanStatus.APPROVED);
         loan.setDecisionDate(Instant.now());
         loan.setDecisionBy(decider);
         loan = loanRepository.save(loan);
 
         auditLogService.record(AuditAction.LOAN_APPROVED, "Loan", loan.getId(),
-                "Approbation du prêt pour " + request.approvedAmount());
+                "Approbation du prêt pour " + request.approvedAmount() + " (intérêts " + loan.getInterestAmount()
+                        + ", total à rembourser " + loan.getTotalDue() + ")");
         notificationService.notifyMember(loan.getMember(), NotificationType.LOAN_APPROVED, "Prêt approuvé",
                 "Votre prêt est approuvé : " + DocumentFormat.fcfa(request.approvedAmount()) + " sur "
-                        + request.approvedDurationMonths() + " mois.",
+                        + request.approvedDurationMonths() + " mois. Total à rembourser : "
+                        + DocumentFormat.fcfa(loan.getTotalDue()) + ".",
                 "/my-loans");
         notificationService.notifyOtherMembers(loan.getMember(), null, "Prêt accordé",
                 loan.getMember().getFullName() + " a obtenu un prêt de " + DocumentFormat.fcfa(request.approvedAmount())
@@ -282,6 +286,14 @@ public class LoanService {
                 .map(LoanRuleEvaluationResponse::from)
                 .toList();
 
+        // Avant la décision, les intérêts sont estimés sur la demande avec le taux actuel
+        // de la politique ; une fois le prêt approuvé, ce sont ceux figés sur le prêt.
+        boolean approved = loan.getApprovedAmount() != null;
+        BigDecimal rate = approved ? loan.getInterestRate() : loan.getLoanPolicy().getInterestRate();
+        BigDecimal interest = approved ? loan.getInterestAmount()
+                : LoanInterest.interest(loan.getRequestedAmount(), rate, loan.getRequestedDurationMonths());
+        BigDecimal totalDue = approved ? loan.getTotalDue() : loan.getRequestedAmount().add(interest);
+
         return new LoanResponse(
                 loan.getId(),
                 loan.getMember().getId(),
@@ -292,6 +304,10 @@ public class LoanService {
                 loan.getApprovedAmount(),
                 loan.getRequestedDurationMonths(),
                 loan.getApprovedDurationMonths(),
+                rate,
+                interest,
+                totalDue,
+                !approved,
                 loan.getReason(),
                 loan.getStatus(),
                 loan.getDecisionDate(),

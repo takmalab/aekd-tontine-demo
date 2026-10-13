@@ -19,9 +19,9 @@ import java.util.UUID;
  * facultative : si elle n'est pas définie par l'administrateur, elle
  * n'est simplement pas vérifiée à la demande de prêt — aucune valeur par
  * défaut n'est inventée (docs/decisions.md §11-17, toutes "À VALIDER").
- * Le taux d'intérêt est stocké pour configuration mais n'intervient dans
- * aucun calcul de remboursement : son mode de calcul exact reste "À
- * VALIDER" (§14).
+ * Le taux d'intérêt est un taux <b>mensuel</b> en % (decisions.md n° 14,
+ * validé le 2026-10-14), appliqué au capital pour chaque mois de la durée
+ * (LoanInterest) ; il est figé sur le prêt à l'approbation.
  */
 @Entity
 @Table(name = "loan_policy")

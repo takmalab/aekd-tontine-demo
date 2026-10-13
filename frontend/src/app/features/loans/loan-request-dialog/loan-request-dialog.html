@@ -62,7 +62,7 @@
               <li>Ancienneté minimale : {{ p.minSeniorityMonths }} mois</li>
             }
             @if (p.interestRate !== null) {
-              <li>Taux d'intérêt : {{ p.interestRate }} %</li>
+              <li>Taux d'intérêt : {{ p.interestRate }} % par mois</li>
             }
           </ul>
         </div>
@@ -100,6 +100,15 @@
           }
         </mat-form-field>
       </div>
+
+      @if (policy && values().amount && values().durationMonths) {
+        <app-loan-cost
+          class="cost"
+          [capital]="+values().amount!"
+          [rate]="policy.interestRate"
+          [months]="+values().durationMonths!"
+        />
+      }
 
       <mat-form-field appearance="outline" class="full">
         <mat-label>Motif</mat-label>

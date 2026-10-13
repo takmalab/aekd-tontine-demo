@@ -1,0 +1,27 @@
+@if (capital(); as amount) {
+  <div class="cost" [class.cost--estimated]="estimated()">
+    <div class="cost__row">
+      <span>Capital</span>
+      <span>{{ formatFcfa(amount) }}</span>
+    </div>
+    <div class="cost__row">
+      <span>
+        Intérêts
+        @if (rate()) {
+          <small>({{ rateLabel() }} % par mois × {{ months() }} mois)</small>
+        }
+      </span>
+      <span>{{ rate() ? formatFcfa(interest()) : 'Aucun' }}</span>
+    </div>
+    <div class="cost__row cost__row--total">
+      <span>{{ estimated() ? 'Total à rembourser (estimé)' : 'Total à rembourser' }}</span>
+      <span>{{ formatFcfa(total()) }}</span>
+    </div>
+    @if (estimated()) {
+      <p class="cost__note">
+        <mat-icon>info</mat-icon>
+        Montant indicatif : il est fixé à l'approbation, selon le montant et la durée accordés.
+      </p>
+    }
+  </div>
+}

@@ -2,18 +2,11 @@ package cm.aekd.tontine.sms;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-/**
- * Configuration de l'envoi de SMS. Les clés API n'ont pas de valeur par
- * défaut : elles sont fournies par variable d'environnement ou par un
- * fichier .env local, ignoré par Git (voir application.yml).
- */
+
 @ConfigurationProperties(prefix = "app.sms")
 public class SmsProperties {
 
-    /**
-     * Fournisseur utilisé tant qu'aucun n'a été choisi dans l'écran
-     * « Paramètres SMS » : "log" (simulation), "igortek" ou "scmchost".
-     */
+    
     private String provider = LogSmsProvider.ID;
 
     private final Igortek igortek = new Igortek();

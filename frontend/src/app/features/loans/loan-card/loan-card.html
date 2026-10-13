@@ -41,6 +41,17 @@
     </p>
   }
 
+  @if (l.status === 'REQUESTED') {
+    <!-- Coût estimé avec le taux actuel de la politique (decisions.md n° 14). -->
+    <app-loan-cost
+      class="card__cost"
+      [capital]="l.requestedAmount"
+      [rate]="l.interestRate"
+      [months]="l.requestedDurationMonths"
+      [interestAmount]="l.interestAmount"
+    />
+  }
+
   <!-- Règles de la politique -->
   <div class="section">
     <button type="button" class="section__toggle" (click)="rulesOpen.set(!rulesOpen())" [attr.aria-expanded]="rulesOpen()">
@@ -71,7 +82,7 @@
       } @else if (balance(); as b) {
         <div class="money__figures">
           <div>
-            <span class="money__label">Montant du prêt</span>
+            <span class="money__label">À rembourser</span>
             <span class="money__value">{{ formatFcfa(b.totalAmount) }}</span>
           </div>
           <div>
@@ -83,6 +94,12 @@
             <span class="money__value">{{ formatFcfa(b.remainingBalance) }}</span>
           </div>
         </div>
+        @if (b.interestAmount > 0) {
+          <p class="money__interest">
+            Capital {{ formatFcfa(b.principalAmount) }} + intérêts {{ formatFcfa(b.interestAmount) }}
+            ({{ b.interestRate }} % par mois sur {{ l.approvedDurationMonths }} mois)
+          </p>
+        }
         @if (b.pendingAmount > 0) {
           <p class="money__pending">
             <mat-icon>hourglass_top</mat-icon>

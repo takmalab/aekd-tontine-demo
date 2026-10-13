@@ -115,8 +115,8 @@ public class ReceiptDocumentService {
                 break;
             }
         }
-        BigDecimal approved = loan.getApprovedAmount() != null ? loan.getApprovedAmount() : BigDecimal.ZERO;
-        BigDecimal remaining = approved.subtract(repaidSoFar);
+        BigDecimal due = loan.getTotalDue() != null ? loan.getTotalDue() : BigDecimal.ZERO;
+        BigDecimal remaining = due.subtract(repaidSoFar);
         String number = "REM-" + shortRef(repayment.getId());
 
         AekdPdf pdf = AekdPdf.portrait("Reçu de remboursement n° " + number, access.currentAuthorName());
@@ -136,12 +136,16 @@ public class ReceiptDocumentService {
 
         pdf.section("Situation du prêt après ce remboursement");
         pdf.statCards(List.of(
-                new String[]{"Montant approuvé", fcfa(approved)},
+                new String[]{"À rembourser", fcfa(due)},
                 new String[]{"Total remboursé", fcfa(repaidSoFar)},
                 new String[]{"Solde restant", fcfa(remaining)}
         ));
-        pdf.note("Solde calculé sur le capital approuvé, hors intérêts : le mode de calcul des intérêts "
-                + "reste à valider (docs/decisions.md n° 14 et 19).");
+        pdf.note("À rembourser : capital de " + fcfa(loan.getApprovedAmount() != null ? loan.getApprovedAmount() : BigDecimal.ZERO)
+                + " + intérêts de " + fcfa(loan.getInterestAmount())
+                + (loan.getInterestRate() != null
+                        ? " (taux de " + loan.getInterestRate().stripTrailingZeros().toPlainString().replace('.', ',')
+                                + " % par mois sur " + loan.getApprovedDurationMonths() + " mois)."
+                        : "."));
 
         pdf.signatures("Le trésorier", "Le membre");
         return new GeneratedDocument("recu-remboursement-" + number.toLowerCase() + ".pdf", pdf.finish());

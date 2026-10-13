@@ -268,18 +268,21 @@ public class LoanRepaymentService {
     public LoanBalanceResponse balance(UUID loanId) {
         Loan loan = getLoanOrThrow(loanId);
         checkCanView(loan);
-        BigDecimal total = loan.getApprovedAmount() != null ? loan.getApprovedAmount() : BigDecimal.ZERO;
+        BigDecimal total = loan.getTotalDue() != null ? loan.getTotalDue() : BigDecimal.ZERO;
         BigDecimal remaining = remainingBalance(loan);
         return new LoanBalanceResponse(total, total.subtract(remaining), remaining,
-                repaymentRepository.sumPendingAmountByLoanId(loanId));
+                repaymentRepository.sumPendingAmountByLoanId(loanId),
+                loan.getApprovedAmount() != null ? loan.getApprovedAmount() : BigDecimal.ZERO,
+                loan.getInterestAmount(), loan.getInterestRate());
     }
 
+    /** Capital + intérêts (CLAUDE.md §23, decisions.md n° 19) moins les remboursements validés. */
     private BigDecimal remainingBalance(Loan loan) {
-        if (loan.getApprovedAmount() == null) {
+        if (loan.getTotalDue() == null) {
             return BigDecimal.ZERO;
         }
         BigDecimal totalRepaid = repaymentRepository.sumAmountByLoanId(loan.getId());
-        return loan.getApprovedAmount().subtract(totalRepaid);
+        return loan.getTotalDue().subtract(totalRepaid);
     }
 
     /** Statut du prêt après un remboursement comptabilisé (CLAUDE.md §22, §23). */

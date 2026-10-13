@@ -19,6 +19,7 @@ export interface LoanPolicy {
   minAmount: number | null;
   maxAmount: number | null;
   maxDurationMonths: number | null;
+  /** Taux d'intérêt MENSUEL en % (decisions.md n° 14). */
   interestRate: number | null;
   minSavingsRequired: number | null;
   minSeniorityMonths: number | null;
@@ -57,6 +58,13 @@ export interface Loan {
   approvedAmount: number | null;
   requestedDurationMonths: number;
   approvedDurationMonths: number | null;
+  /** Taux mensuel (%) : figé une fois le prêt approuvé, sinon celui de la politique. */
+  interestRate: number | null;
+  interestAmount: number;
+  /** Capital + intérêts à rembourser. */
+  totalDue: number;
+  /** Vrai avant l'approbation : intérêts calculés sur la demande, à titre indicatif. */
+  interestEstimated: boolean;
   reason: string;
   status: LoanStatus;
   decisionDate: string | null;
@@ -118,14 +126,18 @@ export interface LoanRepayment {
 }
 
 /**
- * Miroir de LoanBalanceResponse (backend) : montant approuvé - total remboursé (validé) = solde
- * restant (§23). `pendingAmount` : remboursements déclarés, en attente de validation.
+ * Miroir de LoanBalanceResponse (backend) : capital + intérêts (`totalAmount`) - total remboursé
+ * (validé) = solde restant (§23, decisions.md n° 19). `pendingAmount` : remboursements déclarés,
+ * en attente de validation.
  */
 export interface LoanBalance {
   totalAmount: number;
   totalRepaid: number;
   remainingBalance: number;
   pendingAmount: number;
+  principalAmount: number;
+  interestAmount: number;
+  interestRate: number | null;
 }
 
 /** Statuts pour lesquels un solde et un historique de remboursements existent. */

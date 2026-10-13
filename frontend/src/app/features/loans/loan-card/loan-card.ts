@@ -21,6 +21,7 @@ import {
 } from '../loan.model';
 import { LoanService } from '../loan.service';
 import { RepaymentData, RepaymentDialog } from '../repayment-dialog/repayment-dialog';
+import { LoanCost } from '../loan-cost/loan-cost';
 import { RuleChecklist } from '../rule-checklist/rule-checklist';
 
 /**
@@ -30,7 +31,7 @@ import { RuleChecklist } from '../rule-checklist/rule-checklist';
  */
 @Component({
   selector: 'app-loan-card',
-  imports: [DatePipe, MatButtonModule, MatIconModule, MatProgressSpinnerModule, RuleChecklist],
+  imports: [DatePipe, LoanCost, MatButtonModule, MatIconModule, MatProgressSpinnerModule, RuleChecklist],
   templateUrl: './loan-card.html',
   styleUrl: './loan-card.scss',
 })
