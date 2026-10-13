@@ -1,0 +1,43 @@
+<div class="phone" [class.phone--invalid]="error()">
+  <button
+    type="button"
+    class="phone__country"
+    [matMenuTriggerFor]="countryMenu"
+    [disabled]="disabled()"
+    [attr.aria-label]="'Pays : ' + country().name + ' (+' + country().dialCode + ')'"
+  >
+    <img class="phone__flag" [src]="country().flag" alt="" />
+    <span>+{{ country().dialCode }}</span>
+    <mat-icon>expand_more</mat-icon>
+  </button>
+  <input
+    #field
+    class="phone__input"
+    type="tel"
+    inputmode="tel"
+    autocomplete="tel-national"
+    [value]="national()"
+    [placeholder]="country().placeholder"
+    [disabled]="disabled()"
+    aria-label="Numéro de téléphone"
+    (input)="onInput($event)"
+    (blur)="onBlur()"
+  />
+  @if (national()) {
+    <button type="button" class="phone__clear" (click)="clear(field)" aria-label="Effacer le numéro">
+      <mat-icon>close</mat-icon>
+    </button>
+  }
+</div>
+@if (error(); as message) {
+  <p class="phone__error">{{ message }}</p>
+}
+
+<mat-menu #countryMenu="matMenu">
+  @for (option of countries; track option.iso) {
+    <button mat-menu-item type="button" (click)="selectCountry(option)">
+      <img class="phone__flag phone__flag--menu" [src]="option.flag" alt="" />
+      {{ option.name }} (+{{ option.dialCode }})
+    </button>
+  }
+</mat-menu>

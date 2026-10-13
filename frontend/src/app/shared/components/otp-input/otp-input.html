@@ -1,0 +1,22 @@
+<div class="otp" [style.--otp-length]="length()" role="group" aria-label="Code de connexion">
+  @for (digit of digits(); track $index) {
+    <input
+      #box
+      class="otp__box"
+      [class.otp__box--filled]="digit"
+      [class.otp__box--invalid]="invalid()"
+      type="text"
+      inputmode="numeric"
+      [attr.autocomplete]="$first ? 'one-time-code' : 'off'"
+      maxlength="6"
+      [value]="digit"
+      [disabled]="disabled()"
+      [attr.aria-label]="'Chiffre ' + ($index + 1)"
+      (input)="onInput($index, $event)"
+      (keydown)="onKeydown($index, $event)"
+      (paste)="onPaste($index, $event)"
+      (focus)="box.select()"
+      (blur)="onBlur()"
+    />
+  }
+</div>

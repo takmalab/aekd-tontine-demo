@@ -1,0 +1,110 @@
+/* Champ téléphone : pays (drapeau + indicatif) | numéro | effacer */
+.phone {
+  display: flex;
+  align-items: center;
+  height: 56px;
+  padding: 0 6px;
+  border: 1.5px solid var(--mat-sys-outline-variant);
+  border-radius: 999px;
+  background: #fff;
+  text-align: left;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+
+  &:focus-within {
+    border-color: var(--aekd-orange);
+    box-shadow: 0 0 0 4px rgba(232, 110, 9, 0.15);
+  }
+
+  &--invalid {
+    border-color: var(--aekd-red);
+  }
+
+  &__country {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 42px;
+    padding: 0 6px 0 10px;
+    border: 0;
+    border-right: 1px solid var(--mat-sys-outline-variant);
+    border-radius: 999px 0 0 999px;
+    background: none;
+    color: var(--aekd-gray);
+    font: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      color: var(--aekd-gray-muted);
+    }
+  }
+
+  &__flag {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+
+    &--menu {
+      width: 22px;
+      height: 22px;
+      margin-right: 10px;
+      vertical-align: middle;
+    }
+  }
+
+  &__input {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    padding: 0 12px;
+    border: 0;
+    outline: none;
+    background: none;
+    color: var(--aekd-gray);
+    font: inherit;
+    font-size: 17px;
+    letter-spacing: 0.04em;
+
+    &::placeholder {
+      color: var(--mat-sys-outline);
+      letter-spacing: 0.02em;
+    }
+  }
+
+  &__clear {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    color: var(--aekd-gray-muted);
+    cursor: pointer;
+
+    &:hover {
+      background: var(--aekd-surface);
+    }
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  &__error {
+    margin: 6px 0 0 20px;
+    color: var(--aekd-red);
+    font-size: 12px;
+    text-align: left;
+  }
+}

@@ -1,14 +1,16 @@
-import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal, viewChild } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
-import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
 import { HttpErrorResponse } from '@angular/common/http';
 import { AuthService } from '../../../core/services/auth.service';
+import { OtpInput } from '../../../shared/components/otp-input/otp-input';
+import { PhoneInput } from '../../../shared/components/phone-input/phone-input';
+import { formatPhone } from '../../../shared/utils/countries';
 
 type LoginMethod = 'email' | 'phone';
 type OtpStep = 'phone' | 'code';
@@ -21,7 +23,8 @@ type OtpStep = 'phone' | 'code';
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
-    MatButtonToggleModule,
+    OtpInput,
+    PhoneInput,
     MatProgressSpinnerModule,
     MatIconModule,
   ],
@@ -38,11 +41,14 @@ export class Login {
   readonly showPassword = signal(false);
 
   /** Connexion par email + mot de passe, ou par code SMS (docs/decisions.md n° 47). */
-  readonly method = signal<LoginMethod>('email');
+  readonly method = signal<LoginMethod>('phone');
   readonly otpStep = signal<OtpStep>('phone');
-  readonly otpInfo = signal<string | null>(null);
   /** Numéro normalisé renvoyé par le serveur (+237XXXXXXXXX). */
   readonly otpPhone = signal<string | null>(null);
+  readonly expiresInMinutes = signal(5);
+  /** Numéro affiché à l'étape du code, ex. « +237 6 00 00 00 03 ». */
+  readonly displayedPhone = computed(() => formatPhone(this.otpPhone()));
+  private readonly otpInput = viewChild(OtpInput);
   /** Secondes avant de pouvoir redemander un code. */
   readonly resendIn = signal(0);
   private resendTimer: ReturnType<typeof setInterval> | null = null;
@@ -112,10 +118,11 @@ export class Login {
       next: (response) => {
         this.loading.set(false);
         this.otpPhone.set(response.phone);
-        this.otpInfo.set(response.message);
+        this.expiresInMinutes.set(Math.round(response.expiresInSeconds / 60));
         this.otpStep.set('code');
         this.codeForm.reset();
         this.startResendTimer(response.resendAfterSeconds);
+        setTimeout(() => this.otpInput()?.focusFirstEmpty());
       },
       error: (error: HttpErrorResponse) => {
         this.loading.set(false);
@@ -125,6 +132,10 @@ export class Login {
   }
 
   verifyCode(): void {
+    // Appelé aussi automatiquement quand la 6e case est remplie.
+    if (this.loading()) {
+      return;
+    }
     if (this.codeForm.invalid) {
       this.codeForm.markAllAsTouched();
       return;
@@ -142,13 +153,22 @@ export class Login {
       error: (error: HttpErrorResponse) => {
         this.loading.set(false);
         this.errorMessage.set(this.serverMessage(error));
+        this.codeForm.reset();
+        setTimeout(() => this.otpInput()?.focusFirstEmpty());
       },
     });
   }
 
+  phoneError(): string | null {
+    const control = this.phoneForm.controls.phone;
+    if (!control.touched || control.valid) {
+      return null;
+    }
+    return control.hasError('required') ? 'Le numéro est requis' : 'Numéro invalide';
+  }
+
   changePhone(): void {
     this.otpStep.set('phone');
-    this.otpInfo.set(null);
     this.errorMessage.set(null);
     this.stopResendTimer();
   }

@@ -149,11 +149,6 @@
       color: var(--aekd-orange);
     }
   }
-
-  &__credit {
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.55);
-  }
 }
 
 /* ---------- Form side ---------- */
@@ -211,26 +206,165 @@
   }
 }
 
-/* ---------- Choix de la méthode de connexion (email / téléphone) ---------- */
+/* ---------- Choix de la méthode de connexion (téléphone / email) ---------- */
 .method {
-  display: flex;
-  width: 100%;
-  margin-bottom: 20px;
-  border-radius: 12px;
-  --mat-standard-button-toggle-shape: 12px;
-  --mat-standard-button-toggle-selected-state-background-color: var(--aekd-orange-soft);
-  --mat-standard-button-toggle-selected-state-text-color: var(--aekd-brown-dark);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 24px;
 
-  mat-button-toggle {
-    flex: 1;
+  &__pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 46px;
+    padding: 0 16px;
+    border: 1.5px solid var(--mat-sys-outline-variant);
+    border-radius: 999px;
+    background: var(--aekd-surface);
+    color: var(--aekd-gray-muted);
+    font: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+      border-color 0.15s ease,
+      background-color 0.15s ease,
+      color 0.15s ease,
+      box-shadow 0.15s ease;
+
+    &:hover {
+      border-color: var(--aekd-orange);
+    }
+
+    &:focus-visible {
+      outline: 3px solid rgba(232, 110, 9, 0.3);
+      outline-offset: 2px;
+    }
+
+    &--active {
+      border-color: transparent;
+      background: #fff;
+      color: var(--aekd-gray);
+      box-shadow: 0 4px 14px rgba(54, 53, 58, 0.12);
+    }
   }
 
-  mat-icon {
-    font-size: 18px;
-    width: 18px;
-    height: 18px;
-    margin-right: 4px;
-    vertical-align: -3px;
+  &__check {
+    font-size: 22px;
+    width: 22px;
+    height: 22px;
+    color: var(--mat-sys-outline-variant);
+  }
+
+  &__pill--active &__check {
+    color: var(--aekd-orange);
+  }
+}
+
+/* ---------- Étapes de la connexion par code SMS ---------- */
+.otp-step {
+  text-align: center;
+
+  &__art {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 96px;
+    height: 96px;
+    margin: 0 auto 14px;
+    border-radius: 28px;
+    background: linear-gradient(145deg, var(--aekd-orange-soft), #fff);
+    box-shadow: inset 0 0 0 1px rgba(232, 110, 9, 0.12);
+  }
+
+  &__art-icon {
+    font-size: 52px;
+    width: 52px;
+    height: 52px;
+    color: var(--aekd-orange);
+  }
+
+  &__art-badge,
+  &__art-key {
+    position: absolute;
+    right: -14px;
+    bottom: 12px;
+  }
+
+  &__art-badge {
+    padding: 3px 8px;
+    border-radius: 8px;
+    background: #fff;
+    color: var(--aekd-gray);
+    font-size: 12px;
+    letter-spacing: 2px;
+    box-shadow: var(--aekd-shadow);
+  }
+
+  &__art-key {
+    font-size: 30px;
+    width: 30px;
+    height: 30px;
+    color: var(--aekd-brown);
+    transform: rotate(-35deg);
+  }
+
+  &__title {
+    margin: 0 0 6px;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--aekd-gray);
+  }
+
+  &__text {
+    margin: 0 auto 20px;
+    max-width: 340px;
+    color: var(--aekd-gray-muted);
+    font-size: 13px;
+    line-height: 1.55;
+
+    strong {
+      color: var(--aekd-gray);
+      white-space: nowrap;
+    }
+  }
+
+  &__submit {
+    margin-top: 20px;
+  }
+
+  &__links {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 6px 22px;
+    margin-top: 14px;
+  }
+
+  &__link {
+    padding: 4px 2px;
+    border: 0;
+    background: none;
+    color: var(--aekd-brown);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+
+    &:disabled {
+      color: var(--aekd-gray-muted);
+      text-decoration: none;
+      cursor: default;
+    }
+  }
+
+  .form__error {
+    margin: 14px 0 0;
+    text-align: left;
   }
 }
 
@@ -267,31 +401,6 @@
       width: 20px;
       height: 20px;
     }
-  }
-
-  &__hint {
-    margin: 0 0 14px;
-    color: var(--aekd-gray-muted);
-    font-size: 13px;
-    line-height: 1.5;
-
-    strong {
-      color: var(--aekd-brown-dark);
-      white-space: nowrap;
-    }
-  }
-
-  &__code {
-    font-size: 20px;
-    letter-spacing: 0.4em;
-  }
-
-  &__otp-actions {
-    display: flex;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 4px;
-    margin-top: 8px;
   }
 
   &__submit {
@@ -395,12 +504,6 @@
       padding: 28px 40px 60px;
       gap: 16px;
     }
-
-    &__credit {
-      position: absolute;
-      right: 16px;
-      bottom: 40px;
-    }
   }
 
   .panel {
@@ -458,13 +561,6 @@
     &__lead,
     &__chips {
       display: none;
-    }
-
-    &__credit {
-      top: 32px;
-      bottom: auto;
-      right: 16px;
-      font-size: 10px;
     }
   }
 

@@ -1,0 +1,55 @@
+.otp {
+  display: grid;
+  grid-template-columns: repeat(var(--otp-length, 6), minmax(0, 1fr));
+  gap: 10px;
+}
+
+.otp__box {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  max-height: 64px;
+  box-sizing: border-box;
+  border: 1.5px solid var(--mat-sys-outline-variant);
+  border-radius: 12px;
+  background: var(--aekd-surface);
+  color: var(--aekd-gray);
+  font: inherit;
+  font-size: 24px;
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+  caret-color: var(--aekd-orange);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
+
+  &:focus {
+    border-color: var(--aekd-orange);
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(232, 110, 9, 0.15);
+  }
+
+  &--filled {
+    border-color: var(--aekd-orange);
+    background: #fff;
+  }
+
+  &--invalid {
+    border-color: var(--aekd-red);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+  }
+}
+
+@media (max-width: 380px) {
+  .otp {
+    gap: 6px;
+  }
+
+  .otp__box {
+    font-size: 20px;
+  }
+}
