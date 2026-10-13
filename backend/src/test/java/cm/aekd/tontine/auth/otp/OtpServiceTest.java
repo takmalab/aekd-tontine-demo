@@ -27,8 +27,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -54,17 +52,15 @@ class OtpServiceTest {
         boolean fail;
 
         @Override
-        public void send(String to, String message, String idempotencyKey) {
+        public void sendLoginCode(String to, String code, Duration validity, String idempotencyKey) {
             if (fail) {
                 throw new SmsSendException("indisponible");
             }
-            sent.add(new String[]{to, message});
+            sent.add(new String[]{to, code});
         }
 
         String lastCode() {
-            Matcher matcher = Pattern.compile("(\\d{6})").matcher(sent.get(sent.size() - 1)[1]);
-            assertThat(matcher.find()).isTrue();
-            return matcher.group(1);
+            return sent.get(sent.size() - 1)[1];
         }
     }
 

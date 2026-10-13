@@ -1,9 +1,7 @@
 package cm.aekd.tontine.sms;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -18,37 +16,53 @@ import java.util.Map;
  * et le corps {@code {"to": "+237...", "message": "..."}} ; réponse 202.
  * Erreurs documentées : 401 clé invalide, 403 abonnement inactif ou quota
  * épuisé, 429 trop de requêtes.
+ *
+ * Une réponse 202 signifie seulement que le message est mis en file
+ * d'attente chez Igor : un message bloqué ensuite n'est pas détecté ici.
  */
 @Component
-@ConditionalOnProperty(name = "app.sms.provider", havingValue = "igortek")
-public class IgortekSmsSender implements SmsSender {
+public class IgortekSmsProvider implements SmsProvider {
 
+    public static final String ID = "igortek";
+
+    private final String apiKey;
     private final RestClient restClient;
 
-    public IgortekSmsSender(SmsProperties properties, RestClient.Builder builder) {
-        String apiKey = properties.getIgortek().getApiKey();
-        if (apiKey == null || apiKey.isBlank()) {
-            throw new IllegalStateException(
-                    "app.sms.provider=igortek mais aucune clé API : définissez IGORTEK_SMS_API_KEY");
-        }
-        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-        requestFactory.setConnectTimeout(Duration.ofSeconds(10));
-        requestFactory.setReadTimeout(Duration.ofSeconds(20));
+    public IgortekSmsProvider(SmsProperties properties, RestClient.Builder builder) {
+        this.apiKey = properties.getIgortek().getApiKey();
+        // Délais de connexion et de lecture : spring.http.client.* (application.yml).
         this.restClient = builder
                 .baseUrl(properties.getIgortek().getBaseUrl())
-                .requestFactory(requestFactory)
-                .defaultHeader("Authorization", "Bearer " + apiKey)
                 .build();
     }
 
     @Override
-    public void send(String to, String message, String idempotencyKey) {
+    public String id() {
+        return ID;
+    }
+
+    @Override
+    public String label() {
+        return "Igor SMS Gateway";
+    }
+
+    @Override
+    public boolean isConfigured() {
+        return apiKey != null && !apiKey.isBlank();
+    }
+
+    @Override
+    public void sendLoginCode(String to, String code, Duration validity, String idempotencyKey) {
+        if (!isConfigured()) {
+            throw new SmsSendException("Igor SMS n'est pas configuré (clé API absente)");
+        }
         try {
             restClient.post()
                     .uri("/api/v1/sms/send")
+                    .header("Authorization", "Bearer " + apiKey)
                     .contentType(MediaType.APPLICATION_JSON)
                     .header("X-Idempotency-Key", idempotencyKey)
-                    .body(Map.of("to", to, "message", message))
+                    .body(Map.of("to", to, "message", SmsTexts.loginCode(code, validity)))
                     .retrieve()
                     .toBodilessEntity();
         } catch (RestClientResponseException e) {

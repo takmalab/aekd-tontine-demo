@@ -94,7 +94,7 @@ public class OtpService {
 
         if (user != null) {
             try {
-                smsSender.send(phone, smsText(code), challenge.getId().toString());
+                smsSender.sendLoginCode(phone, code, properties.getTtl(), challenge.getId().toString());
             } catch (SmsSendException e) {
                 log.error("Envoi du code OTP impossible vers {} : {}", phone, e.getMessage());
                 // Exception => rollback : le code non reçu n'est pas conservé (il ne bloque pas une
@@ -143,10 +143,5 @@ public class OtpService {
     private String generateCode() {
         int bound = (int) Math.pow(10, properties.getCodeLength());
         return String.format("%0" + properties.getCodeLength() + "d", random.nextInt(bound));
-    }
-
-    private String smsText(String code) {
-        return "AEKD Tontine : votre code de connexion est " + code + ". Il expire dans "
-                + properties.getTtl().toMinutes() + " min. Ne le communiquez a personne.";
     }
 }

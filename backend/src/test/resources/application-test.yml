@@ -22,6 +22,11 @@ app:
       # fichiers orphelins dans backend/storage a chaque execution).
       root: ${java.io.tmpdir}/aekd-tontine-test-storage
 
-  # Aucun SMS reel pendant les tests.
+  # Aucun SMS reel pendant les tests : simulation, et cles neutralisees meme si un
+  # fichier .env local (igor-sms-gateway.env, scmchost.env) est present.
   sms:
     provider: log
+    igortek:
+      api-key: ""
+    scmchost:
+      api-key: ""

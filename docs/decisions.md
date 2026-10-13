@@ -1521,3 +1521,69 @@ Validé par le propriétaire du projet le 2026-10-13 :
   dans la création et la modification d'un compte.
 * Jeu de démonstration : numéros fictifs `+237600000001` (admin) à
   `+237600000007`.
+
+---
+
+# 48. Plusieurs fournisseurs SMS, choisis depuis l'application
+
+## Question
+
+Que faire quand le fournisseur SMS ne délivre plus les codes de connexion ?
+
+## Statut
+
+```text
+DÉCIDÉ
+```
+
+## Décision
+
+Validé par le propriétaire du projet le 2026-10-13, après un premier essai réel
+où Igor SMS a accepté le message sans jamais l'envoyer (resté « en file
+d'attente ») :
+
+* Deux fournisseurs réels : **Igor SMS Gateway** et **SCMC Host**
+  (https://sms.scmchost.com/docs/), plus la **simulation** (code écrit dans le
+  journal du serveur).
+* Le fournisseur actif se choisit dans un écran **« Paramètres SMS »**, réservé
+  à l'**ADMIN**, avec effet immédiat, sans redémarrer le serveur.
+* **Secours automatique** (activable dans le même écran) : si le fournisseur
+  actif refuse l'envoi ou ne répond pas, le code part par l'autre fournisseur
+  réel configuré.
+* Un bouton **« Envoyer un SMS de test »** vérifie qu'un fournisseur délivre
+  bien, sans secours.
+
+## Règles ajoutées
+
+* Les clés API ne sont jamais saisies ni affichées dans l'application : elles
+  restent sur le serveur, dans des fichiers `.env` ignorés par Git
+  (`backend/igor-sms-gateway.env`, `backend/scmchost.env`) ou des variables
+  d'environnement.
+* Un fournisseur sans clé ne peut pas être choisi.
+* La simulation n'est jamais utilisée comme secours : un code écrit dans le
+  journal n'atteindrait pas l'utilisateur.
+* Limite connue : un SMS **accepté** par le fournisseur puis bloqué chez lui
+  n'est pas détecté. La bascule manuelle reste alors nécessaire.
+* Le changement de fournisseur et chaque SMS de test sont inscrits dans le
+  journal d'audit.
+
+## Points à valider
+
+```text
+À VALIDER
+```
+
+* SCMC Host n'envoie que des **modèles approuvés** : le modèle utilisé pour les
+  codes (`SCMCHOST_OTP_TEMPLATE_ID`) et le nom de sa variable (`CODE` par
+  défaut) sont à confirmer avec le compte SCMC Host.
+* Ordre de priorité si d'autres fournisseurs sont ajoutés plus tard.
+
+## Conséquence technique (réalisée le 2026-10-13)
+
+* `SmsProvider` (un par fournisseur : `LogSmsProvider`, `IgortekSmsProvider`,
+  `ScmcHostSmsProvider`) et `SmsRouter`, qui choisit le fournisseur actif et
+  applique le secours.
+* Migration V20 : table `sms_settings` (ligne unique) ; tant qu'aucun choix
+  n'est enregistré, `app.sms.provider` s'applique.
+* `GET / PUT /api/settings/sms`, `POST /api/settings/sms/test` (ADMIN).
+* Interface : page « Paramètres SMS » dans le menu de l'administrateur.

@@ -45,6 +45,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Politiques de prêt', path: '/loan-policies', icon: 'policy' },
   { label: 'Utilisateurs', path: '/users', icon: 'manage_accounts', roles: ['ADMIN'] },
   { label: "Journal d'audit", path: '/audit', icon: 'history', roles: ['ADMIN'] },
+  { label: 'Paramètres SMS', path: '/settings/sms', icon: 'sms', roles: ['ADMIN'] },
 ];
 
 const ROLE_LABELS: Record<RoleName, string> = {

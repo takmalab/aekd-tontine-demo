@@ -122,6 +122,13 @@ export const routes: Routes = [
         loadComponent: () => import('./features/audit/audit-log/audit-log').then((m) => m.AuditLogPage),
       },
       {
+        path: 'settings/sms',
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN'] },
+        loadComponent: () =>
+          import('./features/settings/sms-settings-page/sms-settings-page').then((m) => m.SmsSettingsPage),
+      },
+      {
         path: 'notifications',
         loadComponent: () =>
           import('./features/notifications/notifications-page/notifications-page').then((m) => m.NotificationsPage),

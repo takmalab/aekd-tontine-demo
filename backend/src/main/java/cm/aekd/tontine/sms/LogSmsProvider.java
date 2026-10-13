@@ -2,22 +2,44 @@ package cm.aekd.tontine.sms;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
+
 /**
- * Fournisseur par défaut : aucun SMS réel n'est envoyé, le message (code
- * OTP compris) est écrit dans le journal du backend. Réservé au
- * développement et à la démonstration.
+ * Simulation : aucun SMS réel n'est envoyé, le message (code OTP compris)
+ * est écrit dans le journal du backend. Réservé au développement et à la
+ * démonstration.
  */
 @Component
-@ConditionalOnProperty(name = "app.sms.provider", havingValue = "log", matchIfMissing = true)
-public class LogSmsSender implements SmsSender {
+public class LogSmsProvider implements SmsProvider {
 
-    private static final Logger log = LoggerFactory.getLogger(LogSmsSender.class);
+    public static final String ID = "log";
+
+    private static final Logger log = LoggerFactory.getLogger(LogSmsProvider.class);
 
     @Override
-    public void send(String to, String message, String idempotencyKey) {
-        log.warn("SMS SIMULE (app.sms.provider=log) vers {} : {}", to, message);
+    public String id() {
+        return ID;
+    }
+
+    @Override
+    public String label() {
+        return "Simulation (journal du serveur)";
+    }
+
+    @Override
+    public boolean isConfigured() {
+        return true;
+    }
+
+    @Override
+    public boolean isSimulation() {
+        return true;
+    }
+
+    @Override
+    public void sendLoginCode(String to, String code, Duration validity, String idempotencyKey) {
+        log.warn("SMS SIMULE (fournisseur log) vers {} : {}", to, SmsTexts.loginCode(code, validity));
     }
 }

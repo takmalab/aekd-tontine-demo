@@ -51,5 +51,7 @@ public enum AuditAction {
     USER_APPROVED,
     USER_UPDATED,
     USER_LOGIN_OTP,
+    SMS_SETTINGS_UPDATED,
+    SMS_TEST_SENT,
     USER_DELETED
 }

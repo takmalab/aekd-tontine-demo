@@ -1,22 +1,20 @@
 package cm.aekd.tontine.sms;
 
+import java.time.Duration;
+
 /**
- * Envoi de SMS, indépendant du fournisseur (même principe que
- * PaymentService / FileStorageService) :
- * <ul>
- *   <li>{@link LogSmsSender} : simulation, le message est écrit dans le
- *   journal du backend (développement, démonstration, tests) ;</li>
- *   <li>{@link IgortekSmsSender} : Igor SMS Gateway (production).</li>
- * </ul>
- * Le fournisseur est choisi par {@code app.sms.provider}.
+ * Envoi de SMS vu par le reste de l'application. L'implémentation
+ * {@link SmsRouter} choisit le fournisseur ({@link SmsProvider}) actif et,
+ * si le secours automatique est activé, essaie les autres en cas d'échec.
  */
 public interface SmsSender {
 
     /**
      * @param to             destinataire au format E.164 (+237XXXXXXXXX)
-     * @param message        texte du SMS
+     * @param code           code de connexion à transmettre
+     * @param validity       durée de validité du code
      * @param idempotencyKey clé évitant un double envoi si la requête est rejouée
-     * @throws SmsSendException si le fournisseur refuse ou n'est pas joignable
+     * @throws SmsSendException si aucun fournisseur n'a pu envoyer le SMS
      */
-    void send(String to, String message, String idempotencyKey);
+    void sendLoginCode(String to, String code, Duration validity, String idempotencyKey);
 }

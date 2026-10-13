@@ -1,0 +1,137 @@
+<section class="page">
+  <header class="page__header">
+    <h1 class="page__title">Paramètres SMS</h1>
+    <p class="page__subtitle">
+      Fournisseur utilisé pour envoyer les codes de connexion par SMS. Si l'un ne délivre plus, basculez sur l'autre :
+      le changement est immédiat.
+    </p>
+  </header>
+
+  @if (loading()) {
+    <div class="state"><mat-spinner diameter="40" /></div>
+  } @else if (loadError()) {
+    <div class="state state--card">
+      <mat-icon class="state__icon state__icon--brown">cloud_off</mat-icon>
+      <p class="state__title">Impossible de charger les paramètres SMS</p>
+      <button mat-stroked-button (click)="load()"><mat-icon>refresh</mat-icon> Réessayer</button>
+    </div>
+  } @else if (settings(); as current) {
+    <div class="layout">
+      <section class="card">
+        <h2 class="card__title"><mat-icon>sms</mat-icon> Fournisseur actif</h2>
+
+        <mat-radio-group
+          class="providers"
+          [value]="selectedProvider()"
+          (change)="selectedProvider.set($event.value)"
+          aria-label="Fournisseur SMS"
+        >
+          @for (provider of current.providers; track provider.id) {
+            <label
+              class="provider"
+              [class.provider--selected]="selectedProvider() === provider.id"
+              [class.provider--disabled]="!provider.configured"
+            >
+              <mat-radio-button [value]="provider.id" [disabled]="!provider.configured" />
+              <span class="provider__body">
+                <span class="provider__name">
+                  {{ provider.label }}
+                  @if (current.activeProvider === provider.id) {
+                    <span class="provider__active">En service</span>
+                  }
+                </span>
+                <span class="provider__status provider__status--{{ statusOf(provider).tone }}">
+                  {{ statusOf(provider).text }}
+                </span>
+              </span>
+            </label>
+          }
+        </mat-radio-group>
+
+        <div class="fallback">
+          <mat-slide-toggle [checked]="fallbackEnabled()" (change)="fallbackEnabled.set($event.checked)">
+            Secours automatique
+          </mat-slide-toggle>
+          <p class="card__hint">
+            Si le fournisseur actif refuse l'envoi ou ne répond pas, le code part par l'autre fournisseur configuré. Un
+            SMS accepté puis bloqué chez le fournisseur n'est pas détecté : dans ce cas, basculez à la main.
+          </p>
+        </div>
+
+        <div class="card__actions">
+          <button mat-flat-button [disabled]="saving() || !dirty()" (click)="save()">
+            @if (saving()) {
+              <mat-spinner diameter="20" />
+            } @else {
+              Enregistrer
+            }
+          </button>
+        </div>
+        <p class="card__hint">
+          @if (current.fromConfiguration) {
+            Aucun choix enregistré : le fournisseur défini dans la configuration du serveur est utilisé.
+          } @else {
+            Modifié le {{ current.updatedAt | date: 'dd/MM/yyyy à HH:mm' }}
+            @if (current.updatedBy) {
+              par {{ current.updatedBy }}
+            }
+          }
+        </p>
+        <p class="card__hint">
+          Les clés API se règlent sur le serveur (fichiers <code>.env</code>), jamais dans cet écran.
+        </p>
+      </section>
+
+      <section class="card">
+        <h2 class="card__title"><mat-icon>science</mat-icon> Envoyer un SMS de test</h2>
+        <p class="card__text">
+          Envoie un code de test au numéro choisi, par un fournisseur précis et sans secours, pour vérifier qu'il délivre
+          bien. Chaque test réel consomme un SMS de votre forfait.
+        </p>
+
+        <app-phone-input
+          [formControl]="testPhone"
+          [error]="testPhone.touched && testPhone.invalid ? 'Le numéro est requis' : null"
+        />
+
+        <mat-form-field appearance="outline" class="full test-provider">
+          <mat-label>Fournisseur</mat-label>
+          <mat-select [formControl]="testProvider">
+            @for (provider of configuredProviders(); track provider.id) {
+              <mat-option [value]="provider.id">{{ provider.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <div class="card__actions">
+          <button mat-flat-button [disabled]="testing()" (click)="sendTest()">
+            @if (testing()) {
+              <mat-spinner diameter="20" />
+            } @else {
+              <span class="button-label"><mat-icon>send</mat-icon> Envoyer le test</span>
+            }
+          </button>
+        </div>
+
+        @if (testResult(); as result) {
+          <div class="result result--ok" role="status">
+            <mat-icon>check_circle</mat-icon>
+            <div>
+              <p class="result__title">{{ result.message }}</p>
+              <p class="result__text">
+                Destinataire : <strong>{{ formatPhone(result.phone) }}</strong> · code envoyé :
+                <strong class="result__code">{{ result.code }}</strong> · {{ label(result.provider) }}
+              </p>
+            </div>
+          </div>
+        }
+        @if (testError(); as message) {
+          <div class="result result--error" role="alert">
+            <mat-icon>error_outline</mat-icon>
+            <p class="result__title">{{ message }}</p>
+          </div>
+        }
+      </section>
+    </div>
+  }
+</section>
