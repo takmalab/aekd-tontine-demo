@@ -21,6 +21,7 @@
 // so all Material components pick up the precise brand values.
 @use '@angular/material' as mat;
 @use './app/shared/styles/page' as pg;
+@use './app/shared/styles/pattern' as ap;
 
 // Brand tokens, also exposed as CSS custom properties below for component SCSS.
 $orange: #e86e09;
@@ -169,6 +170,18 @@ html {
 // les utiliser depuis leur propre gabarit — l'encapsulation Angular empêche un
 // composant enfant d'hériter des styles inclus via mixin dans le composant parent.
 @include pg.page-base;
+
+// Motifs africains de l'identité AEKD (shared/styles/_pattern.scss) : ajouter la
+// classe sur un conteneur. Variante « -fade » : motif estompé au centre.
+@each $pattern in (masques, symboles) {
+  .aekd-pattern-#{$pattern} {
+    @include ap.african-pattern($pattern);
+  }
+
+  .aekd-pattern-#{$pattern}-fade {
+    @include ap.african-pattern($pattern, $fade: true);
+  }
+}
 
 body {
   color-scheme: light;

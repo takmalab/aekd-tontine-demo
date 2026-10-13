@@ -1,0 +1,41 @@
+// Motifs africains de l'identité AEKD, en arrière-plan discret.
+//
+// Les fichiers (public/assets/patterns) ne contiennent que la forme du motif :
+// ils servent de masque CSS, la couleur et l'opacité se règlent ici. Le même
+// motif peut donc être réutilisé partout, dans n'importe quelle teinte.
+//
+//   .ma-zone { @include ap.african-pattern(masques, $fade: true); }
+//
+// Réglages fins sur l'élément (ou un parent) via des variables CSS :
+//   --aekd-pattern-color   (défaut : var(--aekd-brown))
+//   --aekd-pattern-opacity (défaut : 0.06)
+//   --aekd-pattern-size    (largeur d'une tuile, défaut : 720px)
+
+/// @param $pattern masques | symboles
+/// @param $fade    estompe le motif au centre, pour laisser le contenu lisible
+@mixin african-pattern($pattern: masques, $fade: false) {
+  position: relative;
+  isolation: isolate;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-color: var(--aekd-pattern-color, var(--aekd-brown));
+    opacity: var(--aekd-pattern-opacity, 0.06);
+
+    $tile: url('/assets/patterns/aekd-#{$pattern}.svg') 0 0 / var(--aekd-pattern-size, 720px) auto repeat;
+    @if $fade {
+      $vignette: radial-gradient(ellipse at center, transparent 0 30%, #000 80%);
+      -webkit-mask: $tile, $vignette;
+      -webkit-mask-composite: source-in;
+      mask: $tile, $vignette;
+      mask-composite: intersect;
+    } @else {
+      -webkit-mask: $tile;
+      mask: $tile;
+    }
+  }
+}
