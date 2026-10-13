@@ -66,6 +66,11 @@ public class SmsProperties {
         private String otpTemplateId;
         /** Variable du modèle qui reçoit le code (ex. {CODE}). */
         private String codeVariable = "CODE";
+        /** Variable qui reçoit la durée de validité en minutes (ex. {TEMPS}) ; vide si le modèle n'en a pas. */
+        private String validityVariable = "TEMPS";
+        /** Variable qui reçoit le nom de l'application (ex. {NOM_APP}) ; vide si le modèle n'en a pas. */
+        private String appNameVariable = "NOM_APP";
+        private String appName = "AEKD Tontine";
 
         public String getBaseUrl() {
             return baseUrl;
@@ -97,6 +102,30 @@ public class SmsProperties {
 
         public void setCodeVariable(String codeVariable) {
             this.codeVariable = codeVariable;
+        }
+
+        public String getValidityVariable() {
+            return validityVariable;
+        }
+
+        public void setValidityVariable(String validityVariable) {
+            this.validityVariable = validityVariable;
+        }
+
+        public String getAppNameVariable() {
+            return appNameVariable;
+        }
+
+        public void setAppNameVariable(String appNameVariable) {
+            this.appNameVariable = appNameVariable;
+        }
+
+        public String getAppName() {
+            return appName;
+        }
+
+        public void setAppName(String appName) {
+            this.appName = appName;
         }
     }
 }

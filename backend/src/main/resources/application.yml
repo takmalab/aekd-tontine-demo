@@ -72,6 +72,10 @@ app:
       # Modele approuve pour les codes de connexion, et sa variable qui recoit le code.
       otp-template-id: ${SCMCHOST_OTP_TEMPLATE_ID:b045f9d9-ba98-4ba1-9884-faab98aa169c}
       code-variable: ${SCMCHOST_OTP_CODE_VARIABLE:CODE}
+      # Modele "OTP Universel" : {NOM_APP}, {CODE}, {TEMPS} (minutes). Vide = variable absente du modele.
+      validity-variable: ${SCMCHOST_OTP_VALIDITY_VARIABLE:TEMPS}
+      app-name-variable: ${SCMCHOST_OTP_APP_NAME_VARIABLE:NOM_APP}
+      app-name: ${SCMCHOST_OTP_APP_NAME:AEKD Tontine}
 
   # Connexion par code SMS (valeurs validees, decisions.md n° 47).
   otp:

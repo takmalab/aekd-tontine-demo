@@ -45,6 +45,8 @@ class ScmcHostSmsProviderTest {
                 .andExpect(jsonPath("$.template_id").value("tpl_otp"))
                 .andExpect(jsonPath("$.recipients[0]").value("+237600000001"))
                 .andExpect(jsonPath("$.variables.CODE").value("482913"))
+                .andExpect(jsonPath("$.variables.TEMPS").value("5"))
+                .andExpect(jsonPath("$.variables.NOM_APP").value("AEKD Tontine"))
                 .andRespond(withSuccess("""
                         {"success": true, "data": {"sent": 1, "failed": 0,
                           "results": [{"recipient": "+237600000001", "status": "accepted"}]}}

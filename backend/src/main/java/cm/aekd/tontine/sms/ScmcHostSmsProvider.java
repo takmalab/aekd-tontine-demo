@@ -10,6 +10,7 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
 import java.time.Duration;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -70,7 +71,7 @@ public class ScmcHostSmsProvider implements SmsProvider {
                     .body(Map.of(
                             "template_id", config.getOtpTemplateId(),
                             "recipients", List.of(to),
-                            "variables", Map.of(config.getCodeVariable(), code)))
+                            "variables", variables(code, validity)))
                     .retrieve()
                     .body(JsonNode.class);
         } catch (RestClientResponseException e) {
@@ -80,6 +81,22 @@ public class ScmcHostSmsProvider implements SmsProvider {
             throw new SmsSendException("SCMC Host injoignable", e);
         }
         checkAccepted(response);
+    }
+
+    /**
+     * Variables du modèle : le code, et selon le modèle la durée de validité et le
+     * nom de l'application (ex. « OTP Universel » : {NOM_APP}, {CODE}, {TEMPS}).
+     */
+    private Map<String, String> variables(String code, Duration validity) {
+        Map<String, String> variables = new LinkedHashMap<>();
+        variables.put(config.getCodeVariable(), code);
+        if (notBlank(config.getValidityVariable())) {
+            variables.put(config.getValidityVariable(), String.valueOf(validity.toMinutes()));
+        }
+        if (notBlank(config.getAppNameVariable())) {
+            variables.put(config.getAppNameVariable(), config.getAppName());
+        }
+        return variables;
     }
 
     /** Un HTTP 200 peut contenir un refus par destinataire (numéro invalide, pas de route...). */
