@@ -33,6 +33,8 @@ public class ListExportDocumentService {
         AekdPdf pdf = columns.size() > PORTRAIT_MAX_COLUMNS
                 ? AekdPdf.landscape(title, access.currentAuthorName())
                 : AekdPdf.portrait(title, access.currentAuthorName());
+        // Listes : motif gris, plus neutre sous des tableaux denses.
+        pdf.background(PdfPattern.MASQUES, AekdPdf.GRAY);
         String filters = request.filters() == null || request.filters().isBlank() ? null : clean(request.filters().trim());
         pdf.heading(title, rows.size() + " élément" + (rows.size() > 1 ? "s" : "")
                 + (filters != null ? " – " + filters : ""));

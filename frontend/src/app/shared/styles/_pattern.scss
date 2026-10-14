@@ -6,6 +6,9 @@
 //
 //   .ma-zone { @include ap.african-pattern(masques, $fade: true); }
 //
+// Teintes prêtes à l'emploi (styles.scss) : aekd-pattern--on-dark (blanc, sur fond
+// sombre), --orange, --gray, --subtle (plus discret), --small (tuiles plus petites).
+//
 // Réglages fins sur l'élément (ou un parent) via des variables CSS :
 //   --aekd-pattern-color   (défaut : var(--aekd-brown))
 //   --aekd-pattern-opacity (défaut : 0.06)
@@ -14,8 +17,11 @@
 /// @param $pattern masques | symboles
 /// @param $fade    estompe le motif au centre, pour laisser le contenu lisible
 @mixin african-pattern($pattern: masques, $fade: false) {
-  position: relative;
-  isolation: isolate;
+  // Spécificité nulle : un positionnement déjà défini (ex. mat-sidenav) l'emporte.
+  @at-root :where(#{&}) {
+    position: relative;
+    isolation: isolate;
+  }
 
   &::before {
     content: '';

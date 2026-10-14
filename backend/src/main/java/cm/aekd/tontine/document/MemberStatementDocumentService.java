@@ -110,7 +110,8 @@ public class MemberStatementDocumentService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         long activeSanctions = sanctions.stream().filter(s -> s.getStatus() == AppliedSanctionStatus.APPLIED).count();
 
-        AekdPdf pdf = AekdPdf.portrait("Relevé individuel – " + member.getFullName(), access.currentAuthorName());
+        AekdPdf pdf = AekdPdf.portrait("Relevé individuel – " + member.getFullName(), access.currentAuthorName())
+                .background(PdfPattern.SYMBOLES, AekdPdf.BROWN);
         pdf.heading("Relevé individuel du membre", member.getFullName());
         pdf.keyValues(List.of(
                 new String[]{"Membre", member.getFullName()},

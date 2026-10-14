@@ -70,7 +70,8 @@ public class SessionReportDocumentService {
                         .thenComparing(p -> p.getContributionDefinition().getName(), String.CASE_INSENSITIVE_ORDER))
                 .toList();
 
-        AekdPdf pdf = AekdPdf.portrait("Rapport de séance – " + session.getLabel(), access.currentAuthorName());
+        AekdPdf pdf = AekdPdf.portrait("Rapport de séance – " + session.getLabel(), access.currentAuthorName())
+                .background(PdfPattern.SYMBOLES, AekdPdf.ORANGE);
         pdf.heading("Rapport de séance", session.getLabel() + " – " + DocumentFormat.longDate(session.getSessionDate()));
 
         pdf.keyValues(List.of(

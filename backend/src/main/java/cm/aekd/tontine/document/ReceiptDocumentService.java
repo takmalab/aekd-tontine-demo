@@ -59,7 +59,8 @@ public class ReceiptDocumentService {
         ContributionDefinition definition = period.getContributionDefinition();
         String number = "PAI-" + shortRef(tx.getId());
 
-        AekdPdf pdf = AekdPdf.portrait("Reçu de paiement n° " + number, access.currentAuthorName());
+        AekdPdf pdf = AekdPdf.portrait("Reçu de paiement n° " + number, access.currentAuthorName())
+                .background(PdfPattern.MASQUES, AekdPdf.ORANGE);
         pdf.heading("Reçu de paiement", "Reçu n° " + number + " – cotisation « " + definition.getName() + " »");
         pdf.amountBox("Montant reçu", fcfa(tx.getAmount()),
                 "Arrêté le présent reçu à la somme de " + AmountInWords.francsCfa(tx.getAmount()) + ".");
@@ -119,7 +120,8 @@ public class ReceiptDocumentService {
         BigDecimal remaining = due.subtract(repaidSoFar);
         String number = "REM-" + shortRef(repayment.getId());
 
-        AekdPdf pdf = AekdPdf.portrait("Reçu de remboursement n° " + number, access.currentAuthorName());
+        AekdPdf pdf = AekdPdf.portrait("Reçu de remboursement n° " + number, access.currentAuthorName())
+                .background(PdfPattern.MASQUES, AekdPdf.BROWN);
         pdf.heading("Reçu de remboursement de prêt", "Reçu n° " + number + " – prêt n° PRE-" + shortRef(loan.getId()));
         pdf.amountBox("Montant remboursé", fcfa(repayment.getAmount()),
                 "Arrêté le présent reçu à la somme de " + AmountInWords.francsCfa(repayment.getAmount()) + ".");

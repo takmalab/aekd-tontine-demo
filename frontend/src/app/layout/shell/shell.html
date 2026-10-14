@@ -1,5 +1,5 @@
 <div class="app">
-  <mat-toolbar class="topbar">
+  <mat-toolbar class="topbar aekd-pattern-symboles aekd-pattern--on-dark aekd-pattern--small">
     @if (isCompact()) {
       <button
         mat-icon-button
@@ -94,7 +94,7 @@
 
   <mat-sidenav-container class="shell" [hasBackdrop]="isCompact()">
     <mat-sidenav
-      class="shell__sidenav"
+      class="shell__sidenav aekd-pattern-masques aekd-pattern--on-dark"
       [mode]="isCompact() ? 'over' : 'side'"
       [opened]="sidenavOpened()"
       [disableClose]="!isCompact()"
@@ -130,9 +130,12 @@
     </mat-sidenav>
 
     <mat-sidenav-content class="shell__content">
-      <main class="shell__main">
-        <router-outlet />
-      </main>
+      <!-- Fond de toutes les pages : motif des masques, très discret derrière les cartes. -->
+      <div class="shell__canvas aekd-pattern-masques aekd-pattern--subtle">
+        <main class="shell__main">
+          <router-outlet />
+        </main>
+      </div>
     </mat-sidenav-content>
   </mat-sidenav-container>
 </div>

@@ -59,12 +59,14 @@ public final class AekdPdf {
 
     private final Document document;
     private final PdfWriter writer;
+    private final Frame frame;
     private final ByteArrayOutputStream out = new ByteArrayOutputStream();
 
     private AekdPdf(Rectangle pageSize, String title, String generatedBy) {
         document = new Document(pageSize, 40, 40, 96, 54);
         writer = PdfWriter.getInstance(document, out);
-        writer.setPageEvent(new Frame(title, generatedBy));
+        frame = new Frame(title, generatedBy);
+        writer.setPageEvent(frame);
         document.addTitle(title);
         document.addAuthor(ASSOCIATION_NAME);
         document.addCreator("AEKD-Tontine");
@@ -77,6 +79,24 @@ public final class AekdPdf {
 
     public static AekdPdf landscape(String title, String generatedBy) {
         return new AekdPdf(PageSize.A4.rotate(), title, generatedBy);
+    }
+
+    /**
+     * Motif africain en fond de chaque page (identité AEKD), dans la couleur du
+     * document. Par défaut : masques, marron. À appeler avant d'ajouter du
+     * contenu pour que la première page en profite aussi.
+     */
+    public AekdPdf background(PdfPattern pattern, Color color) {
+        frame.pattern = pattern;
+        frame.patternColor = color;
+        frame.patternTile = null;
+        return this;
+    }
+
+    /** Sans motif de fond (ex. document destiné à une impression économe). */
+    public AekdPdf noBackground() {
+        frame.pattern = null;
+        return this;
     }
 
     // ------------------------------------------------------------------ polices
@@ -384,9 +404,18 @@ public final class AekdPdf {
     /** En-tête et pied de page dessinés sur chaque page ; total des pages écrit à la fermeture. */
     private static final class Frame extends PdfPageEventHelper {
 
+        /** Opacité du motif : visible à l'écran, discret à l'impression. */
+        private static final float PATTERN_OPACITY = 0.05f;
+        /** Largeur d'une tuile du motif, en points (≈ 12,7 cm). */
+        private static final float PATTERN_TILE_WIDTH = 360;
+
         private final String title;
         private final String generatedBy;
         private PdfTemplate totalPages;
+        private PdfPattern pattern = PdfPattern.MASQUES;
+        private Color patternColor = BROWN;
+        /** Tuile créée une fois par document puis réutilisée sur chaque page. */
+        private PdfTemplate patternTile;
 
         Frame(String title, String generatedBy) {
             this.title = title;
@@ -400,6 +429,7 @@ public final class AekdPdf {
 
         @Override
         public void onEndPage(PdfWriter writer, Document document) {
+            drawBackground(writer, document.getPageSize());
             PdfContentByte cb = writer.getDirectContent();
             Rectangle page = document.getPageSize();
             float left = document.leftMargin();
@@ -465,6 +495,31 @@ public final class AekdPdf {
             cb.showText(pageText);
             cb.endText();
             cb.addTemplate(totalPages, right - 14, bottom);
+        }
+
+        /** Motif sous le contenu, entre le bandeau d'en-tête et le filet de pied de page. */
+        private void drawBackground(PdfWriter writer, Rectangle page) {
+            if (pattern == null) {
+                return;
+            }
+            PdfContentByte under = writer.getDirectContentUnder();
+            if (patternTile == null) {
+                patternTile = pattern.tile(under, PATTERN_TILE_WIDTH, patternColor, PATTERN_OPACITY);
+            }
+            float tileHeight = pattern.tileHeight(PATTERN_TILE_WIDTH);
+            float top = page.getHeight() - 86;
+            float bottom = 44;
+
+            under.saveState();
+            under.rectangle(0, bottom, page.getWidth(), top - bottom);
+            under.clip();
+            under.newPath();
+            for (float y = top; y > bottom - tileHeight; y -= tileHeight) {
+                for (float x = 0; x < page.getWidth(); x += PATTERN_TILE_WIDTH) {
+                    under.addTemplate(patternTile, x, y - tileHeight);
+                }
+            }
+            under.restoreState();
         }
 
         @Override

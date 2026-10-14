@@ -183,6 +183,28 @@ html {
   }
 }
 
+// Teintes et intensités, combinables avec les classes ci-dessus.
+.aekd-pattern--on-dark {
+  --aekd-pattern-color: #fff;
+  --aekd-pattern-opacity: 0.045;
+}
+
+.aekd-pattern--orange {
+  --aekd-pattern-color: var(--aekd-orange);
+}
+
+.aekd-pattern--gray {
+  --aekd-pattern-color: var(--aekd-gray);
+}
+
+.aekd-pattern--subtle {
+  --aekd-pattern-opacity: 0.035;
+}
+
+.aekd-pattern--small {
+  --aekd-pattern-size: 420px;
+}
+
 body {
   color-scheme: light;
   background-color: var(--mat-sys-surface);

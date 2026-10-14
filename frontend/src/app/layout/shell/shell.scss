@@ -297,6 +297,10 @@
     background: var(--aekd-surface);
   }
 
+  &__canvas {
+    min-height: 100%;
+  }
+
   &__main {
     padding: 28px 32px 40px;
     max-width: 1400px;
