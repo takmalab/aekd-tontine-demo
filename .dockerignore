@@ -1,0 +1,13 @@
+# Rien de local, de compilé ou de secret dans l'image.
+.git
+.vscode
+.claude
+backups
+tools
+docs
+**/*.env
+**/node_modules
+frontend/dist
+frontend/.angular
+backend/target
+backend/storage

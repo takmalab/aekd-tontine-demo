@@ -2,6 +2,10 @@ package cm.aekd.tontine.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+import org.springframework.boot.web.server.MimeMappings;
+import org.springframework.boot.web.server.WebServerFactoryCustomizer;
+import org.springframework.boot.web.servlet.server.ConfigurableServletWebServerFactory;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
@@ -52,5 +56,15 @@ public class FrontendConfig implements WebMvcConfigurer {
                         return location.createRelative("index.html");
                     }
                 });
+    }
+
+    /** Manifeste de la PWA servi avec son type officiel (installation de l'application). */
+    @Bean
+    WebServerFactoryCustomizer<ConfigurableServletWebServerFactory> webManifestMimeType() {
+        return factory -> {
+            MimeMappings mappings = new MimeMappings(MimeMappings.DEFAULT);
+            mappings.add("webmanifest", "application/manifest+json");
+            factory.setMimeMappings(mappings);
+        };
     }
 }

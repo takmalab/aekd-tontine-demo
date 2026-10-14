@@ -39,6 +39,11 @@ server:
   # "native" derriere un tunnel/proxy HTTPS (partager.bat) : Tomcat lit X-Forwarded-Proto
   # (proxies locaux uniquement), sinon les requetes https seraient vues comme cross-origin.
   forward-headers-strategy: ${SERVER_FORWARD_HEADERS_STRATEGY:none}
+  # Compression des reponses (JS, CSS, motifs SVG, JSON) : utile sur connexion mobile.
+  compression:
+    enabled: true
+    mime-types: text/html,text/css,application/javascript,text/javascript,application/json,image/svg+xml,application/manifest+json
+    min-response-size: 2KB
 
 app:
   jwt:
@@ -48,6 +53,13 @@ app:
   storage:
     local:
       root: ${APP_STORAGE_ROOT:./storage}
+
+  # Mots de passe des comptes de demonstration (profil "demo" uniquement). Les valeurs
+  # par defaut sont publiques : a remplacer sur toute version en ligne.
+  demo:
+    admin-password: ${APP_DEMO_ADMIN_PASSWORD:Admin@123}
+    tresorier-password: ${APP_DEMO_TRESORIER_PASSWORD:Tresorier@123}
+    membre-password: ${APP_DEMO_MEMBRE_PASSWORD:Membre@123}
 
   frontend:
     # Dossier du frontend compile (frontend/dist/tontine-frontend/browser) a servir

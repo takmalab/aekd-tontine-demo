@@ -37,6 +37,7 @@ import cm.aekd.tontine.user.RoleRepository;
 import cm.aekd.tontine.user.User;
 import cm.aekd.tontine.user.UserRepository;
 import org.springframework.boot.ApplicationArguments;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -74,9 +75,12 @@ import java.util.Locale;
 @Profile("demo")
 public class DemoDataSeeder implements ApplicationRunner {
 
-    private static final String DEFAULT_PASSWORD_ADMIN = "Admin@123";
-    private static final String DEFAULT_PASSWORD_TRESORIER = "Tresorier@123";
-    private static final String DEFAULT_PASSWORD_MEMBRE = "Membre@123";
+    // Mots de passe de démonstration : valeurs publiques (CLAUDE.md §32) en local,
+    // à remplacer en ligne par APP_DEMO_ADMIN_PASSWORD, APP_DEMO_TRESORIER_PASSWORD
+    // et APP_DEMO_MEMBRE_PASSWORD.
+    private final String passwordAdmin;
+    private final String passwordTresorier;
+    private final String passwordMembre;
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -96,7 +100,13 @@ public class DemoDataSeeder implements ApplicationRunner {
                            SessionService sessionService, ContributionDefinitionService definitionService,
                            PaymentService paymentService, ContributionTransactionService transactionService,
                            SanctionRuleService sanctionRuleService, LoanPolicyService loanPolicyService,
-                           LoanService loanService, LoanRepaymentService loanRepaymentService) {
+                           LoanService loanService, LoanRepaymentService loanRepaymentService,
+                           @Value("${app.demo.admin-password:Admin@123}") String passwordAdmin,
+                           @Value("${app.demo.tresorier-password:Tresorier@123}") String passwordTresorier,
+                           @Value("${app.demo.membre-password:Membre@123}") String passwordMembre) {
+        this.passwordAdmin = passwordAdmin;
+        this.passwordTresorier = passwordTresorier;
+        this.passwordMembre = passwordMembre;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.memberRepository = memberRepository;
@@ -130,8 +140,8 @@ public class DemoDataSeeder implements ApplicationRunner {
         Role tresorierRole = roleRepository.findByName(RoleName.TRESORIER).orElseThrow();
         Role membreRole = roleRepository.findByName(RoleName.MEMBRE).orElseThrow();
 
-        User admin = createUser("admin@aekd.cm", "+237600000001", DEFAULT_PASSWORD_ADMIN, adminRole);
-        User tresorier = createUser("tresorier@aekd.cm", "+237600000002", DEFAULT_PASSWORD_TRESORIER, tresorierRole);
+        User admin = createUser("admin@aekd.cm", "+237600000001", passwordAdmin, adminRole);
+        User tresorier = createUser("tresorier@aekd.cm", "+237600000002", passwordTresorier, tresorierRole);
 
         Member jean = createMemberAccount("jean.mbarga@aekd.cm", "+237600000003", "Jean Mbarga", LocalDate.of(2024, 1, 15), membreRole);
         Member marie = createMemberAccount("marie.ngobikoro@aekd.cm", "+237600000004", "Marie Ngo Bikoro", LocalDate.of(2024, 6, 10), membreRole);
@@ -218,7 +228,7 @@ public class DemoDataSeeder implements ApplicationRunner {
     }
 
     private Member createMemberAccount(String email, String phone, String fullName, LocalDate joinDate, Role role) {
-        User user = createUser(email, phone, DEFAULT_PASSWORD_MEMBRE, role);
+        User user = createUser(email, phone, passwordMembre, role);
         Member member = new Member(user, fullName, joinDate);
         member.setPhone(phone);
         return memberRepository.save(member);
