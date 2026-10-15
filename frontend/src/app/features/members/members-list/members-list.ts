@@ -1,3 +1,4 @@
+import { MemberPhotoService } from '../../../core/services/member-photo.service';
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
@@ -185,6 +186,8 @@ function contributionStateOf(summary: MemberSummary | null): ContributionState {
   styleUrl: './members-list.scss',
 })
 export class MembersList implements OnInit {
+  /** Photos de profil des membres (visibles par tous). */
+  readonly photos = inject(MemberPhotoService);
   private readonly memberService = inject(MemberService);
   private readonly userService = inject(UserService);
   private readonly authService = inject(AuthService);

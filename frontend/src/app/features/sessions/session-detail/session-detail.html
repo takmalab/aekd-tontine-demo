@@ -80,7 +80,11 @@
           <span class="person-card__role">Récepteur</span>
           @if (s.hostMember; as host) {
             <span class="person-card__names">
-              <span class="avatar">{{ initials(host.memberFullName) }}</span>
+              @if (photos.url(host.memberId); as photoUrl) {
+                <img class="avatar" [src]="photoUrl" alt="" />
+              } @else {
+                <span class="avatar">{{ initials(host.memberFullName) }}</span>
+              }
               <span class="person-card__name">{{ host.memberFullName }}</span>
             </span>
           } @else {
@@ -99,7 +103,11 @@
             <span class="person-card__list">
               @for (b of s.beneficiaries; track b.id) {
                 <span class="person-card__names">
-                  <span class="avatar avatar--brown">{{ initials(b.memberFullName) }}</span>
+                  @if (photos.url(b.memberId); as photoUrl) {
+                    <img class="avatar" [src]="photoUrl" alt="" />
+                  } @else {
+                    <span class="avatar avatar--brown">{{ initials(b.memberFullName) }}</span>
+                  }
                   <span class="person-card__name">{{ b.memberFullName }}</span>
                 </span>
               }
@@ -146,7 +154,11 @@
           <ul class="payout__shares">
             @for (b of p.beneficiaries; track b.memberId) {
               <li>
-                <span class="avatar avatar--brown">{{ initials(b.memberFullName) }}</span>
+                @if (photos.url(b.memberId); as photoUrl) {
+                  <img class="avatar" [src]="photoUrl" alt="" />
+                } @else {
+                  <span class="avatar avatar--brown">{{ initials(b.memberFullName) }}</span>
+                }
                 <span class="payout__who">
                   <strong>{{ b.memberFullName }}</strong>
                   <small>Part {{ formatFcfa(b.share) }} · remis {{ formatFcfa(b.remitted) }}</small>

@@ -1,3 +1,4 @@
+import { MemberPhotoService } from '../../../core/services/member-photo.service';
 import { DatePipe, LowerCasePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, computed, inject, input, signal } from '@angular/core';
@@ -101,6 +102,8 @@ function filterOf(status: ContributionPeriodStatus): ParticipantFilter | null {
   styleUrl: './contribution-detail.scss',
 })
 export class ContributionDetail implements OnInit {
+  /** Photos de profil des membres (visibles par tous). */
+  readonly photos = inject(MemberPhotoService);
   private readonly contributionService = inject(ContributionService);
   private readonly sessionService = inject(SessionService);
   private readonly memberService = inject(MemberService);

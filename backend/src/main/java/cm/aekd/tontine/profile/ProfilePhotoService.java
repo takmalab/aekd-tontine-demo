@@ -2,6 +2,7 @@ package cm.aekd.tontine.profile;
 
 import cm.aekd.tontine.common.CurrentUserProvider;
 import cm.aekd.tontine.contribution.StoredResource;
+import cm.aekd.tontine.member.MemberRepository;
 import cm.aekd.tontine.storage.FileStorageService;
 import cm.aekd.tontine.storage.StoredFile;
 import cm.aekd.tontine.user.User;
@@ -18,10 +19,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Locale;
 import java.util.Set;
+import java.util.UUID;
 
 /**
- * Photo de profil du compte connecté (facultative). Chacun ne gère que la
- * sienne. L'interface la recadre et la réduit avant l'envoi ; le serveur
+ * Photo de profil (facultative). Chacun ne gère que la sienne, mais toutes
+ * sont visibles par les utilisateurs connectés (choix du propriétaire du projet). L'interface la recadre et la réduit avant l'envoi ; le serveur
  * contrôle tout de même le format et la taille.
  */
 @Service
@@ -35,9 +37,11 @@ public class ProfilePhotoService {
     private final UserRepository userRepository;
     private final CurrentUserProvider currentUserProvider;
     private final FileStorageService fileStorageService;
+    private final MemberRepository memberRepository;
 
     public ProfilePhotoService(UserRepository userRepository, CurrentUserProvider currentUserProvider,
-                               FileStorageService fileStorageService) {
+                               FileStorageService fileStorageService, MemberRepository memberRepository) {
+        this.memberRepository = memberRepository;
         this.userRepository = userRepository;
         this.currentUserProvider = currentUserProvider;
         this.fileStorageService = fileStorageService;
@@ -72,7 +76,19 @@ public class ProfilePhotoService {
 
     @Transactional(readOnly = true)
     public StoredResource download() {
-        User user = currentUser();
+        return photoOf(currentUser());
+    }
+
+    /** Photo d'un membre, visible par tout utilisateur connecté. */
+    @Transactional(readOnly = true)
+    public StoredResource downloadForMember(UUID memberId) {
+        User user = memberRepository.findById(memberId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Membre introuvable"))
+                .getUser();
+        return photoOf(user);
+    }
+
+    private StoredResource photoOf(User user) {
         if (!user.hasPhoto()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Aucune photo de profil");
         }

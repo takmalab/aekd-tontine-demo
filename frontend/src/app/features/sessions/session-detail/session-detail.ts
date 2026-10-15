@@ -1,3 +1,4 @@
+import { MemberPhotoService } from '../../../core/services/member-photo.service';
 import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, computed, inject, input, signal } from '@angular/core';
@@ -40,6 +41,8 @@ import { SessionService } from '../session.service';
   styleUrl: './session-detail.scss',
 })
 export class SessionDetail implements OnInit {
+  /** Photos de profil des membres (visibles par tous). */
+  readonly photos = inject(MemberPhotoService);
   private readonly sessionService = inject(SessionService);
   private readonly authService = inject(AuthService);
   private readonly dialog = inject(MatDialog);

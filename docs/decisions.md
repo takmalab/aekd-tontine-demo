@@ -1730,3 +1730,37 @@ prêts**, **Sanctions**, **Fond de caisse** et **Ration**.
 * Dépenses et virements : table `account_operation` (V24), endpoints
   `GET/POST /api/funds/operations` (enregistrement TRESORIER), contrôle de
   solde sous verrou PostgreSQL (`pg_advisory_xact_lock`).
+
+---
+
+# 51. Photo de profil et menu par thèmes
+
+## Question
+
+Comment rendre l'interface plus personnelle et le menu plus lisible ?
+
+## Statut
+
+```text
+DÉCIDÉ
+```
+
+## Décision
+
+Validé par le propriétaire du projet le 2026-10-15.
+
+* Chaque utilisateur peut ajouter, changer ou retirer **sa** photo de profil
+  (page « Mon profil »). Personne ne peut modifier la photo d'un autre.
+* Les photos sont **visibles par tous les utilisateurs connectés** (liste des
+  membres, détail d'une séance, participants d'une cotisation, barre du haut).
+* Le menu latéral est regroupé par thèmes repliables : Mon espace, Tontine,
+  Finances, Administration, Paramètres.
+
+## Conséquence technique
+
+* Colonnes `photo_storage_key` et `photo_content_type` sur `users` (V25) ;
+  fichier sur le stockage (`profile-photos/`), effacé avec le compte.
+* `GET/POST/DELETE /api/profile/photo` (sa photo) et
+  `GET /api/members/{memberId}/photo` (tout utilisateur connecté).
+* L'image est recadrée en carré 320 px (JPEG) dans le navigateur ; le serveur
+  n'accepte que JPG, PNG ou WEBP de 2 Mo au plus.

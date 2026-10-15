@@ -159,7 +159,11 @@
                   @for (row of paged(); track row.member.id) {
                     <tr [class.row--suspended]="row.statusUi === 'SUSPENDED'">
                       <td class="col-avatar">
-                        <span class="avatar" [class]="'avatar avatar--' + row.avatarTone">{{ row.initials }}</span>
+                        @if (photos.url(row.member.id); as photoUrl) {
+                          <img class="avatar" [src]="photoUrl" alt="" />
+                        } @else {
+                          <span class="avatar" [class]="'avatar avatar--' + row.avatarTone">{{ row.initials }}</span>
+                        }
                       </td>
                       <td>
                         <div class="cell-name">
@@ -229,7 +233,11 @@
               @for (row of paged(); track row.member.id) {
                 <article class="member-card" [class]="'member-card member-card--' + statusTone(row.statusUi)">
                   <div class="member-card__top">
-                    <span class="avatar" [class]="'avatar avatar--' + row.avatarTone">{{ row.initials }}</span>
+                    @if (photos.url(row.member.id); as photoUrl) {
+                      <img class="avatar" [src]="photoUrl" alt="" />
+                    } @else {
+                      <span class="avatar" [class]="'avatar avatar--' + row.avatarTone">{{ row.initials }}</span>
+                    }
                     <div class="member-card__id">
                       <span class="member-card__name">{{ row.member.fullName }}</span>
                       <span class="member-card__sub">{{ row.member.phone ?? row.member.email }}</span>
@@ -451,7 +459,11 @@
             @for (row of recentMembers(); track row.member.id) {
               <li>
                 <button type="button" class="recent-list__btn" (click)="view(row)">
-                  <span class="avatar avatar--sm" [class]="'avatar avatar--sm avatar--' + row.avatarTone">{{ row.initials }}</span>
+                  @if (photos.url(row.member.id); as photoUrl) {
+                    <img class="avatar avatar--sm" [src]="photoUrl" alt="" />
+                  } @else {
+                    <span class="avatar avatar--sm" [class]="'avatar avatar--sm avatar--' + row.avatarTone">{{ row.initials }}</span>
+                  }
                   <span class="recent-list__body">
                     <span class="recent-list__name">{{ row.member.fullName }}</span>
                     <span class="recent-list__date">Inscrit le {{ fromIsoDate(row.member.joinDate) | date: 'd MMM yyyy' }}</span>

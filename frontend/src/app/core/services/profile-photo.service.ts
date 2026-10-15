@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { Observable, catchError, of, switchMap, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { MemberPhotoService } from './member-photo.service';
 
 /** Taille du carré envoyé au serveur : assez net pour l'écran de profil, léger (~30-60 Ko). */
 const PHOTO_SIZE = 320;
@@ -14,6 +15,7 @@ const PHOTO_SIZE = 320;
 @Injectable({ providedIn: 'root' })
 export class ProfilePhotoService {
   private readonly http = inject(HttpClient);
+  private readonly memberPhotos = inject(MemberPhotoService);
   private readonly url = `${environment.apiUrl}/profile/photo`;
 
   private readonly photoUrlSignal = signal<string | null>(null);
@@ -43,18 +45,29 @@ export class ProfilePhotoService {
       switchMap((blob) => {
         const body = new FormData();
         body.append('file', blob, 'photo.jpg');
-        return this.http.post(this.url, body).pipe(tap(() => this.setBlob(blob)));
+        return this.http.post(this.url, body).pipe(
+          tap(() => {
+            this.setBlob(blob);
+            this.memberPhotos.clear();
+          }),
+        );
       }),
     );
   }
 
   remove(): Observable<unknown> {
-    return this.http.delete(this.url).pipe(tap(() => this.setBlob(null)));
+    return this.http.delete(this.url).pipe(
+      tap(() => {
+        this.setBlob(null);
+        this.memberPhotos.clear();
+      }),
+    );
   }
 
   /** À la déconnexion : la photo d'un compte ne doit pas rester affichée pour le suivant. */
   reset(): void {
     this.setBlob(null);
+    this.memberPhotos.clear();
   }
 
   private setBlob(blob: Blob | null): void {

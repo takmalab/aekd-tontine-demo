@@ -201,7 +201,11 @@
           <ul class="list">
             @for (row of visibleRows(); track row.memberId) {
               <li [class]="'person person--' + row.shown.toLowerCase()" [class.person--me]="row.isMe">
-                <span class="avatar">{{ initials(row.memberFullName) }}</span>
+                @if (photos.url(row.memberId); as photoUrl) {
+                  <img class="avatar" [src]="photoUrl" alt="" />
+                } @else {
+                  <span class="avatar">{{ initials(row.memberFullName) }}</span>
+                }
                 <div class="person__main">
                   <div class="person__top">
                     <span class="person__name">

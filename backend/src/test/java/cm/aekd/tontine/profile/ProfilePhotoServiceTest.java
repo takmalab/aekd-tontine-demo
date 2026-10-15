@@ -1,6 +1,8 @@
 package cm.aekd.tontine.profile;
 
 import cm.aekd.tontine.contribution.StoredResource;
+import cm.aekd.tontine.member.Member;
+import cm.aekd.tontine.member.MemberRepository;
 import cm.aekd.tontine.user.User;
 import cm.aekd.tontine.user.UserRepository;
 import org.junit.jupiter.api.AfterEach;
@@ -14,6 +16,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -29,6 +32,9 @@ class ProfilePhotoServiceTest {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private MemberRepository memberRepository;
 
     @AfterEach
     void clearContext() {
@@ -66,5 +72,15 @@ class ProfilePhotoServiceTest {
         assertThatThrownBy(() -> service.upload(
                 new MockMultipartFile("file", "cv.pdf", "application/pdf", new byte[]{1})))
                 .hasMessageContaining("Format d'image");
+    }
+
+    @Test
+    void anyLoggedInUserSeesAMembersPhoto() throws Exception {
+        User owner = login("photo-member@test.aekd.cm");
+        Member member = memberRepository.save(new Member(owner, "Membre Photo", LocalDate.now()));
+        service.upload(new MockMultipartFile("file", "photo.jpg", "image/jpeg", new byte[]{7, 8}));
+
+        login("photo-viewer@test.aekd.cm");
+        assertThat(service.downloadForMember(member.getId()).content().readAllBytes()).containsExactly(7, 8);
     }
 }

@@ -262,3 +262,9 @@ input:-webkit-autofill:focus {
   font-weight: 600;
   letter-spacing: 0.01em;
 }
+
+/* Photo de profil à la place d'un avatar d'initiales : même taille, recadrée. */
+img.avatar {
+  object-fit: cover;
+  background: #fff;
+}
