@@ -1,13 +1,19 @@
 /** Miroir de FundOverviewResponse (backend) : écran « Fonds », CLAUDE.md §29, decisions.md n° 50. */
 export type Account = 'TONTINE_FUND' | 'SAVINGS' | 'SANCTIONS' | 'CASH_FUND' | 'RATION';
 export type FundDirection = 'IN' | 'OUT';
-export type FundMovementType = 'CONTRIBUTION' | 'PAYOUT' | 'SAVINGS_DEPOSIT' | 'LOAN_DISBURSED' | 'LOAN_REPAYMENT' | 'SANCTION_PAYMENT';
+export type FundMovementType = 'CONTRIBUTION' | 'PAYOUT' | 'SAVINGS_DEPOSIT' | 'LOAN_DISBURSED' | 'LOAN_REPAYMENT'
+  | 'SANCTION_PAYMENT'
+  | 'EXPENSE'
+  | 'TRANSFER';
 export type FigureCode =
   | 'COLLECTED'
   | 'REMITTED'
   | 'TOTAL_SAVINGS'
   | 'OUTSTANDING_LOAN_CAPITAL'
-  | 'LOAN_INTEREST_COLLECTED';
+  | 'LOAN_INTEREST_COLLECTED'
+  | 'SPENT'
+  | 'TRANSFERRED_OUT'
+  | 'TRANSFERRED_IN';
 
 export interface AccountSummary {
   account: Account;
@@ -21,7 +27,8 @@ export interface FundMovement {
   account: Account;
   direction: FundDirection;
   label: string;
-  memberFullName: string;
+  /** Absent pour une dépense ou un virement (opération du trésorier). */
+  memberFullName: string | null;
   amount: number;
 }
 
@@ -45,6 +52,9 @@ export const FIGURE_LABELS: Record<FigureCode, string> = {
   TOTAL_SAVINGS: 'Épargne totale',
   OUTSTANDING_LOAN_CAPITAL: 'Capital prêté non remboursé',
   LOAN_INTEREST_COLLECTED: 'Intérêts perçus',
+  SPENT: 'Dépensé',
+  TRANSFERRED_OUT: "Viré vers d'autres comptes",
+  TRANSFERRED_IN: 'Reçu par virement',
 };
 
 export const MOVEMENT_STYLES: Record<FundMovementType, { label: string; icon: string }> = {
@@ -54,4 +64,28 @@ export const MOVEMENT_STYLES: Record<FundMovementType, { label: string; icon: st
   LOAN_DISBURSED: { label: 'Prêt accordé', icon: 'account_balance' },
   LOAN_REPAYMENT: { label: 'Remboursement', icon: 'replay' },
   SANCTION_PAYMENT: { label: 'Paiement de sanction', icon: 'gavel' },
+  EXPENSE: { label: 'Dépense', icon: 'shopping_cart' },
+  TRANSFER: { label: 'Virement', icon: 'swap_horiz' },
 };
+
+/** Dépenses et virements (decisions.md n° 50) : miroir de AccountOperationDtos. */
+export type AccountOperationType = 'EXPENSE' | 'TRANSFER';
+
+/** Seuls comptes qui acceptent dépenses et virements ; fonds commun et épargne sont protégés. */
+export const OPERABLE_ACCOUNTS: Account[] = ['SANCTIONS', 'CASH_FUND', 'RATION'];
+
+export interface AccountOperationRequest {
+  type: AccountOperationType;
+  sourceAccount: Account;
+  targetAccount: Account | null;
+  amount: number;
+  operationDate: string;
+  label: string;
+  observation: string | null;
+}
+
+export interface AccountOperation extends AccountOperationRequest {
+  id: string;
+  recordedByEmail: string | null;
+  createdAt: string;
+}

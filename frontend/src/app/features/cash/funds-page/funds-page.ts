@@ -1,6 +1,9 @@
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { AuthService } from '../../../core/services/auth.service';
 import { MatIconModule } from '@angular/material/icon';
 import { ExportMenu } from '../../../shared/components/export-menu/export-menu';
 import { FilterChips, FilterOption } from '../../../shared/components/filter-chips/filter-chips';
@@ -8,8 +11,9 @@ import { PageState } from '../../../shared/components/page-state/page-state';
 import { AppPagination } from '../../../shared/components/pagination/pagination';
 import { formatFcfa } from '../../../shared/utils/format';
 import { paginate } from '../../../shared/utils/pagination';
-import { ACCOUNT_STYLES, Account, FIGURE_LABELS, FundOverview, MOVEMENT_STYLES } from '../fund.model';
+import { ACCOUNT_STYLES, Account, AccountOperation, AccountOperationType, FIGURE_LABELS, FundOverview, MOVEMENT_STYLES } from '../fund.model';
 import { FundOverviewApi } from '../fund.service';
+import { OperationDialog, OperationDialogData } from '../operation-dialog/operation-dialog';
 
 type FundFilter = 'ALL' | Account;
 
@@ -26,6 +30,11 @@ type FundFilter = 'ALL' | Account;
 })
 export class FundsPage implements OnInit {
   private readonly api = inject(FundOverviewApi);
+  private readonly dialog = inject(MatDialog);
+  private readonly snackBar = inject(MatSnackBar);
+
+  /** Dépenses et virements : TRESORIER (ADMIN hérite, decisions.md n° 40 et n° 50). */
+  readonly isTreasurer = inject(AuthService).hasRole('TRESORIER');
 
   readonly formatFcfa = formatFcfa;
   readonly accountStyles = ACCOUNT_STYLES;
@@ -59,7 +68,7 @@ export class FundsPage implements OnInit {
       Compte: ACCOUNT_STYLES[m.account].label,
       Type: MOVEMENT_STYLES[m.type].label,
       Libellé: m.label,
-      Membre: m.memberFullName,
+      Membre: m.memberFullName ?? '',
       Entrée: m.direction === 'IN' ? formatFcfa(m.amount) : '',
       Sortie: m.direction === 'OUT' ? formatFcfa(m.amount) : '',
     })),
@@ -87,5 +96,19 @@ export class FundsPage implements OnInit {
   setFilter(filter: FundFilter): void {
     this.filter.set(filter);
     this.pageIndex.set(0);
+  }
+
+  openOperation(type: AccountOperationType): void {
+    const accounts = this.overview()?.accounts ?? [];
+    const data: OperationDialogData = { type, accounts };
+    this.dialog
+      .open(OperationDialog, { data, width: '560px', maxWidth: 'calc(100vw - 24px)', autoFocus: false })
+      .afterClosed()
+      .subscribe((operation?: AccountOperation) => {
+        if (operation) {
+          this.snackBar.open(type === 'TRANSFER' ? 'Virement enregistré' : 'Dépense enregistrée', 'OK', { duration: 4000 });
+          this.load();
+        }
+      });
   }
 }

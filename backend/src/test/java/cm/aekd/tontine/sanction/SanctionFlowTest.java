@@ -70,6 +70,9 @@ class SanctionFlowTest {
     private cm.aekd.tontine.fund.FundService fundService;
 
     @Autowired
+    private cm.aekd.tontine.fund.AccountOperationService operationService;
+
+    @Autowired
     private RoleRepository roleRepository;
 
     @Autowired
@@ -322,5 +325,53 @@ class SanctionFlowTest {
         loginAsMember(treasurer, RoleName.TRESORIER);
         assertThatThrownBy(() -> appliedService.cancel(sanction.id()))
                 .hasMessageContaining("paiement");
+    }
+
+    @Test
+    void expensesAndTransfersMoveOnlyOperableAccountsAndNeverBelowZero() {
+        // decisions.md n° 50 : dépenses et virements seulement sur Sanctions, Fond de caisse et Ration.
+        Member treasurer = createMember(RoleName.TRESORIER, "accop-treso");
+        Member lateMember = createMember(RoleName.MEMBRE, "accop-late");
+        ContributionPeriodResponse period = setupMandatoryDefinition(treasurer, lateMember,
+                LocalDate.of(2026, 9, 5), new BigDecimal(10000));
+        loginAsMember(treasurer, RoleName.TRESORIER);
+        SanctionRuleResponse rule = ruleService.create(new SanctionRuleRequest(
+                period.contributionDefinitionId(), SanctionType.MONETARY, 3, new BigDecimal(2000), null));
+        AppliedSanctionResponse sanction = appliedService.apply(rule.id(),
+                new ApplySanctionRequest(lateMember.getId(), period.id()));
+        loginAsMember(lateMember, RoleName.MEMBRE);
+        SanctionPaymentDtos.PaymentResponse paid = sanctionPaymentService.declare(sanction.id(), payment(2000, "ACC-1"));
+        loginAsMember(treasurer, RoleName.TRESORIER);
+        sanctionPaymentService.validate(paid.id());
+
+        BigDecimal sanctions = fundService.sanctionsBalance();
+        BigDecimal cashFund = fundService.cashFundBalance();
+        BigDecimal tontine = fundService.tontineFundBalance();
+
+        assertThatThrownBy(() -> operationService.record(operation(cm.aekd.tontine.fund.AccountOperationType.EXPENSE,
+                cm.aekd.tontine.fund.FundAccount.TONTINE_FUND, null, 100)))
+                .hasMessageContaining("protégé");
+        assertThatThrownBy(() -> operationService.record(operation(cm.aekd.tontine.fund.AccountOperationType.TRANSFER,
+                cm.aekd.tontine.fund.FundAccount.SANCTIONS, cm.aekd.tontine.fund.FundAccount.SAVINGS, 100)))
+                .hasMessageContaining("protégé");
+        assertThatThrownBy(() -> operationService.record(operation(cm.aekd.tontine.fund.AccountOperationType.EXPENSE,
+                cm.aekd.tontine.fund.FundAccount.SANCTIONS, null, sanctions.intValue() + 1)))
+                .hasMessageContaining("Solde insuffisant");
+
+        operationService.record(operation(cm.aekd.tontine.fund.AccountOperationType.TRANSFER,
+                cm.aekd.tontine.fund.FundAccount.SANCTIONS, cm.aekd.tontine.fund.FundAccount.CASH_FUND, 500));
+        operationService.record(operation(cm.aekd.tontine.fund.AccountOperationType.EXPENSE,
+                cm.aekd.tontine.fund.FundAccount.SANCTIONS, null, 1000));
+
+        assertThat(fundService.sanctionsBalance()).isEqualByComparingTo(sanctions.subtract(new BigDecimal(1500)));
+        assertThat(fundService.cashFundBalance()).isEqualByComparingTo(cashFund.add(new BigDecimal(500)));
+        assertThat(fundService.tontineFundBalance()).isEqualByComparingTo(tontine);
+    }
+
+    private static cm.aekd.tontine.fund.AccountOperationDtos.OperationRequest operation(
+            cm.aekd.tontine.fund.AccountOperationType type, cm.aekd.tontine.fund.FundAccount source,
+            cm.aekd.tontine.fund.FundAccount target, int amount) {
+        return new cm.aekd.tontine.fund.AccountOperationDtos.OperationRequest(type, source, target,
+                new BigDecimal(amount), LocalDate.of(2026, 10, 1), "Test", null);
     }
 }

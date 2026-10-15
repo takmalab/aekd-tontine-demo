@@ -6,7 +6,13 @@
         Les comptes de l'association, toujours séparés. Seules les opérations validées sont comptées.
       </p>
     </div>
-    <app-export-menu filename="mouvements-fonds" title="Mouvements des fonds" [rows]="exportRows()" />
+    <div class="page__actions">
+      @if (isTreasurer && overview()) {
+        <button mat-stroked-button type="button" (click)="openOperation('TRANSFER')"><mat-icon>swap_horiz</mat-icon> Virement</button>
+        <button mat-flat-button type="button" (click)="openOperation('EXPENSE')"><mat-icon>shopping_cart</mat-icon> Dépense</button>
+      }
+      <app-export-menu filename="mouvements-fonds" title="Mouvements des fonds" [rows]="exportRows()" />
+    </div>
   </header>
 
   @if (loading()) {
@@ -52,7 +58,10 @@
             <div class="move__text">
               <span class="move__label">{{ m.label }}</span>
               <span class="move__meta">
-                {{ m.memberFullName }} · {{ movementStyles[m.type].label }}
+                @if (m.memberFullName) {
+                  {{ m.memberFullName }} ·
+                }
+                {{ movementStyles[m.type].label }}
                 @if (m.date) {
                   · {{ m.date | date: 'd MMM yyyy' }}
                 }

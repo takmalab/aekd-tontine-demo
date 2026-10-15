@@ -5,7 +5,6 @@ import cm.aekd.tontine.contribution.ContributionTransaction;
 import cm.aekd.tontine.contribution.ContributionTransactionRepository;
 import cm.aekd.tontine.contribution.ContributionTransactionStatus;
 import cm.aekd.tontine.contribution.FundDestination;
-import cm.aekd.tontine.fund.FundOverviewResponse.Account;
 import cm.aekd.tontine.fund.FundOverviewResponse.AccountSummary;
 import cm.aekd.tontine.fund.FundOverviewResponse.Direction;
 import cm.aekd.tontine.fund.FundOverviewResponse.Figure;
@@ -61,11 +60,14 @@ public class FundOverviewService {
     private final LoanRepository loanRepository;
     private final LoanRepaymentRepository repaymentRepository;
     private final SanctionPaymentRepository sanctionPaymentRepository;
+    private final AccountOperationRepository operationRepository;
 
     public FundOverviewService(FundService fundService, ContributionTransactionRepository transactionRepository,
                                SessionPayoutRepository payoutRepository, SavingsDepositRepository depositRepository,
                                LoanRepository loanRepository, LoanRepaymentRepository repaymentRepository,
-                               SanctionPaymentRepository sanctionPaymentRepository) {
+                               SanctionPaymentRepository sanctionPaymentRepository,
+                               AccountOperationRepository operationRepository) {
+        this.operationRepository = operationRepository;
         this.sanctionPaymentRepository = sanctionPaymentRepository;
         this.fundService = fundService;
         this.transactionRepository = transactionRepository;
@@ -76,12 +78,12 @@ public class FundOverviewService {
     }
 
     /** Compte qui reçoit l'argent d'une cotisation, selon sa destination. */
-    static Account accountOf(FundDestination destination) {
+    static FundAccount accountOf(FundDestination destination) {
         return switch (destination) {
-            case TONTINE_FUND -> Account.TONTINE_FUND;
-            case INDIVIDUAL_SAVINGS -> Account.SAVINGS;
-            case RATION -> Account.RATION;
-            case CASH_FUND -> Account.CASH_FUND;
+            case TONTINE_FUND -> FundAccount.TONTINE_FUND;
+            case INDIVIDUAL_SAVINGS -> FundAccount.SAVINGS;
+            case RATION -> FundAccount.RATION;
+            case CASH_FUND -> FundAccount.CASH_FUND;
         };
     }
 
@@ -93,20 +95,38 @@ public class FundOverviewService {
     private List<AccountSummary> accounts(List<LoanRepayment> repayments) {
         BigDecimal rationRemitted = fundService.rationRemitted();
         return List.of(
-                new AccountSummary(Account.TONTINE_FUND, fundService.tontineFundBalance(), List.of(
+                new AccountSummary(FundAccount.TONTINE_FUND, fundService.tontineFundBalance(), List.of(
                         new Figure(FigureCode.COLLECTED, fundService.tontineFundCollected()),
                         new Figure(FigureCode.REMITTED, fundService.tontineFundRemitted()))),
-                new AccountSummary(Account.SAVINGS, fundService.availableForLending(), List.of(
+                new AccountSummary(FundAccount.SAVINGS, fundService.availableForLending(), List.of(
                         new Figure(FigureCode.TOTAL_SAVINGS, fundService.totalIndividualSavings()),
                         new Figure(FigureCode.OUTSTANDING_LOAN_CAPITAL, fundService.outstandingLoanCapital()),
                         new Figure(FigureCode.LOAN_INTEREST_COLLECTED, interestCollected(repayments)))),
-                new AccountSummary(Account.SANCTIONS, fundService.sanctionsBalance(), List.of(
-                        new Figure(FigureCode.COLLECTED, fundService.sanctionsCollected()))),
-                new AccountSummary(Account.CASH_FUND, fundService.cashFundBalance(), List.of(
-                        new Figure(FigureCode.COLLECTED, fundService.cashFundCollected()))),
-                new AccountSummary(Account.RATION, fundService.rationCollected().subtract(rationRemitted), List.of(
+                new AccountSummary(FundAccount.SANCTIONS, fundService.sanctionsBalance(), withOperations(
+                        FundAccount.SANCTIONS, new Figure(FigureCode.COLLECTED, fundService.sanctionsCollected()))),
+                new AccountSummary(FundAccount.CASH_FUND, fundService.cashFundBalance(), withOperations(
+                        FundAccount.CASH_FUND, new Figure(FigureCode.COLLECTED, fundService.cashFundCollected()))),
+                new AccountSummary(FundAccount.RATION, fundService.rationBalance(), withOperations(FundAccount.RATION,
                         new Figure(FigureCode.COLLECTED, fundService.rationCollected()),
                         new Figure(FigureCode.REMITTED, rationRemitted))));
+    }
+
+    /** Chiffres d'un compte opérable, suivis de ses dépenses et virements quand il y en a (n° 50). */
+    private List<Figure> withOperations(FundAccount account, Figure... base) {
+        List<Figure> figures = new ArrayList<>(List.of(base));
+        BigDecimal spent = operationRepository.sumOutByType(account, AccountOperationType.EXPENSE);
+        BigDecimal transferredOut = operationRepository.sumOutByType(account, AccountOperationType.TRANSFER);
+        BigDecimal transferredIn = operationRepository.sumIn(account);
+        if (spent.signum() > 0) {
+            figures.add(new Figure(FigureCode.SPENT, spent));
+        }
+        if (transferredOut.signum() > 0) {
+            figures.add(new Figure(FigureCode.TRANSFERRED_OUT, transferredOut));
+        }
+        if (transferredIn.signum() > 0) {
+            figures.add(new Figure(FigureCode.TRANSFERRED_IN, transferredIn));
+        }
+        return figures;
     }
 
     private List<Movement> movements(List<LoanRepayment> repayments) {
@@ -126,33 +146,44 @@ public class FundOverviewService {
             BigDecimal rationPart = fundService.rationPartOf(p, collectedBySession);
             BigDecimal tontinePart = p.getAmount().subtract(rationPart);
             if (tontinePart.signum() > 0) {
-                movements.add(new Movement(p.getPayoutDate(), MovementType.PAYOUT, Account.TONTINE_FUND,
+                movements.add(new Movement(p.getPayoutDate(), MovementType.PAYOUT, FundAccount.TONTINE_FUND,
                         Direction.OUT, label, p.getMember().getFullName(), tontinePart));
             }
             if (rationPart.signum() > 0) {
-                movements.add(new Movement(p.getPayoutDate(), MovementType.PAYOUT, Account.RATION,
+                movements.add(new Movement(p.getPayoutDate(), MovementType.PAYOUT, FundAccount.RATION,
                         Direction.OUT, label, p.getMember().getFullName(), rationPart));
             }
         }
         depositRepository.findAllByOrderByCreatedAtDesc().stream()
                 .filter(d -> d.getStatus() == SavingsDepositStatus.VALIDATED)
                 .forEach(d -> movements.add(new Movement(d.getPaymentDate(), MovementType.SAVINGS_DEPOSIT,
-                        Account.SAVINGS, Direction.IN, "Versement d'épargne", d.getMember().getFullName(), d.getAmount())));
+                        FundAccount.SAVINGS, Direction.IN, "Versement d'épargne", d.getMember().getFullName(), d.getAmount())));
         for (Loan loan : loanRepository.findByStatusIn(DISBURSED)) {
-            movements.add(new Movement(date(loan.getDecisionDate()), MovementType.LOAN_DISBURSED, Account.SAVINGS,
+            movements.add(new Movement(date(loan.getDecisionDate()), MovementType.LOAN_DISBURSED, FundAccount.SAVINGS,
                     Direction.OUT, "Prêt accordé – " + loan.getApprovedDurationMonths() + " mois",
                     loan.getMember().getFullName(), loan.getApprovedAmount()));
         }
         for (LoanRepayment r : repayments) {
-            movements.add(new Movement(r.getPaymentDate(), MovementType.LOAN_REPAYMENT, Account.SAVINGS, Direction.IN,
+            movements.add(new Movement(r.getPaymentDate(), MovementType.LOAN_REPAYMENT, FundAccount.SAVINGS, Direction.IN,
                     "Remboursement de prêt", r.getLoan().getMember().getFullName(), r.getAmount()));
         }
         sanctionPaymentRepository.findByStatusOrderByCreatedAtAsc(SanctionPaymentStatus.VALIDATED).forEach(s -> {
             ContributionPeriod period = s.getAppliedSanction().getContributionPeriod();
-            movements.add(new Movement(s.getPaymentDate(), MovementType.SANCTION_PAYMENT, Account.SANCTIONS,
+            movements.add(new Movement(s.getPaymentDate(), MovementType.SANCTION_PAYMENT, FundAccount.SANCTIONS,
                     Direction.IN, "Sanction – " + period.getContributionDefinition().getName() + " – "
                     + period.getSession().getLabel(), s.getMember().getFullName(), s.getAmount()));
         });
+        for (AccountOperation o : operationRepository.findAllByOrderByCreatedAtDesc()) {
+            if (o.getType() == AccountOperationType.EXPENSE) {
+                movements.add(new Movement(o.getOperationDate(), MovementType.EXPENSE, o.getSourceAccount(),
+                        Direction.OUT, o.getLabel(), null, o.getAmount()));
+            } else {
+                movements.add(new Movement(o.getOperationDate(), MovementType.TRANSFER, o.getSourceAccount(),
+                        Direction.OUT, o.getLabel(), null, o.getAmount()));
+                movements.add(new Movement(o.getOperationDate(), MovementType.TRANSFER, o.getTargetAccount(),
+                        Direction.IN, o.getLabel(), null, o.getAmount()));
+            }
+        }
         movements.sort(Comparator.comparing(Movement::date, Comparator.nullsLast(Comparator.reverseOrder())));
         return movements;
     }

@@ -51,6 +51,7 @@ public class FundService {
     private final LoanRepaymentRepository repaymentRepository;
     private final SessionPayoutRepository payoutRepository;
     private final SanctionPaymentRepository sanctionPaymentRepository;
+    private final AccountOperationRepository operationRepository;
 
     private static final List<LoanStatus> OUTSTANDING_LOAN_STATUSES =
             List.of(LoanStatus.APPROVED, LoanStatus.IN_PROGRESS);
@@ -62,7 +63,9 @@ public class FundService {
                         LoanRepository loanRepository,
                         LoanRepaymentRepository repaymentRepository,
                         SessionPayoutRepository payoutRepository,
-                        SanctionPaymentRepository sanctionPaymentRepository) {
+                        SanctionPaymentRepository sanctionPaymentRepository,
+                        AccountOperationRepository operationRepository) {
+        this.operationRepository = operationRepository;
         this.sanctionPaymentRepository = sanctionPaymentRepository;
         this.payoutRepository = payoutRepository;
         this.transactionRepository = transactionRepository;
@@ -102,7 +105,7 @@ public class FundService {
     }
 
     public BigDecimal rationBalance() {
-        return rationCollected().subtract(rationRemitted());
+        return withOperations(FundAccount.RATION, rationCollected().subtract(rationRemitted()));
     }
 
     /** Total des paiements validés destinés au Fond de caisse (decisions.md n° 50). */
@@ -117,11 +120,27 @@ public class FundService {
     }
 
     public BigDecimal sanctionsBalance() {
-        return sanctionsCollected();
+        return withOperations(FundAccount.SANCTIONS, sanctionsCollected());
     }
 
     public BigDecimal cashFundBalance() {
-        return cashFundCollected();
+        return withOperations(FundAccount.CASH_FUND, cashFundCollected());
+    }
+
+    /** Solde d'un compte opérable (Sanctions, Fond de caisse, Ration ; n° 50). */
+    public BigDecimal balanceOf(FundAccount account) {
+        return switch (account) {
+            case SANCTIONS -> sanctionsBalance();
+            case CASH_FUND -> cashFundBalance();
+            case RATION -> rationBalance();
+            case TONTINE_FUND -> tontineFundBalance();
+            case SAVINGS -> availableForLending();
+        };
+    }
+
+    /** Dépenses et virements émis (sortie), virements reçus (entrée) d'un compte (n° 50). */
+    private BigDecimal withOperations(FundAccount account, BigDecimal balance) {
+        return balance.subtract(operationRepository.sumOut(account)).add(operationRepository.sumIn(account));
     }
 
     /**

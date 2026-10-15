@@ -13,22 +13,21 @@ public record FundOverviewResponse(
         List<Movement> movements
 ) {
 
-    /** Comptes de l'AEKD (decisions.md n° 50). */
-    public enum Account { TONTINE_FUND, SAVINGS, SANCTIONS, CASH_FUND, RATION }
-
     public enum Direction { IN, OUT }
 
-    public enum MovementType { CONTRIBUTION, PAYOUT, SAVINGS_DEPOSIT, LOAN_DISBURSED, LOAN_REPAYMENT, SANCTION_PAYMENT }
+    public enum MovementType { CONTRIBUTION, PAYOUT, SAVINGS_DEPOSIT, LOAN_DISBURSED, LOAN_REPAYMENT, SANCTION_PAYMENT,
+        EXPENSE, TRANSFER }
 
     /** Détail chiffré d'un compte ; le code est traduit par l'interface. */
     public enum FigureCode {
-        COLLECTED, REMITTED, TOTAL_SAVINGS, OUTSTANDING_LOAN_CAPITAL, LOAN_INTEREST_COLLECTED
+        COLLECTED, REMITTED, TOTAL_SAVINGS, OUTSTANDING_LOAN_CAPITAL, LOAN_INTEREST_COLLECTED,
+        SPENT, TRANSFERRED_OUT, TRANSFERRED_IN
     }
 
     public record Figure(FigureCode code, BigDecimal amount) {
     }
 
-    public record AccountSummary(Account account, BigDecimal balance, List<Figure> figures) {
+    public record AccountSummary(FundAccount account, BigDecimal balance, List<Figure> figures) {
 
         public BigDecimal figure(FigureCode code) {
             return figures.stream().filter(f -> f.code() == code).map(Figure::amount).findFirst()
@@ -39,7 +38,7 @@ public record FundOverviewResponse(
     public record Movement(
             LocalDate date,
             MovementType type,
-            Account account,
+            FundAccount account,
             Direction direction,
             String label,
             String memberFullName,
@@ -47,7 +46,7 @@ public record FundOverviewResponse(
     ) {
     }
 
-    public AccountSummary account(Account account) {
+    public AccountSummary account(FundAccount account) {
         return accounts.stream().filter(a -> a.account() == account).findFirst().orElseThrow();
     }
 }

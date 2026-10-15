@@ -7,6 +7,7 @@ import cm.aekd.tontine.repayment.LoanRepaymentRequest;
 import cm.aekd.tontine.repayment.LoanRepaymentResponse;
 import cm.aekd.tontine.repayment.LoanRepaymentService;
 import cm.aekd.tontine.contribution.PaymentOperator;
+import cm.aekd.tontine.fund.FundAccount;
 import cm.aekd.tontine.fund.FundOverviewResponse;
 import cm.aekd.tontine.fund.FundOverviewService;
 import cm.aekd.tontine.fund.FundService;
@@ -140,13 +141,13 @@ class LoanFlowTest {
 
         // Écran « Fonds » : intérêts perçus = 50 000 - 38 461 ; prêt et remboursement dans le journal.
         FundOverviewResponse overview = fundOverviewService.overview();
-        assertThat(overview.account(FundOverviewResponse.Account.SAVINGS)
+        assertThat(overview.account(FundAccount.SAVINGS)
                 .figure(FundOverviewResponse.FigureCode.LOAN_INTEREST_COLLECTED)).isEqualByComparingTo("11539");
         assertThat(overview.movements()).extracting(FundOverviewResponse.Movement::type)
                 .contains(FundOverviewResponse.MovementType.LOAN_DISBURSED, FundOverviewResponse.MovementType.LOAN_REPAYMENT,
                         FundOverviewResponse.MovementType.SAVINGS_DEPOSIT);
         assertThat(overview.movements()).filteredOn(m -> m.type() == FundOverviewResponse.MovementType.LOAN_DISBURSED)
-                .allMatch(m -> m.account() == FundOverviewResponse.Account.SAVINGS && m.direction() == FundOverviewResponse.Direction.OUT);
+                .allMatch(m -> m.account() == FundAccount.SAVINGS && m.direction() == FundOverviewResponse.Direction.OUT);
 
         LoanResponse afterFirstRepayment = loanService.findById(approved.id());
         assertThat(afterFirstRepayment.status()).isEqualTo(LoanStatus.IN_PROGRESS);

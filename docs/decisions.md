@@ -1706,6 +1706,17 @@ prêts**, **Sanctions**, **Fond de caisse** et **Ration**.
 
 * Usage précis de la Ration et du fond de caisse (catégories de dépenses).
 * Une sanction en nature n'apporte pas d'argent : elle reste hors des comptes.
+* Virements : pour l'instant seulement **entre** Sanctions, Fond de caisse et
+  Ration (un virement vers le fonds commun ou l'épargne est refusé). Faut-il
+  autoriser un virement **vers** le fonds commun ?
+* Dépenser la Ration **avant** la remise de la séance : la remise suit le
+  prorata de ce qui a été collecté et peut alors rendre le compte Ration
+  négatif. Faut-il bloquer les dépenses de Ration tant que la séance n'est pas
+  remise, ou ne remettre que ce qui reste ?
+* Une dépense ou un virement est **définitif** (pas d'annulation) ; une erreur
+  se corrige par une opération inverse. À confirmer.
+* Justificatif des dépenses : pas encore implémenté (montant, motif, date et
+  observation uniquement).
 
 ## Conséquence technique
 
@@ -1713,3 +1724,9 @@ prêts**, **Sanctions**, **Fond de caisse** et **Ration**.
 * Remise de cagnotte : cotisations obligatoires du fonds commun et de la
   Ration ; répartition au prorata (`FundService.rationPartOf`).
 * Écran « Fonds » : un solde par compte et un journal filtrable par compte.
+* Paiement des sanctions : table `sanction_payment` (V23), endpoints
+  `/api/sanctions/applied/{id}/payments` et `/api/sanctions/payments/...` ;
+  une sanction qui a des paiements ne peut plus être annulée.
+* Dépenses et virements : table `account_operation` (V24), endpoints
+  `GET/POST /api/funds/operations` (enregistrement TRESORIER), contrôle de
+  solde sous verrou PostgreSQL (`pg_advisory_xact_lock`).

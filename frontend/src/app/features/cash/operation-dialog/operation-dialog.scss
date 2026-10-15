@@ -1,0 +1,37 @@
+@use '../../../shared/styles/dialog' as dlg;
+
+@include dlg.dialog-base;
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 599.98px) {
+  .row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}
+
+.info {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--aekd-blue-soft);
+  color: var(--aekd-gray);
+  font-size: 13px;
+  line-height: 1.45;
+
+  mat-icon {
+    flex: none;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: var(--aekd-blue);
+  }
+}

@@ -1,0 +1,102 @@
+<div class="head">
+  <span class="head__icon head__icon--brown"><mat-icon>{{ isTransfer ? 'swap_horiz' : 'shopping_cart' }}</mat-icon></span>
+  <div class="head__text">
+    <h2 mat-dialog-title class="head__title">{{ isTransfer ? 'Virement entre comptes' : 'Nouvelle dépense' }}</h2>
+    <p class="head__subtitle">Sanctions, Fond de caisse ou Ration uniquement</p>
+  </div>
+</div>
+
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <mat-dialog-content class="body">
+    <p class="info">
+      <mat-icon>info</mat-icon>
+      <span>
+        Le fonds commun et l'épargne sont protégés. Aucun compte ne peut passer sous zéro. L'opération est
+        <strong>définitive</strong> et tracée dans l'audit.
+      </span>
+    </p>
+
+    <div [class.row]="isTransfer">
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>{{ isTransfer ? 'Depuis le compte' : 'Compte débité' }}</mat-label>
+        <mat-select formControlName="sourceAccount">
+          @for (a of operable; track a) {
+            <mat-option [value]="a">{{ accountStyles[a].label }} · {{ formatFcfa(balanceOf(a) ?? 0) }}</mat-option>
+          }
+        </mat-select>
+        @if (form.controls.sourceAccount.hasError('required')) {
+          <mat-error>Choisissez le compte</mat-error>
+        }
+      </mat-form-field>
+      @if (isTransfer) {
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>Vers le compte</mat-label>
+          <mat-select formControlName="targetAccount">
+            @for (a of targets(); track a) {
+              <mat-option [value]="a">{{ accountStyles[a].label }}</mat-option>
+            }
+          </mat-select>
+          @if (form.controls.targetAccount.hasError('required')) {
+            <mat-error>Choisissez le compte qui reçoit</mat-error>
+          }
+        </mat-form-field>
+      }
+    </div>
+
+    <div class="row">
+      <mat-form-field appearance="outline">
+        <mat-label>Montant</mat-label>
+        <input matInput type="number" inputmode="numeric" min="1" step="1" formControlName="amount" />
+        <span matTextSuffix>FCFA</span>
+        @if (available() !== null) {
+          <mat-hint>{{ formatFcfa(available()!) }} disponibles</mat-hint>
+        }
+        @if (form.controls.amount.hasError('required')) {
+          <mat-error>Le montant est requis</mat-error>
+        } @else if (form.controls.amount.invalid) {
+          <mat-error>Montant entier strictement positif</mat-error>
+        }
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Date</mat-label>
+        <input matInput [matDatepicker]="picker" [max]="today" formControlName="operationDate" (click)="picker.open()" />
+        <mat-datepicker-toggle matIconSuffix [for]="picker" />
+        <mat-datepicker #picker />
+        @if (form.controls.operationDate.hasError('required')) {
+          <mat-error>La date est requise</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    <mat-form-field appearance="outline" class="full">
+      <mat-label>Motif</mat-label>
+      <input matInput formControlName="label" [placeholder]="isTransfer ? 'Ex. : renfort du fond de caisse' : 'Ex. : achat de boissons'" />
+      @if (form.controls.label.hasError('required')) {
+        <mat-error>Le motif est requis</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full">
+      <mat-label>Observation (facultatif)</mat-label>
+      <textarea matInput rows="2" formControlName="observation"></textarea>
+    </mat-form-field>
+
+    @if (errorMessage(); as message) {
+      <p class="notice" role="alert">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ message }}</span>
+      </p>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="actions">
+    <button mat-button type="button" mat-dialog-close [disabled]="saving()">Annuler</button>
+    <button mat-flat-button type="submit" [disabled]="saving()">
+      @if (saving()) {
+        <mat-spinner diameter="20" />
+      } @else {
+        {{ isTransfer ? 'Effectuer le virement' : 'Enregistrer la dépense' }}
+      }
+    </button>
+  </mat-dialog-actions>
+</form>

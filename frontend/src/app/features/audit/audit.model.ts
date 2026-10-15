@@ -37,6 +37,8 @@ export type AuditAction =
   | 'SANCTION_PAYMENT_DECLARED'
   | 'SANCTION_PAYMENT_VALIDATED'
   | 'SANCTION_PAYMENT_REJECTED'
+  | 'ACCOUNT_EXPENSE_RECORDED'
+  | 'ACCOUNT_TRANSFER_RECORDED'
   | 'SAVINGS_RATE_SET'
   | 'LOAN_POLICY_CREATED'
   | 'LOAN_POLICY_UPDATED'
@@ -101,6 +103,8 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   SANCTION_PAYMENT_DECLARED: 'Paiement de sanction déclaré',
   SANCTION_PAYMENT_VALIDATED: 'Paiement de sanction validé',
   SANCTION_PAYMENT_REJECTED: 'Paiement de sanction rejeté',
+  ACCOUNT_EXPENSE_RECORDED: 'Dépense enregistrée',
+  ACCOUNT_TRANSFER_RECORDED: 'Virement entre comptes',
   SAVINGS_RATE_SET: "Taux d'épargne fixé",
   LOAN_POLICY_CREATED: 'Politique de prêt créée',
   LOAN_POLICY_UPDATED: 'Politique de prêt modifiée',
