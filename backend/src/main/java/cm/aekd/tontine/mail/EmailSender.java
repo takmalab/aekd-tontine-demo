@@ -21,6 +21,8 @@ import java.util.Map;
  *   journaux du serveur, pour le développement et tant que Brevo n'est pas
  *   configuré.</li>
  * </ul>
+ * Le super administrateur peut aussi forcer la simulation depuis « Paramètres
+ * e-mail » (decisions.md n° 56).
  */
 @Component
 @EnableConfigurationProperties(EmailProperties.class)
@@ -30,18 +32,28 @@ public class EmailSender {
 
     private final EmailProperties properties;
     private final RestClient restClient;
+    /** Absent dans certains tests : l'envoi réel n'est alors pas désactivable. */
+    private final EmailSettingsRepository settingsRepository;
 
-    public EmailSender(EmailProperties properties, RestClient.Builder builder) {
+    public EmailSender(EmailProperties properties, RestClient.Builder builder,
+                       EmailSettingsRepository settingsRepository) {
         this.properties = properties;
+        this.settingsRepository = settingsRepository;
         // Délais de connexion et de lecture : spring.http.client.* (application.yml).
         this.restClient = builder.baseUrl(properties.getBrevo().getBaseUrl()).build();
     }
 
-    /** Vrai si les e-mails partent réellement (et non en simulation). */
-    public boolean isLive() {
+    /** Brevo choisi, avec une clé et un expéditeur. */
+    public boolean isConfigured() {
         return "brevo".equalsIgnoreCase(properties.getProvider())
                 && !properties.getBrevo().getApiKey().isBlank()
                 && !properties.getFromAddress().isBlank();
+    }
+
+    /** Vrai si les e-mails partent réellement : configuré et non désactivé par le super administrateur. */
+    public boolean isLive() {
+        return isConfigured() && (settingsRepository == null || settingsRepository.findById(EmailSettings.SINGLETON_ID)
+                .map(EmailSettings::isEnabled).orElse(true));
     }
 
     public void send(String to, String subject, String text, String html) {

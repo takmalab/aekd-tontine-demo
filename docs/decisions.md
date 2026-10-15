@@ -1974,3 +1974,58 @@ Validé par le propriétaire du projet le 2026-10-16.
 * Endpoints publics : `POST /api/auth/email/verification`, `/email/verify`,
   `/email-otp/request`, `/email-otp/verify` ; profil :
   `GET /api/profile/email`, `POST /api/profile/email/code`, `/verify`.
+
+---
+
+# 56. Super administrateur et paramètres du système
+
+## Question
+
+Qui règle les paramètres techniques de l'application (SMS, e-mail…) et gère
+les administrateurs ?
+
+## Statut
+
+```text
+DÉCIDÉ
+```
+
+## Décision
+
+Validé par le propriétaire du projet le 2026-10-16.
+
+* Nouveau rôle **SUPER_ADMIN** : tous les droits de l'administrateur, plus les
+  paramètres du système. Le compte **admin@aekd.cm** devient super
+  administrateur.
+* Réservé au super administrateur :
+  * **Paramètres SMS** (fournisseur, secours, SMS de test) ;
+  * **Paramètres e-mail** (nouvel écran : état de Brevo, envoi réel ou
+    simulation, e-mail de test) ;
+  * **Rôles administrateurs** : seul lui nomme ou retire un administrateur ou
+    un super administrateur, et modifie un compte administrateur ;
+  * **Suppression définitive** d'un compte (l'administrateur peut toujours le
+    désactiver).
+* L'application garde toujours au moins un super administrateur actif.
+
+## Points à valider
+
+```text
+À VALIDER
+```
+
+D'autres réglages pourront rejoindre « Paramètres » (le propriétaire souhaite
+en ajouter). Propositions, non implémentées :
+
+* durée de la session sur l'appareil (aujourd'hui 30 jours, n° 54) ;
+* règles des codes SMS / e-mail (durée, essais, délai de renvoi, n° 47) ;
+* informations de l'association (nom, logo, coordonnées sur les PDF) ;
+* mode maintenance (bloquer les connexions sauf le bureau).
+
+## Conséquence technique
+
+* Rôle `SUPER_ADMIN` (V31), hiérarchie SUPER_ADMIN > ADMIN > TRESORIER. Un
+  super administrateur garde aussi le rôle ADMIN (les notifications et règles
+  existantes visent ADMIN).
+* Table `email_settings` (V31) ; `GET/PUT /api/settings/email`,
+  `POST /api/settings/email/test`. La clé Brevo reste dans les variables du
+  serveur et n'est jamais renvoyée.

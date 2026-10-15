@@ -92,7 +92,8 @@ const NAV_GROUPS: NavGroup[] = [
     icon: 'settings',
     items: [
       { label: 'Politiques de prêt', path: '/loan-policies', icon: 'policy' },
-      { label: 'Paramètres SMS', path: '/settings/sms', icon: 'sms', roles: ['ADMIN'] },
+      { label: 'Paramètres SMS', path: '/settings/sms', icon: 'sms', roles: ['SUPER_ADMIN'] },
+      { label: 'Paramètres e-mail', path: '/settings/email', icon: 'mail', roles: ['SUPER_ADMIN'] },
       { label: 'Notifications', path: '/notifications', icon: 'notifications' },
     ],
   },
@@ -111,6 +112,7 @@ function readCollapsed(): string[] {
 }
 
 const ROLE_LABELS: Record<RoleName, string> = {
+  SUPER_ADMIN: 'Super administrateur',
   ADMIN: 'Administrateur',
   TRESORIER: 'Trésorier',
   MEMBRE: 'Membre',
@@ -210,7 +212,10 @@ export class Shell {
   }
 
   readonly roleLabel = computed(() =>
-    (this.currentUser()?.roles ?? []).map((role) => ROLE_LABELS[role] ?? role).join(' · '),
+    (this.currentUser()?.roles ?? [])
+      .filter((role, _, all) => !(role === 'ADMIN' && all.includes('SUPER_ADMIN')))
+      .map((role) => ROLE_LABELS[role] ?? role)
+      .join(' · '),
   );
 
   readonly initials = computed(() => {

@@ -103,6 +103,12 @@ public class UserDeletionService {
         if (userId.equals(currentUserId)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Vous ne pouvez pas supprimer votre propre compte.");
         }
+        if (hasRole(userId, "SUPER_ADMIN") && count("""
+                SELECT count(*) FROM user_roles ur JOIN role r ON r.id = ur.role_id WHERE r.name = 'SUPER_ADMIN'
+                """) <= 1) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Impossible de supprimer le dernier super administrateur.");
+        }
         if (hasRole(userId, "ADMIN") && count("""
                 SELECT count(*) FROM user_roles ur JOIN role r ON r.id = ur.role_id WHERE r.name = 'ADMIN'
                 """) <= 1) {

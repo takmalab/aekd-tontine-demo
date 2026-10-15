@@ -141,6 +141,9 @@ public class DemoDataSeeder implements ApplicationRunner {
         Role membreRole = roleRepository.findByName(RoleName.MEMBRE).orElseThrow();
 
         User admin = createUser("admin@aekd.cm", "+237600000001", passwordAdmin, adminRole);
+        // Super administrateur (decisions.md n° 56) : il garde aussi le rôle ADMIN.
+        admin.addRole(roleRepository.findByName(RoleName.SUPER_ADMIN).orElseThrow());
+        admin = userRepository.save(admin);
         User tresorier = createUser("tresorier@aekd.cm", "+237600000002", passwordTresorier, tresorierRole);
 
         Member jean = createMemberAccount("jean.mbarga@aekd.cm", "+237600000003", "Jean Mbarga", LocalDate.of(2024, 1, 15), membreRole);

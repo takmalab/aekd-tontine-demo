@@ -13,10 +13,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Paramètres SMS : ADMIN uniquement (docs/decisions.md n° 48). */
+/** Paramètres SMS : super administrateur uniquement (docs/decisions.md n° 48 et 56). */
 @RestController
 @RequestMapping("/api/settings/sms")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasRole('SUPER_ADMIN')")
 public class SmsSettingsController {
 
     private final SmsSettingsService service;

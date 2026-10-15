@@ -65,12 +65,15 @@ public class UserController {
 
     /** Ce que la suppression effacerait (affiché avant confirmation). */
     @GetMapping("/{id}/deletion-impact")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public UserDeletionService.DeletionImpact deletionImpact(@PathVariable UUID id) {
         return deletionService.impact(id);
     }
 
     /** Suppression définitive du compte, du profil membre et de tout son historique (décision n° 41). */
+    /** Suppression définitive : super administrateur uniquement (decisions.md n° 56). */
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         deletionService.delete(id);
         return ResponseEntity.noContent().build();

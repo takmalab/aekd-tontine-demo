@@ -65,6 +65,13 @@ export class UsersList implements OnInit {
   readonly currentEmail = this.authService.currentUser()?.email ?? null;
 
   readonly roleLabels = ROLE_LABELS;
+  /** Super administrateur : gère les administrateurs et supprime des comptes (decisions.md n° 56). */
+  readonly isSuperAdmin = this.authService.hasRole('SUPER_ADMIN');
+
+  /** Un administrateur ne modifie pas un compte administrateur (refusé aussi par le serveur). */
+  canEdit(user: { roles: string[] }): boolean {
+    return this.isSuperAdmin || !user.roles.some((role) => role === 'ADMIN' || role === 'SUPER_ADMIN');
+  }
   readonly statusLabels = USER_STATUS_LABELS;
   readonly badgeVariant = STATUS_BADGE_VARIANT;
 

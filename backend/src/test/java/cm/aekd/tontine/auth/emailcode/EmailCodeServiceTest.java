@@ -49,7 +49,7 @@ class EmailCodeServiceTest {
         final List<String[]> sent = new ArrayList<>();
 
         RecordingEmailSender() {
-            super(new EmailProperties(), RestClient.builder());
+            super(new EmailProperties(), RestClient.builder(), null);
         }
 
         @Override

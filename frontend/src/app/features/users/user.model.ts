@@ -48,6 +48,7 @@ export const USER_STATUS_LABELS: Record<UserStatus, string> = {
 };
 
 export const ROLE_LABELS: Record<RoleName, string> = {
+  SUPER_ADMIN: 'Super administrateur',
   ADMIN: 'Administrateur',
   TRESORIER: 'Trésorier',
   MEMBRE: 'Membre',

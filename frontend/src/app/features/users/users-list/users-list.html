@@ -57,17 +57,19 @@
               </div>
             </div>
             <div class="item__actions">
-              <button mat-stroked-button type="button" (click)="edit(u)">
-                <mat-icon>edit</mat-icon>
-                Modifier
-              </button>
+              @if (canEdit(u)) {
+                <button mat-stroked-button type="button" (click)="edit(u)">
+                  <mat-icon>edit</mat-icon>
+                  Modifier
+                </button>
+              }
               @if (u.status === 'PENDING_VALIDATION') {
                 <button mat-flat-button type="button" (click)="approve(u)" [disabled]="busyId() === u.id">
                   <mat-icon>task_alt</mat-icon>
                   Valider
                 </button>
               }
-              @if (u.email !== currentEmail) {
+              @if (isSuperAdmin && u.email !== currentEmail) {
                 <button mat-stroked-button type="button" class="delete" (click)="remove(u)">
                   <mat-icon>delete</mat-icon>
                   Supprimer

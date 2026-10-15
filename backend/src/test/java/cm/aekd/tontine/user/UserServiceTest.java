@@ -7,6 +7,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
@@ -78,9 +80,9 @@ class UserServiceTest {
         assertThat(disabled.roles()).containsExactly(RoleName.MEMBRE);
 
         UserResponse reRoled = userService.update(created.id(),
-                new UpdateUserRequest(null, List.of(RoleName.ADMIN, RoleName.TRESORIER)));
+                new UpdateUserRequest(null, List.of(RoleName.MEMBRE, RoleName.TRESORIER)));
         assertThat(reRoled.status()).isEqualTo(UserStatus.DISABLED);
-        assertThat(reRoled.roles()).containsExactlyInAnyOrder(RoleName.ADMIN, RoleName.TRESORIER);
+        assertThat(reRoled.roles()).containsExactlyInAnyOrder(RoleName.MEMBRE, RoleName.TRESORIER);
     }
 
     @Test
@@ -95,7 +97,7 @@ class UserServiceTest {
     @Test
     void findAllIncludesCreatedUser() {
         userService.create(new CreateUserRequest("list1@test.aekd.cm", "Secret@123",
-                List.of(RoleName.ADMIN), null));
+                List.of(RoleName.TRESORIER), null));
 
         assertThat(userService.findAll()).extracting(UserResponse::email).contains("list1@test.aekd.cm");
     }
@@ -204,5 +206,33 @@ class UserServiceTest {
 
         UserResponse removed = userService.update(created.id(), new UpdateUserRequest(null, null, ""));
         assertThat(removed.phone()).isNull();
+    }
+
+    private void loginAs(String email, RoleName role) {
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+                email, null, List.of(new SimpleGrantedAuthority("ROLE_" + role))));
+    }
+
+    @Test
+    void onlyASuperAdminManagesAdministrators() {
+        // decisions.md n° 56.
+        loginAs("simple.admin@test.aekd.cm", RoleName.ADMIN);
+        assertThatThrownBy(() -> userService.create(new CreateUserRequest(
+                "new.admin@test.aekd.cm", "Secret@123", List.of(RoleName.ADMIN), null)))
+                .hasMessageContaining("super administrateur");
+        UserResponse member = userService.create(new CreateUserRequest(
+                "promote.me@test.aekd.cm", "Secret@123", List.of(RoleName.MEMBRE), null));
+        assertThatThrownBy(() -> userService.update(member.id(), new UpdateUserRequest(null, List.of(RoleName.ADMIN))))
+                .hasMessageContaining("super administrateur");
+
+        loginAs("root@test.aekd.cm", RoleName.SUPER_ADMIN);
+        // Un super administrateur garde toujours aussi le rôle ADMIN.
+        UserResponse superAdmin = userService.update(member.id(),
+                new UpdateUserRequest(null, List.of(RoleName.SUPER_ADMIN)));
+        assertThat(superAdmin.roles()).contains(RoleName.SUPER_ADMIN, RoleName.ADMIN);
+
+        loginAs("simple.admin@test.aekd.cm", RoleName.ADMIN);
+        assertThatThrownBy(() -> userService.update(member.id(), new UpdateUserRequest(UserStatus.DISABLED, null)))
+                .hasMessageContaining("super administrateur");
     }
 }

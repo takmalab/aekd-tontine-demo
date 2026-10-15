@@ -46,10 +46,16 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final AuditLogService auditLogService;
     private final NotificationService notificationService;
+    private final cm.aekd.tontine.common.CurrentUserProvider currentUserProvider;
+
+    /** Rôles que seul un super administrateur attribue ou retire (decisions.md n° 56). */
+    private static final Set<RoleName> PRIVILEGED = Set.of(RoleName.SUPER_ADMIN, RoleName.ADMIN);
 
     public UserService(UserRepository userRepository, RoleRepository roleRepository,
                         MemberRepository memberRepository, PasswordEncoder passwordEncoder,
-                        AuditLogService auditLogService, NotificationService notificationService) {
+                        AuditLogService auditLogService, NotificationService notificationService,
+                        cm.aekd.tontine.common.CurrentUserProvider currentUserProvider) {
+        this.currentUserProvider = currentUserProvider;
         this.notificationService = notificationService;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
@@ -59,7 +65,11 @@ public class UserService {
     }
 
     public UserResponse create(CreateUserRequest request) {
-        User user = createInternal(request.email(), request.password(), request.roles(),
+        List<RoleName> roles = withImpliedRoles(request.roles());
+        if (roles.stream().anyMatch(PRIVILEGED::contains)) {
+            requireSuperAdmin("créer un compte administrateur");
+        }
+        User user = createInternal(request.email(), request.password(), roles,
                 request.member() != null ? request.member().fullName() : null,
                 request.phone() != null ? request.phone()
                         : request.member() != null ? request.member().phone() : null,
@@ -120,6 +130,12 @@ public class UserService {
 
     public UserResponse update(UUID id, UpdateUserRequest request) {
         User user = getOrThrow(id);
+        Set<RoleName> before = roleNamesOf(user);
+
+        // Un administrateur ou super administrateur n'est modifié que par un super administrateur.
+        if (before.stream().anyMatch(PRIVILEGED::contains)) {
+            requireSuperAdmin("modifier un compte administrateur");
+        }
 
         if (request.status() != null) {
             user.setStatus(request.status());
@@ -137,9 +153,19 @@ public class UserService {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                         "Un utilisateur doit avoir au moins un rôle");
             }
-            Set<Role> newRoles = resolveRoles(request.roles());
+            List<RoleName> wanted = withImpliedRoles(request.roles());
+            if (wanted.stream().anyMatch(PRIVILEGED::contains)) {
+                requireSuperAdmin("nommer un administrateur");
+            }
+            if (before.contains(RoleName.SUPER_ADMIN) && !wanted.contains(RoleName.SUPER_ADMIN)) {
+                checkNotLastSuperAdmin(user);
+            }
+            Set<Role> newRoles = resolveRoles(wanted);
             new HashSet<>(user.getRoles()).forEach(user::removeRole);
             newRoles.forEach(user::addRole);
+        }
+        if (request.status() != null && request.status() != UserStatus.ACTIVE && before.contains(RoleName.SUPER_ADMIN)) {
+            checkNotLastSuperAdmin(user);
         }
 
         user = userRepository.save(user);
@@ -188,6 +214,40 @@ public class UserService {
                     throw new ResponseStatusException(HttpStatus.CONFLICT,
                             "Ce numéro de téléphone est déjà utilisé par un autre compte");
                 });
+    }
+
+    /** Un super administrateur garde toujours aussi le rôle ADMIN (decisions.md n° 56). */
+    private static List<RoleName> withImpliedRoles(List<RoleName> roles) {
+        if (roles == null || !roles.contains(RoleName.SUPER_ADMIN) || roles.contains(RoleName.ADMIN)) {
+            return roles;
+        }
+        List<RoleName> all = new java.util.ArrayList<>(roles);
+        all.add(RoleName.ADMIN);
+        return all;
+    }
+
+    private static Set<RoleName> roleNamesOf(User user) {
+        Set<RoleName> names = new HashSet<>();
+        user.getRoles().forEach(role -> names.add(role.getName()));
+        return names;
+    }
+
+    private void requireSuperAdmin(String action) {
+        if (!currentUserProvider.hasAnyRole(RoleName.SUPER_ADMIN.name())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Seul un super administrateur peut " + action);
+        }
+    }
+
+    /** L'application doit garder au moins un super administrateur actif. */
+    private void checkNotLastSuperAdmin(User user) {
+        long others = userRepository.findByRoleNamesAndStatus(Set.of(RoleName.SUPER_ADMIN), UserStatus.ACTIVE).stream()
+                .filter(other -> !other.getId().equals(user.getId()))
+                .count();
+        if (others == 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Impossible : c'est le dernier super administrateur actif. Nommez-en d'abord un autre.");
+        }
     }
 
     private Set<Role> resolveRoles(List<RoleName> names) {

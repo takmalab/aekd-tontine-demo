@@ -1,4 +1,5 @@
-export type RoleName = 'ADMIN' | 'TRESORIER' | 'MEMBRE';
+/** SUPER_ADMIN : tous les droits de l'ADMIN et les paramètres du système (decisions.md n° 56). */
+export type RoleName = 'SUPER_ADMIN' | 'ADMIN' | 'TRESORIER' | 'MEMBRE';
 
 export interface LoginRequest {
   email: string;

@@ -25,6 +25,7 @@ const REFRESH_KEY = 'aekd_refresh';
  * devient pas MEMBRE : l'espace personnel dépend du profil membre.
  */
 const IMPLIED_ROLES: Partial<Record<RoleName, RoleName[]>> = {
+  SUPER_ADMIN: ['ADMIN', 'TRESORIER'],
   ADMIN: ['TRESORIER'],
 };
 

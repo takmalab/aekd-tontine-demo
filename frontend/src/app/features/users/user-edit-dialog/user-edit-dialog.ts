@@ -8,11 +8,14 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
+import { AuthService } from '../../../core/services/auth.service';
 import { RoleName } from '../../../core/models/auth.model';
 import { AppUser, ROLE_LABELS, USER_STATUS_LABELS, UserStatus } from '../user.model';
 import { UserService } from '../user.service';
 
-const ALL_ROLES: RoleName[] = ['ADMIN', 'TRESORIER', 'MEMBRE'];
+/** Rôles administrateurs : attribués par un super administrateur seulement (decisions.md n° 56). */
+const ALL_ROLES: RoleName[] = ['SUPER_ADMIN', 'ADMIN', 'TRESORIER', 'MEMBRE'];
+const STAFF_ROLES: RoleName[] = ['TRESORIER', 'MEMBRE'];
 const ALL_STATUSES: UserStatus[] = ['PENDING_VALIDATION', 'ACTIVE', 'DISABLED'];
 
 /**
@@ -42,7 +45,7 @@ export class UserEditDialog {
   private readonly dialogRef = inject<MatDialogRef<UserEditDialog, AppUser>>(MatDialogRef);
   readonly user = inject<AppUser>(MAT_DIALOG_DATA);
 
-  readonly allRoles = ALL_ROLES;
+  readonly allRoles = inject(AuthService).hasRole('SUPER_ADMIN') ? ALL_ROLES : STAFF_ROLES;
   readonly allStatuses = ALL_STATUSES;
   readonly roleLabels = ROLE_LABELS;
   readonly statusLabels = USER_STATUS_LABELS;

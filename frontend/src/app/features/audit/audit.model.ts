@@ -58,6 +58,8 @@ export type AuditAction =
   | 'USER_EMAIL_VERIFIED'
   | 'SMS_SETTINGS_UPDATED'
   | 'SMS_TEST_SENT'
+  | 'EMAIL_SETTINGS_UPDATED'
+  | 'EMAIL_TEST_SENT'
   | 'USER_DELETED';
 
 /** Miroir de AuditLogResponse (backend). */
@@ -130,5 +132,7 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   USER_EMAIL_VERIFIED: 'Adresse e-mail vérifiée',
   SMS_SETTINGS_UPDATED: 'Fournisseur SMS modifié',
   SMS_TEST_SENT: 'SMS de test envoyé',
+  EMAIL_SETTINGS_UPDATED: 'Paramètres e-mail modifiés',
+  EMAIL_TEST_SENT: 'E-mail de test',
   USER_DELETED: 'Compte supprimé',
 };

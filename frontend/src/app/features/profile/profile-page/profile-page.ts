@@ -17,6 +17,7 @@ import { ConfirmDialog, ConfirmDialogData } from '../../../shared/components/con
 import { MemberService } from '../../members/member.service';
 
 const ROLE_LABELS: Record<RoleName, string> = {
+  SUPER_ADMIN: 'Super administrateur',
   ADMIN: 'Administrateur',
   TRESORIER: 'Trésorier',
   MEMBRE: 'Membre',
