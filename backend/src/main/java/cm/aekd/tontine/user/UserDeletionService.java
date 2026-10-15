@@ -165,6 +165,10 @@ public class UserDeletionService {
                 SELECT proof_storage_key FROM savings_deposit
                 WHERE member_id = ? AND proof_storage_key IS NOT NULL
                 """, String.class, memberId));
+        keys.addAll(jdbc.queryForList("""
+                SELECT proof_storage_key FROM sanction_payment
+                WHERE member_id = ? AND proof_storage_key IS NOT NULL
+                """, String.class, memberId));
         return keys;
     }
 

@@ -22,9 +22,14 @@ public record AppliedSanctionResponse(
         String description,
         AppliedSanctionStatus status,
         String appliedByEmail,
-        Instant appliedAt
+        Instant appliedAt,
+        /** Paiements validés (decisions.md n° 50) ; 0 pour une sanction en nature. */
+        BigDecimal paidAmount,
+        /** Paiements déclarés, en attente de validation. */
+        BigDecimal pendingAmount
 ) {
-    public static AppliedSanctionResponse from(AppliedSanction sanction) {
+    public static AppliedSanctionResponse from(AppliedSanction sanction, BigDecimal paidAmount,
+                                               BigDecimal pendingAmount) {
         ContributionPeriod period = sanction.getContributionPeriod();
         ContributionDefinition definition = period.getContributionDefinition();
         return new AppliedSanctionResponse(
@@ -42,7 +47,9 @@ public record AppliedSanctionResponse(
                 sanction.getDescription(),
                 sanction.getStatus(),
                 sanction.getAppliedBy() != null ? sanction.getAppliedBy().getEmail() : null,
-                sanction.getCreatedAt()
+                sanction.getCreatedAt(),
+                paidAmount,
+                pendingAmount
         );
     }
 }

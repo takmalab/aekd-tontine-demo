@@ -21,6 +21,8 @@ import cm.aekd.tontine.payout.SessionPayoutRepository;
 import cm.aekd.tontine.repayment.LoanRepayment;
 import cm.aekd.tontine.repayment.LoanRepaymentRepository;
 import cm.aekd.tontine.repayment.LoanRepaymentStatus;
+import cm.aekd.tontine.sanction.SanctionPaymentRepository;
+import cm.aekd.tontine.sanction.SanctionPaymentStatus;
 import cm.aekd.tontine.savings.SavingsDepositRepository;
 import cm.aekd.tontine.savings.SavingsDepositStatus;
 import org.springframework.stereotype.Service;
@@ -58,10 +60,13 @@ public class FundOverviewService {
     private final SavingsDepositRepository depositRepository;
     private final LoanRepository loanRepository;
     private final LoanRepaymentRepository repaymentRepository;
+    private final SanctionPaymentRepository sanctionPaymentRepository;
 
     public FundOverviewService(FundService fundService, ContributionTransactionRepository transactionRepository,
                                SessionPayoutRepository payoutRepository, SavingsDepositRepository depositRepository,
-                               LoanRepository loanRepository, LoanRepaymentRepository repaymentRepository) {
+                               LoanRepository loanRepository, LoanRepaymentRepository repaymentRepository,
+                               SanctionPaymentRepository sanctionPaymentRepository) {
+        this.sanctionPaymentRepository = sanctionPaymentRepository;
         this.fundService = fundService;
         this.transactionRepository = transactionRepository;
         this.payoutRepository = payoutRepository;
@@ -95,7 +100,8 @@ public class FundOverviewService {
                         new Figure(FigureCode.TOTAL_SAVINGS, fundService.totalIndividualSavings()),
                         new Figure(FigureCode.OUTSTANDING_LOAN_CAPITAL, fundService.outstandingLoanCapital()),
                         new Figure(FigureCode.LOAN_INTEREST_COLLECTED, interestCollected(repayments)))),
-                new AccountSummary(Account.SANCTIONS, BigDecimal.ZERO, List.of()),
+                new AccountSummary(Account.SANCTIONS, fundService.sanctionsBalance(), List.of(
+                        new Figure(FigureCode.COLLECTED, fundService.sanctionsCollected()))),
                 new AccountSummary(Account.CASH_FUND, fundService.cashFundBalance(), List.of(
                         new Figure(FigureCode.COLLECTED, fundService.cashFundCollected()))),
                 new AccountSummary(Account.RATION, fundService.rationCollected().subtract(rationRemitted), List.of(
@@ -141,6 +147,12 @@ public class FundOverviewService {
             movements.add(new Movement(r.getPaymentDate(), MovementType.LOAN_REPAYMENT, Account.SAVINGS, Direction.IN,
                     "Remboursement de prêt", r.getLoan().getMember().getFullName(), r.getAmount()));
         }
+        sanctionPaymentRepository.findByStatusOrderByCreatedAtAsc(SanctionPaymentStatus.VALIDATED).forEach(s -> {
+            ContributionPeriod period = s.getAppliedSanction().getContributionPeriod();
+            movements.add(new Movement(s.getPaymentDate(), MovementType.SANCTION_PAYMENT, Account.SANCTIONS,
+                    Direction.IN, "Sanction – " + period.getContributionDefinition().getName() + " – "
+                    + period.getSession().getLabel(), s.getMember().getFullName(), s.getAmount()));
+        });
         movements.sort(Comparator.comparing(Movement::date, Comparator.nullsLast(Comparator.reverseOrder())));
         return movements;
     }

@@ -1,8 +1,15 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { AppliedSanction, SanctionCandidate, SanctionRule, SanctionRuleRequest } from './sanction.model';
+import {
+  AppliedSanction,
+  SanctionCandidate,
+  SanctionPayment,
+  SanctionPaymentRequest,
+  SanctionRule,
+  SanctionRuleRequest,
+} from './sanction.model';
 
 /**
  * Sanctions (CLAUDE.md §18-§19). Rôles côté backend :
@@ -37,6 +44,37 @@ export class SanctionService {
 
   mine(): Observable<AppliedSanction[]> {
     return this.http.get<AppliedSanction[]>(`${this.baseUrl}/applied/mine`);
+  }
+
+  /** Paiement des sanctions (decisions.md n° 50) : déclaré par le membre, validé par le trésorier. */
+  declarePayment(appliedId: string, request: SanctionPaymentRequest): Observable<SanctionPayment> {
+    return this.http.post<SanctionPayment>(`${this.baseUrl}/applied/${appliedId}/payments`, request);
+  }
+
+  uploadPaymentProof(paymentId: string, file: File): Observable<SanctionPayment> {
+    const body = new FormData();
+    body.append('file', file);
+    return this.http.post<SanctionPayment>(`${this.baseUrl}/payments/${paymentId}/proof`, body);
+  }
+
+  downloadPaymentProof(paymentId: string): Observable<HttpResponse<Blob>> {
+    return this.http.get(`${this.baseUrl}/payments/${paymentId}/proof`, { observe: 'response', responseType: 'blob' });
+  }
+
+  myPayments(): Observable<SanctionPayment[]> {
+    return this.http.get<SanctionPayment[]>(`${this.baseUrl}/payments/mine`);
+  }
+
+  pendingPayments(): Observable<SanctionPayment[]> {
+    return this.http.get<SanctionPayment[]>(`${this.baseUrl}/payments/pending`);
+  }
+
+  validatePayment(paymentId: string): Observable<SanctionPayment> {
+    return this.http.put<SanctionPayment>(`${this.baseUrl}/payments/${paymentId}/validate`, {});
+  }
+
+  rejectPayment(paymentId: string): Observable<SanctionPayment> {
+    return this.http.put<SanctionPayment>(`${this.baseUrl}/payments/${paymentId}/reject`, {});
   }
 
   applied(contributionDefinitionId: string): Observable<AppliedSanction[]> {

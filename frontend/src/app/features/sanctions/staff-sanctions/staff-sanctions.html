@@ -17,6 +17,61 @@
     </p>
   }
 
+  <!-- Paiements de sanctions à valider (toutes cotisations, decisions.md n° 50) -->
+  @if (pendingError()) {
+    <p class="empty">
+      Impossible de charger les paiements de sanctions en attente.
+      <button mat-button type="button" (click)="loadPendingPayments()"><mat-icon>refresh</mat-icon> Réessayer</button>
+    </p>
+  } @else if (pendingPayments().length > 0) {
+    <section class="block">
+      <div class="block__head">
+        <h2 class="block__title">
+          <mat-icon>hourglass_top</mat-icon> Paiements de sanctions à valider
+          <span class="count">{{ pendingPayments().length }}</span>
+        </h2>
+      </div>
+      <div class="list">
+        @for (p of pendingPayments(); track p.id) {
+          <article class="item">
+            <div class="item__main">
+              <div class="item__top">
+                <h3 class="item__name">{{ p.memberFullName }}</h3>
+                <span class="status status--tx-pending">En attente</span>
+              </div>
+              <div class="item__meta">
+                <span class="item__amount">{{ formatFcfa(p.amount) }}</span>
+                <span class="item__due"><mat-icon>gavel</mat-icon> {{ p.sanctionLabel }}</span>
+              </div>
+              <p class="item__tx">
+                <mat-icon>receipt_long</mat-icon>
+                <span>
+                  {{ operatorLabels[p.operator] }} · réf. {{ p.reference }} · payé le {{ p.paymentDate | date: 'd MMM yyyy' }}
+                </span>
+              </p>
+              @if (p.observation) {
+                <p class="item__obs">« {{ p.observation }} »</p>
+              }
+            </div>
+            <div class="item__actions">
+              @if (p.hasProof) {
+                <button mat-button type="button" (click)="viewProof(p)"><mat-icon>visibility</mat-icon> Justificatif</button>
+              }
+              @if (isTreasurer) {
+                <button mat-button type="button" class="cancel" (click)="decidePayment(p, false)" [disabled]="busy() === p.id">
+                  <mat-icon>block</mat-icon> Rejeter
+                </button>
+                <button mat-flat-button type="button" (click)="decidePayment(p, true)" [disabled]="busy() === p.id">
+                  <mat-icon>check</mat-icon> Valider
+                </button>
+              }
+            </div>
+          </article>
+        }
+      </div>
+    </section>
+  }
+
   @if (loading()) {
     <div class="state"><mat-spinner diameter="40" /></div>
   } @else if (error()) {

@@ -64,6 +64,12 @@ class SanctionFlowTest {
     private AppliedSanctionService appliedService;
 
     @Autowired
+    private SanctionPaymentService sanctionPaymentService;
+
+    @Autowired
+    private cm.aekd.tontine.fund.FundService fundService;
+
+    @Autowired
     private RoleRepository roleRepository;
 
     @Autowired
@@ -263,5 +269,58 @@ class SanctionFlowTest {
         assertThatThrownBy(() -> appliedService.cancel(applied.id()))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("vous concerne");
+    }
+
+    private SanctionPaymentDtos.DeclareRequest payment(long amount, String reference) {
+        return new SanctionPaymentDtos.DeclareRequest(BigDecimal.valueOf(amount), LocalDate.now(),
+                PaymentOperator.MTN_MOMO, reference, null);
+    }
+
+    @Test
+    void monetarySanctionIsPaidInInstalmentsAndFeedsTheSanctionsAccount() {
+        // decisions.md n° 50 : le membre déclare, le trésorier valide ; seul le validé entre au compte.
+        Member treasurer = createMember(RoleName.TRESORIER, "sanpay-treso");
+        Member lateMember = createMember(RoleName.MEMBRE, "sanpay-late");
+        Member other = createMember(RoleName.MEMBRE, "sanpay-other");
+        ContributionPeriodResponse period = setupMandatoryDefinition(treasurer, lateMember,
+                LocalDate.of(2026, 9, 5), new BigDecimal(10000));
+        loginAsMember(treasurer, RoleName.TRESORIER);
+        SanctionRuleResponse rule = ruleService.create(new SanctionRuleRequest(
+                period.contributionDefinitionId(), SanctionType.MONETARY, 3, new BigDecimal(2000), null));
+        AppliedSanctionResponse sanction = appliedService.apply(rule.id(),
+                new ApplySanctionRequest(lateMember.getId(), period.id()));
+        BigDecimal accountBefore = fundService.sanctionsBalance();
+
+        loginAsMember(other, RoleName.MEMBRE);
+        assertThatThrownBy(() -> sanctionPaymentService.declare(sanction.id(), payment(500, "AUTRE")))
+                .hasMessageContaining("vos propres sanctions");
+
+        loginAsMember(lateMember, RoleName.MEMBRE);
+        SanctionPaymentDtos.PaymentResponse first = sanctionPaymentService.declare(sanction.id(), payment(1500, "SAN-1"));
+        assertThat(first.status()).isEqualTo(SanctionPaymentStatus.PENDING);
+        // 1 500 déjà en attente : il ne reste que 500 à déclarer.
+        assertThatThrownBy(() -> sanctionPaymentService.declare(sanction.id(), payment(1000, "SAN-2")))
+                .hasMessageContaining("reste à payer");
+        assertThat(fundService.sanctionsBalance()).isEqualByComparingTo(accountBefore);
+
+        loginAsMember(treasurer, RoleName.TRESORIER);
+        sanctionPaymentService.validate(first.id());
+        assertThat(fundService.sanctionsBalance()).isEqualByComparingTo(accountBefore.add(new BigDecimal(1500)));
+
+        loginAsMember(lateMember, RoleName.MEMBRE);
+        SanctionPaymentDtos.PaymentResponse second = sanctionPaymentService.declare(sanction.id(), payment(500, "SAN-3"));
+        loginAsMember(treasurer, RoleName.TRESORIER);
+        sanctionPaymentService.validate(second.id());
+
+        loginAsMember(lateMember, RoleName.MEMBRE);
+        AppliedSanctionResponse paid = appliedService.findMine().stream()
+                .filter(a -> a.id().equals(sanction.id())).findFirst().orElseThrow();
+        assertThat(paid.paidAmount()).isEqualByComparingTo(new BigDecimal(2000));
+        assertThat(paid.pendingAmount()).isEqualByComparingTo(BigDecimal.ZERO);
+
+        // De l'argent est rattaché à la sanction : elle ne peut plus être annulée.
+        loginAsMember(treasurer, RoleName.TRESORIER);
+        assertThatThrownBy(() -> appliedService.cancel(sanction.id()))
+                .hasMessageContaining("paiement");
     }
 }

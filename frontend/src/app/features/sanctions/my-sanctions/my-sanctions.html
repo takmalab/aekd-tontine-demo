@@ -31,6 +31,7 @@
       <span><strong>{{ active().length }}</strong> sanction{{ active().length > 1 ? 's' : '' }} en vigueur</span>
       @if (activeAmount() > 0) {
         <span>Montant des sanctions monétaires : <strong class="totals__amount">{{ formatFcfa(activeAmount()) }}</strong></span>
+        <span>Reste à payer : <strong class="totals__amount">{{ formatFcfa(remainingAmount()) }}</strong></span>
       }
     </div>
 
@@ -56,9 +57,39 @@
               <mat-icon>gavel</mat-icon>
               <span>Appliquée le {{ s.appliedAt | date: 'd MMM yyyy' }} par {{ s.appliedByEmail }}</span>
             </p>
+            @if (s.type === 'MONETARY' && s.status === 'APPLIED') {
+              <div class="pay">
+                <span>
+                  Payé <strong>{{ formatFcfa(s.paidAmount) }}</strong>
+                  @if (s.pendingAmount > 0) {
+                    · en attente {{ formatFcfa(s.pendingAmount) }}
+                  }
+                  · reste <strong>{{ formatFcfa(remaining(s)) }}</strong>
+                </span>
+                @if (remaining(s) > 0) {
+                  <button mat-flat-button type="button" (click)="pay(s)"><mat-icon>payments</mat-icon> Payer</button>
+                } @else if (s.pendingAmount === 0) {
+                  <span class="pay__done"><mat-icon>check_circle</mat-icon> Sanction payée</span>
+                }
+              </div>
+            }
           </div>
         </article>
       }
     </div>
+
+    @if (payments().length > 0) {
+      <h2 class="group-title">Mes paiements de sanctions</h2>
+      <div class="payments">
+        @for (p of payments(); track p.id) {
+          <div class="payment">
+            <span class="payment__label">{{ p.sanctionLabel }}</span>
+            <span class="payment__meta">{{ p.paymentDate | date: 'd MMM yyyy' }} · {{ p.reference }}</span>
+            <span class="payment__amount">{{ formatFcfa(p.amount) }}</span>
+            <span [class]="'status status--tx-' + p.status.toLowerCase()">{{ paymentStatusLabels[p.status] }}</span>
+          </div>
+        }
+      </div>
+    }
   }
 </section>

@@ -16,6 +16,9 @@ public enum NotificationType {
     LOAN_REJECTED,
     SANCTION_APPLIED,
     SANCTION_CANCELLED,
+    SANCTION_PAYMENT_DECLARED,
+    SANCTION_PAYMENT_VALIDATED,
+    SANCTION_PAYMENT_REJECTED,
     CONTRIBUTION_REMINDER,
     // Bénéficiaire : remise de sa part de la cagnotte (docs/decisions.md n° 46)
     SESSION_PAYOUT_RECEIVED,

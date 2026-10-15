@@ -9,6 +9,8 @@ export type NotificationType =
   | 'LOAN_REPAYMENT_RECORDED'
   | 'SAVINGS_DEPOSIT_VALIDATED'
   | 'SAVINGS_DEPOSIT_REJECTED'
+  | 'SANCTION_PAYMENT_VALIDATED'
+  | 'SANCTION_PAYMENT_REJECTED'
   | 'LOAN_APPROVED'
   | 'LOAN_REJECTED'
   | 'SANCTION_APPLIED'
@@ -19,6 +21,7 @@ export type NotificationType =
   | 'PAYMENT_DECLARED'
   | 'LOAN_REPAYMENT_DECLARED'
   | 'SAVINGS_DEPOSIT_DECLARED'
+  | 'SANCTION_PAYMENT_DECLARED'
   | 'LOAN_REQUESTED'
   | 'USER_REGISTERED'
   | 'TOURNAMENT_SESSION_GENERATED'
@@ -55,6 +58,8 @@ export const NOTIFICATION_STYLE: Record<NotificationType, { icon: string; tone: 
   LOAN_REPAYMENT_RECORDED: { icon: 'receipt_long', tone: 'good' },
   SAVINGS_DEPOSIT_VALIDATED: { icon: 'savings', tone: 'good' },
   SAVINGS_DEPOSIT_REJECTED: { icon: 'cancel', tone: 'bad' },
+  SANCTION_PAYMENT_VALIDATED: { icon: 'task_alt', tone: 'good' },
+  SANCTION_PAYMENT_REJECTED: { icon: 'cancel', tone: 'bad' },
   LOAN_APPROVED: { icon: 'account_balance', tone: 'good' },
   LOAN_REJECTED: { icon: 'block', tone: 'bad' },
   SANCTION_APPLIED: { icon: 'gavel', tone: 'bad' },
@@ -65,6 +70,7 @@ export const NOTIFICATION_STYLE: Record<NotificationType, { icon: string; tone: 
   PAYMENT_DECLARED: { icon: 'fact_check', tone: 'todo' },
   LOAN_REPAYMENT_DECLARED: { icon: 'fact_check', tone: 'todo' },
   SAVINGS_DEPOSIT_DECLARED: { icon: 'fact_check', tone: 'todo' },
+  SANCTION_PAYMENT_DECLARED: { icon: 'fact_check', tone: 'todo' },
   LOAN_REQUESTED: { icon: 'request_quote', tone: 'todo' },
   USER_REGISTERED: { icon: 'person_add', tone: 'todo' },
   TOURNAMENT_SESSION_GENERATED: { icon: 'event_repeat', tone: 'info' },

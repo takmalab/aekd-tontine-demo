@@ -11,6 +11,7 @@ import cm.aekd.tontine.member.MemberRepository;
 import cm.aekd.tontine.payout.SessionPayout;
 import cm.aekd.tontine.payout.SessionPayoutRepository;
 import cm.aekd.tontine.repayment.LoanRepaymentRepository;
+import cm.aekd.tontine.sanction.SanctionPaymentRepository;
 import cm.aekd.tontine.savings.SavingsDepositRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -49,6 +50,7 @@ public class FundService {
     private final LoanRepository loanRepository;
     private final LoanRepaymentRepository repaymentRepository;
     private final SessionPayoutRepository payoutRepository;
+    private final SanctionPaymentRepository sanctionPaymentRepository;
 
     private static final List<LoanStatus> OUTSTANDING_LOAN_STATUSES =
             List.of(LoanStatus.APPROVED, LoanStatus.IN_PROGRESS);
@@ -59,7 +61,9 @@ public class FundService {
                         SavingsDepositRepository depositRepository,
                         LoanRepository loanRepository,
                         LoanRepaymentRepository repaymentRepository,
-                        SessionPayoutRepository payoutRepository) {
+                        SessionPayoutRepository payoutRepository,
+                        SanctionPaymentRepository sanctionPaymentRepository) {
+        this.sanctionPaymentRepository = sanctionPaymentRepository;
         this.payoutRepository = payoutRepository;
         this.transactionRepository = transactionRepository;
         this.memberRepository = memberRepository;
@@ -105,6 +109,15 @@ public class FundService {
     public BigDecimal cashFundCollected() {
         return transactionRepository.sumAmountByStatusAndFundDestination(
                 ContributionTransactionStatus.VALIDATED, FundDestination.CASH_FUND);
+    }
+
+    /** Paiements de sanctions validés (decisions.md n° 50). */
+    public BigDecimal sanctionsCollected() {
+        return sanctionPaymentRepository.sumValidated();
+    }
+
+    public BigDecimal sanctionsBalance() {
+        return sanctionsCollected();
     }
 
     public BigDecimal cashFundBalance() {

@@ -13,6 +13,8 @@ import { LoanRepayment } from '../../loans/loan.model';
 import { LoanService } from '../../loans/loan.service';
 import { SavingsEntry } from '../../savings/savings.model';
 import { SavingsService } from '../../savings/savings.service';
+import { SanctionPayment } from '../../sanctions/sanction.model';
+import { SanctionService } from '../../sanctions/sanction.service';
 import { PaymentService } from '../payment.service';
 
 type ViewerState = 'loading' | 'image' | 'pdf' | 'other' | 'none' | 'error';
@@ -22,6 +24,7 @@ export interface ProofViewerData {
   transaction?: ContributionTransaction;
   repayment?: LoanRepayment;
   deposit?: SavingsEntry;
+  sanctionPayment?: SanctionPayment;
 }
 
 /**
@@ -39,12 +42,21 @@ export class ProofViewerDialog implements OnInit, OnDestroy {
   private readonly paymentService = inject(PaymentService);
   private readonly loanService = inject(LoanService);
   private readonly savingsService = inject(SavingsService);
+  private readonly sanctionService = inject(SanctionService);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly data = inject<ProofViewerData>(MAT_DIALOG_DATA);
 
   /** « paiement », « remboursement » ou « versement », pour les libellés. */
   readonly noun = this.data.deposit ? 'versement' : this.data.repayment ? 'remboursement' : 'paiement';
-  readonly subject = this.data.deposit
+  readonly subject = this.data.sanctionPayment
+    ? {
+        member: this.data.sanctionPayment.memberFullName,
+        label: 'Sanction – ' + this.data.sanctionPayment.sanctionLabel,
+        amount: this.data.sanctionPayment.amount,
+        operator: this.data.sanctionPayment.operator,
+        reference: this.data.sanctionPayment.reference,
+      }
+    : this.data.deposit
     ? {
         member: this.data.deposit.memberFullName,
         label: "Versement d'épargne",
@@ -77,7 +89,9 @@ export class ProofViewerDialog implements OnInit, OnDestroy {
   readonly filename = signal('justificatif');
 
   ngOnInit(): void {
-    const download$: Observable<HttpResponse<Blob>> = this.data.deposit
+    const download$: Observable<HttpResponse<Blob>> = this.data.sanctionPayment
+      ? this.sanctionService.downloadPaymentProof(this.data.sanctionPayment.id)
+      : this.data.deposit
       ? this.savingsService.downloadProof(this.data.deposit.id)
       : this.data.repayment
         ? this.loanService.downloadRepaymentProof(this.data.repayment.id)

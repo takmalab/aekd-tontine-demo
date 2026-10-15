@@ -1,7 +1,7 @@
 /** Miroir de FundOverviewResponse (backend) : écran « Fonds », CLAUDE.md §29, decisions.md n° 50. */
 export type Account = 'TONTINE_FUND' | 'SAVINGS' | 'SANCTIONS' | 'CASH_FUND' | 'RATION';
 export type FundDirection = 'IN' | 'OUT';
-export type FundMovementType = 'CONTRIBUTION' | 'PAYOUT' | 'SAVINGS_DEPOSIT' | 'LOAN_DISBURSED' | 'LOAN_REPAYMENT';
+export type FundMovementType = 'CONTRIBUTION' | 'PAYOUT' | 'SAVINGS_DEPOSIT' | 'LOAN_DISBURSED' | 'LOAN_REPAYMENT' | 'SANCTION_PAYMENT';
 export type FigureCode =
   | 'COLLECTED'
   | 'REMITTED'
@@ -53,4 +53,5 @@ export const MOVEMENT_STYLES: Record<FundMovementType, { label: string; icon: st
   SAVINGS_DEPOSIT: { label: "Versement d'épargne", icon: 'savings' },
   LOAN_DISBURSED: { label: 'Prêt accordé', icon: 'account_balance' },
   LOAN_REPAYMENT: { label: 'Remboursement', icon: 'replay' },
+  SANCTION_PAYMENT: { label: 'Paiement de sanction', icon: 'gavel' },
 };

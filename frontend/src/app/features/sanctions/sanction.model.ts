@@ -1,3 +1,5 @@
+import { PaymentOperator } from '../contributions/contribution.model';
+
 /** CLAUDE.md §18 : une sanction monétaire a un montant, une sanction en nature une description. */
 export type SanctionType = 'MONETARY' | 'IN_KIND';
 
@@ -61,4 +63,48 @@ export interface AppliedSanction {
   status: AppliedSanctionStatus;
   appliedByEmail: string;
   appliedAt: string;
+  /** Paiements validés (decisions.md n° 50) ; 0 pour une sanction en nature. */
+  paidAmount: number;
+  /** Paiements déclarés, en attente de validation. */
+  pendingAmount: number;
+}
+
+export type SanctionPaymentStatus = 'PENDING' | 'VALIDATED' | 'REJECTED';
+
+export const SANCTION_PAYMENT_STATUS_LABELS: Record<SanctionPaymentStatus, string> = {
+  PENDING: 'En attente',
+  VALIDATED: 'Validé',
+  REJECTED: 'Rejeté',
+};
+
+/** Miroir de SanctionPaymentDtos.PaymentResponse (backend). */
+export interface SanctionPayment {
+  id: string;
+  appliedSanctionId: string;
+  memberId: string;
+  memberFullName: string;
+  sanctionLabel: string;
+  amount: number;
+  paymentDate: string;
+  operator: PaymentOperator;
+  reference: string;
+  observation: string | null;
+  status: SanctionPaymentStatus;
+  hasProof: boolean;
+  validatedByEmail: string | null;
+  validatedAt: string | null;
+  declaredAt: string;
+}
+
+export interface SanctionPaymentRequest {
+  amount: number;
+  paymentDate: string;
+  operator: PaymentOperator;
+  reference: string;
+  observation: string | null;
+}
+
+/** Reste à payer d'une sanction monétaire (hors paiements en attente). */
+export function sanctionRemaining(s: AppliedSanction): number {
+  return Math.max(0, (s.amount ?? 0) - s.paidAmount - s.pendingAmount);
 }

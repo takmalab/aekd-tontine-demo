@@ -47,6 +47,7 @@ public class AppliedSanctionService {
     private final UserRepository userRepository;
     private final AuditLogService auditLogService;
     private final NotificationService notificationService;
+    private final SanctionPaymentRepository paymentRepository;
 
     public AppliedSanctionService(SanctionRuleRepository ruleRepository,
                                    AppliedSanctionRepository appliedRepository,
@@ -57,8 +58,10 @@ public class AppliedSanctionService {
                                    CurrentUserProvider currentUserProvider,
                                    UserRepository userRepository,
                                    AuditLogService auditLogService,
-                                   NotificationService notificationService) {
+                                   NotificationService notificationService,
+                                   SanctionPaymentRepository paymentRepository) {
         this.notificationService = notificationService;
+        this.paymentRepository = paymentRepository;
         this.ruleRepository = ruleRepository;
         this.appliedRepository = appliedRepository;
         this.periodRepository = periodRepository;
@@ -124,7 +127,7 @@ public class AppliedSanctionService {
                 member.getFullName() + " : " + describe(sanction) + " pour \""
                         + period.getContributionDefinition().getName() + "\" (" + period.getSession().getLabel() + ").");
 
-        return AppliedSanctionResponse.from(sanction);
+        return toResponse(sanction);
     }
 
     /**
@@ -147,6 +150,12 @@ public class AppliedSanctionService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cette sanction n'est pas active");
         }
         checkNotSelf(sanction.getMember());
+        // Un paiement déclaré ou validé rattache de l'argent à cette sanction (decisions.md n° 50).
+        if (paymentRepository.existsByAppliedSanctionIdAndStatusIn(sanction.getId(),
+                List.of(SanctionPaymentStatus.PENDING, SanctionPaymentStatus.VALIDATED))) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Annulation impossible : un paiement de cette sanction est déclaré ou validé");
+        }
         sanction.setStatus(AppliedSanctionStatus.CANCELLED);
         sanction = appliedRepository.save(sanction);
 
@@ -164,7 +173,14 @@ public class AppliedSanctionService {
                         + period.getContributionDefinition().getName() + "\" (" + period.getSession().getLabel()
                         + ") a été annulée.");
 
-        return AppliedSanctionResponse.from(sanction);
+        return toResponse(sanction);
+    }
+
+    /** Réponse avec les montants payés (validés) et en attente (decisions.md n° 50). */
+    private AppliedSanctionResponse toResponse(AppliedSanction sanction) {
+        return AppliedSanctionResponse.from(sanction,
+                paymentRepository.sumBySanctionAndStatus(sanction.getId(), SanctionPaymentStatus.VALIDATED),
+                paymentRepository.sumBySanctionAndStatus(sanction.getId(), SanctionPaymentStatus.PENDING));
     }
 
     private static String describe(AppliedSanction sanction) {
@@ -178,13 +194,13 @@ public class AppliedSanctionService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN,
                         "Aucun profil membre associé à ce compte"));
         return appliedRepository.findByMemberId(memberId).stream()
-                .map(AppliedSanctionResponse::from)
+                .map(this::toResponse)
                 .toList();
     }
 
     public List<AppliedSanctionResponse> findByDefinition(UUID contributionDefinitionId) {
         return appliedRepository.findByContributionPeriod_ContributionDefinition_Id(contributionDefinitionId).stream()
-                .map(AppliedSanctionResponse::from)
+                .map(this::toResponse)
                 .toList();
     }
 

@@ -18,7 +18,7 @@ public record FundOverviewResponse(
 
     public enum Direction { IN, OUT }
 
-    public enum MovementType { CONTRIBUTION, PAYOUT, SAVINGS_DEPOSIT, LOAN_DISBURSED, LOAN_REPAYMENT }
+    public enum MovementType { CONTRIBUTION, PAYOUT, SAVINGS_DEPOSIT, LOAN_DISBURSED, LOAN_REPAYMENT, SANCTION_PAYMENT }
 
     /** Détail chiffré d'un compte ; le code est traduit par l'interface. */
     public enum FigureCode {

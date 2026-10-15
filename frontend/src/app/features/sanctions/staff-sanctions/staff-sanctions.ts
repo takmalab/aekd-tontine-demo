@@ -16,6 +16,8 @@ import { ExportMenu } from '../../../shared/components/export-menu/export-menu';
 import { formatFcfa } from '../../../shared/utils/format';
 import { ContributionDefinition } from '../../contributions/contribution.model';
 import { ContributionService } from '../../contributions/contribution.service';
+import { PAYMENT_OPERATOR_LABELS } from '../../contributions/contribution.model';
+import { ProofViewerDialog, ProofViewerData } from '../../payments/proof-viewer-dialog/proof-viewer-dialog';
 import { RuleFormDialog, RuleFormData } from '../rule-form-dialog/rule-form-dialog';
 import {
   APPLIED_STATUS_LABELS,
@@ -23,6 +25,7 @@ import {
   AppliedSanctionStatus,
   SANCTION_TYPE_LABELS,
   SanctionCandidate,
+  SanctionPayment,
   SanctionRule,
 } from '../sanction.model';
 import { SanctionService } from '../sanction.service';
@@ -101,6 +104,11 @@ export class StaffSanctions implements OnInit {
   readonly candidates = signal<Record<string, CandidatesState>>({});
   readonly appliedFilter = signal<AppliedFilter>('APPLIED');
   readonly busy = signal<string | null>(null);
+  readonly operatorLabels = PAYMENT_OPERATOR_LABELS;
+
+  /** Paiements de sanctions déclarés par les membres, en attente de validation (n° 50). */
+  readonly pendingPayments = signal<SanctionPayment[]>([]);
+  readonly pendingError = signal(false);
 
   readonly mandatory = computed(() => this.contributions().filter((c) => c.mandatory));
   readonly optional = computed(() => this.contributions().filter((c) => !c.mandatory));
@@ -127,6 +135,7 @@ export class StaffSanctions implements OnInit {
   ];
 
   ngOnInit(): void {
+    this.loadPendingPayments();
     this.contributionService.list().subscribe({
       next: (list) => {
         // Obligatoires actives d'abord (là où les sanctions ont un sens), puis montant décroissant.
@@ -313,13 +322,69 @@ export class StaffSanctions implements OnInit {
           error: (err: HttpErrorResponse) => {
             this.busy.set(null);
             this.snackBar.open(
-              err.status === 403
+              err.status === 403 || err.status === 409
                 ? err.error?.message || 'Action non autorisée.'
                 : "L'annulation a échoué (sanction déjà annulée ?).",
               'OK',
               { duration: 6000 },
             );
             this.loadDetail();
+          },
+        });
+      });
+  }
+
+  // ---------- Paiements de sanctions (n° 50) ----------
+  loadPendingPayments(): void {
+    this.pendingError.set(false);
+    this.sanctionService.pendingPayments().subscribe({
+      next: (list) => this.pendingPayments.set(list),
+      error: () => this.pendingError.set(true),
+    });
+  }
+
+  viewProof(payment: SanctionPayment): void {
+    const data: ProofViewerData = { sanctionPayment: payment };
+    this.dialog.open(ProofViewerDialog, { data, width: '760px', maxWidth: 'calc(100vw - 24px)', autoFocus: false });
+  }
+
+  decidePayment(payment: SanctionPayment, validate: boolean): void {
+    const data: ConfirmDialogData = validate
+      ? {
+          title: 'Valider ce paiement ?',
+          message: `${formatFcfa(payment.amount)} de ${payment.memberFullName} (${payment.sanctionLabel}) entreront au compte Sanctions.`,
+          confirmLabel: 'Valider',
+          icon: 'check_circle',
+        }
+      : {
+          title: 'Rejeter ce paiement ?',
+          message: `Le paiement de ${formatFcfa(payment.amount)} déclaré par ${payment.memberFullName} sera rejeté ; la sanction reste due.`,
+          confirmLabel: 'Rejeter',
+          cancelLabel: 'Retour',
+          icon: 'block',
+        };
+    this.dialog
+      .open(ConfirmDialog, { data, width: '460px', maxWidth: 'calc(100vw - 32px)' })
+      .afterClosed()
+      .subscribe((confirmed) => {
+        if (!confirmed) {
+          return;
+        }
+        this.busy.set(payment.id);
+        const call = validate
+          ? this.sanctionService.validatePayment(payment.id)
+          : this.sanctionService.rejectPayment(payment.id);
+        call.subscribe({
+          next: () => {
+            this.busy.set(null);
+            this.pendingPayments.update((list) => list.filter((p) => p.id !== payment.id));
+            this.snackBar.open(validate ? 'Paiement validé' : 'Paiement rejeté', 'OK', { duration: 4000 });
+            this.loadDetail();
+          },
+          error: (err: HttpErrorResponse) => {
+            this.busy.set(null);
+            this.snackBar.open(err.error?.message || "L'opération a échoué.", 'OK', { duration: 6000 });
+            this.loadPendingPayments();
           },
         });
       });
