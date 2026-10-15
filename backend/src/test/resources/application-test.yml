@@ -30,3 +30,9 @@ app:
       api-key: ""
     scmchost:
       api-key: ""
+
+  # Aucun e-mail reel pendant les tests, meme si smtp-key.env est present (decisions.md n° 55).
+  email:
+    provider: log
+    brevo:
+      api-key: ""

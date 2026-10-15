@@ -8,6 +8,7 @@ spring:
     import:
       - optional:file:./igor-sms-gateway.env[.properties]
       - optional:file:./scmchost.env[.properties]
+      - optional:file:./smtp-key.env[.properties]
 
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/aekd_tontine}
