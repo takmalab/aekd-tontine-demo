@@ -1,7 +1,8 @@
 export type AmountMode = 'FIXED' | 'VOLUNTARY';
 export type ContributionFrequency = 'MONTHLY';
 export type Visibility = 'PUBLIC' | 'PRIVATE';
-export type FundDestination = 'TONTINE_FUND' | 'INDIVIDUAL_SAVINGS';
+/** Compte qui reçoit l'argent de la cotisation (decisions.md n° 50). */
+export type FundDestination = 'TONTINE_FUND' | 'INDIVIDUAL_SAVINGS' | 'RATION' | 'CASH_FUND';
 export type ContributionStatus = 'DRAFT' | 'ACTIVE' | 'INACTIVE';
 
 /** Miroir de ContributionDefinitionResponse (backend). */
@@ -62,6 +63,15 @@ export interface ContributionPeriod {
 export const FUND_DESTINATION_LABELS: Record<FundDestination, string> = {
   TONTINE_FUND: 'Fonds commun',
   INDIVIDUAL_SAVINGS: 'Épargne individuelle',
+  RATION: 'Ration',
+  CASH_FUND: 'Fond de caisse',
+};
+
+export const FUND_DESTINATION_ICONS: Record<FundDestination, string> = {
+  TONTINE_FUND: 'account_balance',
+  INDIVIDUAL_SAVINGS: 'savings',
+  RATION: 'restaurant',
+  CASH_FUND: 'point_of_sale',
 };
 
 export const CONTRIBUTION_STATUS_LABELS: Record<ContributionStatus, string> = {

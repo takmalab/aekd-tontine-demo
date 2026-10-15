@@ -3,7 +3,7 @@
     <div>
       <h1 class="page__title">Fonds</h1>
       <p class="page__subtitle">
-        Fonds commun et épargne des membres, toujours séparés. Seules les opérations validées sont comptées.
+        Les comptes de l'association, toujours séparés. Seules les opérations validées sont comptées.
       </p>
     </div>
     <app-export-menu filename="mouvements-fonds" title="Mouvements des fonds" [rows]="exportRows()" />
@@ -17,26 +17,21 @@
     </app-page-state>
   } @else if (overview(); as o) {
     <div class="funds">
-      <section class="fund fund--tontine">
-        <h2 class="fund__title"><mat-icon>groups</mat-icon> Fonds commun</h2>
-        <p class="fund__balance">{{ formatFcfa(o.tontineFundBalance) }}</p>
-        <p class="fund__caption">Solde, reste à remettre aux bénéficiaires</p>
-        <dl class="fund__figures">
-          <div><dt>Collecté</dt><dd>{{ formatFcfa(o.tontineFundCollected) }}</dd></div>
-          <div><dt>Remis aux bénéficiaires</dt><dd>{{ formatFcfa(o.tontineFundRemitted) }}</dd></div>
-        </dl>
-      </section>
-
-      <section class="fund fund--savings">
-        <h2 class="fund__title"><mat-icon>savings</mat-icon> Épargne et prêts</h2>
-        <p class="fund__balance">{{ formatFcfa(o.availableForLending) }}</p>
-        <p class="fund__caption">Disponible pour prêter</p>
-        <dl class="fund__figures">
-          <div><dt>Épargne totale</dt><dd>{{ formatFcfa(o.totalIndividualSavings) }}</dd></div>
-          <div><dt>Capital prêté non remboursé</dt><dd>{{ formatFcfa(o.outstandingLoanCapital) }}</dd></div>
-          <div><dt>Intérêts perçus</dt><dd>{{ formatFcfa(o.loanInterestCollected) }}</dd></div>
-        </dl>
-      </section>
+      @for (a of o.accounts; track a.account) {
+        @let style = accountStyles[a.account];
+        <section class="fund fund--{{ style.tone }}">
+          <h2 class="fund__title"><mat-icon>{{ style.icon }}</mat-icon> {{ style.label }}</h2>
+          <p class="fund__balance">{{ formatFcfa(a.balance) }}</p>
+          <p class="fund__caption">{{ style.caption }}</p>
+          @if (a.figures.length > 0) {
+            <dl class="fund__figures">
+              @for (f of a.figures; track f.code) {
+                <div><dt>{{ figureLabels[f.code] }}</dt><dd>{{ formatFcfa(f.amount) }}</dd></div>
+              }
+            </dl>
+          }
+        </section>
+      }
     </div>
 
     <h2 class="group-title">Mouvements</h2>
@@ -63,7 +58,7 @@
                 }
               </span>
             </div>
-            <span class="chip" [class.chip--orange]="m.fund === 'TONTINE_FUND'" [class.chip--brown]="m.fund === 'SAVINGS'">{{ fundLabels[m.fund] }}</span>
+            <span class="chip move__account move__account--{{ accountStyles[m.account].tone }}">{{ accountStyles[m.account].label }}</span>
             <span class="move__amount">{{ m.direction === 'OUT' ? '−' : '+' }} {{ formatFcfa(m.amount) }}</span>
           </article>
         }

@@ -140,6 +140,28 @@ class SessionPayoutServiceTest {
     }
 
     @Test
+    void rationIsRemittedWithTheCommonFundAndLeavesEachAccountProRata() {
+        // decisions.md n° 50 : la Ration a son compte mais reste remise au bénéficiaire.
+        ContributionDefinitionResponse ration = activeDefinition("Ration", new BigDecimal(2000),
+                AmountMode.FIXED, true, FundDestination.RATION);
+        ContributionPeriodResponse rationPeriod = definitionService.addPeriod(ration.id(),
+                new ContributionPeriodRequest(session.id(), null));
+        payAndValidate(memberA, ration, rationPeriod, new BigDecimal(2000));
+        payAndValidate(memberB, ration, rationPeriod, new BigDecimal(2000));
+        loginAs(treasurer, RoleName.TRESORIER);
+
+        PayoutOverview overview = payoutService.overview(session.id());
+        assertThat(overview.collected()).isEqualByComparingTo(new BigDecimal(24000));
+        assertThat(overview.contributions()).hasSize(2);
+
+        // 20 000 de fonds commun et 4 000 de Ration : une remise de 6 000 en prend 1/6 à la Ration.
+        payoutService.record(session.id(), request(memberB, 6000));
+        assertThat(fundService.rationRemitted()).isEqualByComparingTo(new BigDecimal(1000));
+        assertThat(fundService.tontineFundRemitted()).isEqualByComparingTo(new BigDecimal(5000));
+        assertThat(fundService.rationBalance()).isEqualByComparingTo(new BigDecimal(3000));
+    }
+
+    @Test
     void onlySessionBeneficiariesCanReceiveAPayout() {
         assertThatThrownBy(() -> payoutService.record(session.id(), request(admin, 1000)))
                 .isInstanceOf(ResponseStatusException.class)

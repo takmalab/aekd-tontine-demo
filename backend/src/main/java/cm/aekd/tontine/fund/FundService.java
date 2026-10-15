@@ -8,6 +8,7 @@ import cm.aekd.tontine.loan.LoanInterest;
 import cm.aekd.tontine.loan.LoanRepository;
 import cm.aekd.tontine.loan.LoanStatus;
 import cm.aekd.tontine.member.MemberRepository;
+import cm.aekd.tontine.payout.SessionPayout;
 import cm.aekd.tontine.payout.SessionPayoutRepository;
 import cm.aekd.tontine.repayment.LoanRepaymentRepository;
 import cm.aekd.tontine.savings.SavingsDepositRepository;
@@ -17,6 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.List;
 import java.util.UUID;
 
@@ -71,9 +75,59 @@ public class FundService {
                 ContributionTransactionStatus.VALIDATED, FundDestination.TONTINE_FUND);
     }
 
-    /** Total déjà remis aux bénéficiaires des séances (docs/decisions.md n° 46). */
+    /**
+     * Part du fonds commun déjà remise aux bénéficiaires (docs/decisions.md n° 46) :
+     * total des remises moins leur part Ration (n° 50).
+     */
     public BigDecimal tontineFundRemitted() {
-        return payoutRepository.sumAll();
+        return payoutRepository.sumAll().subtract(rationRemitted());
+    }
+
+    /** Total des paiements validés destinés au compte Ration (decisions.md n° 50). */
+    public BigDecimal rationCollected() {
+        return transactionRepository.sumAmountByStatusAndFundDestination(
+                ContributionTransactionStatus.VALIDATED, FundDestination.RATION);
+    }
+
+    /** Part Ration de toutes les remises de cagnotte (n° 50). */
+    public BigDecimal rationRemitted() {
+        Map<UUID, BigDecimal[]> collectedBySession = new HashMap<>();
+        return payoutRepository.findAll().stream()
+                .map(payout -> rationPartOf(payout, collectedBySession))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    public BigDecimal rationBalance() {
+        return rationCollected().subtract(rationRemitted());
+    }
+
+    /** Total des paiements validés destinés au Fond de caisse (decisions.md n° 50). */
+    public BigDecimal cashFundCollected() {
+        return transactionRepository.sumAmountByStatusAndFundDestination(
+                ContributionTransactionStatus.VALIDATED, FundDestination.CASH_FUND);
+    }
+
+    public BigDecimal cashFundBalance() {
+        return cashFundCollected();
+    }
+
+    /**
+     * Part Ration d'une remise : la cagnotte d'une séance mêle fonds commun et Ration ;
+     * chaque remise sort de chaque compte au prorata de ce que la séance a collecté
+     * (decisions.md n° 50). Arrondie au franc inférieur, le reste revient au fonds commun.
+     *
+     * @param cache sommes collectées par séance (fonds commun, Ration), pour ne les lire qu'une fois
+     */
+    public BigDecimal rationPartOf(SessionPayout payout, Map<UUID, BigDecimal[]> cache) {
+        UUID sessionId = payout.getSession().getId();
+        BigDecimal[] collected = cache.computeIfAbsent(sessionId, id -> new BigDecimal[]{
+                transactionRepository.sumValidatedMandatoryBySessionAndDestination(id, FundDestination.TONTINE_FUND),
+                transactionRepository.sumValidatedMandatoryBySessionAndDestination(id, FundDestination.RATION)});
+        BigDecimal total = collected[0].add(collected[1]);
+        if (total.signum() == 0 || collected[1].signum() == 0) {
+            return BigDecimal.ZERO;
+        }
+        return payout.getAmount().multiply(collected[1]).divide(total, 0, RoundingMode.DOWN);
     }
 
     /**

@@ -33,6 +33,7 @@ import {
   ContributionPeriodStatus,
   ContributionTransaction,
   FREQUENCY_LABELS,
+  FUND_DESTINATION_ICONS,
   FUND_DESTINATION_LABELS,
   ParticipantPaymentStatus,
   VISIBILITY_LABELS,
@@ -118,6 +119,7 @@ export class ContributionDetail implements OnInit {
   readonly fromIsoDate = fromIsoDate;
   readonly statusLabels = CONTRIBUTION_STATUS_LABELS;
   readonly destinationLabels = FUND_DESTINATION_LABELS;
+  readonly destinationIcons = FUND_DESTINATION_ICONS;
   readonly visibilityLabels = VISIBILITY_LABELS;
   readonly frequencyLabels = FREQUENCY_LABELS;
   readonly amountModeLabels = AMOUNT_MODE_LABELS;

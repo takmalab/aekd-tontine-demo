@@ -1656,3 +1656,60 @@ politiques de prêt (§20). Les membres les consultent.
   par la hiérarchie des rôles (décision n° 40).
 * Écran « Politiques de prêt » : boutons de gestion visibles pour le trésorier.
 * Chaque modification reste inscrite au journal d'audit.
+
+---
+
+# 50. Comptes de l'association
+
+## Question
+
+Comment suivre séparément l'argent des sanctions, du fond de caisse et de la
+Ration, à côté du fonds commun et de l'épargne ?
+
+## Statut
+
+```text
+DÉCIDÉ
+```
+
+## Décision
+
+Validé par le propriétaire du projet le 2026-10-15. L'association a cinq
+**comptes**, jamais mélangés (CLAUDE.md §17) : **Fonds commun**, **Épargne et
+prêts**, **Sanctions**, **Fond de caisse** et **Ration**.
+
+* **Ration** : alimentée par les cotisations dont la destination est « Ration ».
+  Elle reste **remise au bénéficiaire** de la séance avec le fonds commun
+  (décision n° 46). Chaque remise sort du fonds commun et de la Ration **au
+  prorata** de ce que la séance a collecté pour chacun (ex. 60 000 de fonds
+  commun et 2 000 de Ration : une remise de 62 000 sort 60 000 et 2 000).
+  Les cotisations nommées « Ration » existantes passent à ce compte, paiements
+  déjà validés compris.
+* **Fond de caisse** : alimenté par les cotisations dont la destination est
+  « Fond de caisse ».
+* **Sanctions** : alimenté par le paiement des sanctions monétaires. Le membre
+  déclare son paiement, éventuellement en plusieurs fois (opérateur,
+  référence, justificatif) ; le trésorier valide ou rejette. Seuls les
+  paiements validés entrent au compte ; la sanction est payée quand le total
+  validé atteint son montant.
+* **Dépenses et virements** : le trésorier enregistre des dépenses (montant,
+  motif, date, justificatif) et des virements entre comptes, uniquement sur les
+  comptes **Sanctions, Fond de caisse et Ration**. Le fonds commun (remis aux
+  bénéficiaires) et l'épargne (argent personnel des membres) restent protégés.
+  Un compte ne peut pas passer en négatif. Tout est tracé dans l'audit.
+
+## Points à valider
+
+```text
+À VALIDER
+```
+
+* Usage précis de la Ration et du fond de caisse (catégories de dépenses).
+* Une sanction en nature n'apporte pas d'argent : elle reste hors des comptes.
+
+## Conséquence technique
+
+* Destinations de cotisation `RATION` et `CASH_FUND` ; migration V22.
+* Remise de cagnotte : cotisations obligatoires du fonds commun et de la
+  Ration ; répartition au prorata (`FundService.rationPartOf`).
+* Écran « Fonds » : un solde par compte et un journal filtrable par compte.

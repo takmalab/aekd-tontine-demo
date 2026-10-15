@@ -262,6 +262,18 @@
                 <span class="choice__title">Épargne individuelle</span>
                 <span class="choice__text">Crédite l'épargne personnelle du membre qui verse.</span>
               </label>
+              <label class="choice" [class.choice--selected]="destinationForm.controls.fundDestination.value === 'RATION'">
+                <input type="radio" formControlName="fundDestination" value="RATION" />
+                <mat-icon>restaurant</mat-icon>
+                <span class="choice__title">Ration</span>
+                <span class="choice__text">Alimente le compte Ration ; remise au bénéficiaire avec le fonds commun.</span>
+              </label>
+              <label class="choice" [class.choice--selected]="destinationForm.controls.fundDestination.value === 'CASH_FUND'">
+                <input type="radio" formControlName="fundDestination" value="CASH_FUND" />
+                <mat-icon>point_of_sale</mat-icon>
+                <span class="choice__title">Fond de caisse</span>
+                <span class="choice__text">Alimente le compte Fond de caisse de l'association.</span>
+              </label>
             </div>
             @if (destinationForm.controls.fundDestination.invalid && destinationForm.controls.fundDestination.touched) {
               <p class="field-error">Choisissez une destination.</p>

@@ -56,6 +56,15 @@ public interface ContributionTransactionRepository extends JpaRepository<Contrib
     boolean existsByContributionPeriod_Id(UUID contributionPeriodId);
 
     /** Cotisations ayant au moins un paiement (quel que soit son statut). */
+    /** Cotisations obligatoires validées d'une séance pour une destination (cagnotte remise, n° 46 et 50). */
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM ContributionTransaction t "
+            + "WHERE t.status = cm.aekd.tontine.contribution.ContributionTransactionStatus.VALIDATED "
+            + "AND t.contributionPeriod.session.id = :sessionId "
+            + "AND t.contributionPeriod.contributionDefinition.mandatory = true "
+            + "AND t.contributionPeriod.contributionDefinition.fundDestination = :fundDestination")
+    BigDecimal sumValidatedMandatoryBySessionAndDestination(@Param("sessionId") UUID sessionId,
+                                                           @Param("fundDestination") FundDestination fundDestination);
+
     @Query("SELECT DISTINCT t.contributionPeriod.contributionDefinition.id FROM ContributionTransaction t")
     Set<UUID> findContributionDefinitionIdsWithPayments();
 

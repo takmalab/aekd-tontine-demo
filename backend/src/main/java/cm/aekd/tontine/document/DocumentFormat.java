@@ -115,6 +115,8 @@ public final class DocumentFormat {
         return switch (destination) {
             case TONTINE_FUND -> "Fonds commun";
             case INDIVIDUAL_SAVINGS -> "Épargne individuelle";
+            case RATION -> "Ration";
+            case CASH_FUND -> "Fond de caisse";
         };
     }
 

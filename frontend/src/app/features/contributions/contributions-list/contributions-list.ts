@@ -19,6 +19,7 @@ import {
   ContributionPeriod,
   ContributionStatus,
   FREQUENCY_LABELS,
+  FUND_DESTINATION_ICONS,
   FUND_DESTINATION_LABELS,
 } from '../contribution.model';
 import { ContributionActions } from '../contribution-actions';
@@ -59,6 +60,7 @@ export class ContributionsList implements OnInit {
   readonly canManage = this.authService.hasAnyRole(['ADMIN', 'TRESORIER']);
   readonly statusLabels = CONTRIBUTION_STATUS_LABELS;
   readonly destinationLabels = FUND_DESTINATION_LABELS;
+  readonly destinationIcons = FUND_DESTINATION_ICONS;
   readonly frequencyLabels = FREQUENCY_LABELS;
   readonly amountModeLabels = AMOUNT_MODE_LABELS;
   readonly formatFcfa = formatFcfa;

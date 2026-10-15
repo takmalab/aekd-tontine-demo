@@ -8,15 +8,15 @@ import { PageState } from '../../../shared/components/page-state/page-state';
 import { AppPagination } from '../../../shared/components/pagination/pagination';
 import { formatFcfa } from '../../../shared/utils/format';
 import { paginate } from '../../../shared/utils/pagination';
-import { FUND_LABELS, Fund, FundOverview, MOVEMENT_STYLES } from '../fund.model';
+import { ACCOUNT_STYLES, Account, FIGURE_LABELS, FundOverview, MOVEMENT_STYLES } from '../fund.model';
 import { FundOverviewApi } from '../fund.service';
 
-type FundFilter = 'ALL' | Fund;
+type FundFilter = 'ALL' | Account;
 
 /**
- * Écran « Fonds » (CLAUDE.md §29, module cash ; ADMIN et TRESORIER) : soldes du
- * fonds commun et de l'épargne, toujours présentés séparément (§17), et journal
- * des mouvements validés. Aucun calcul métier ici : tout vient du serveur.
+ * Écran « Fonds » (CLAUDE.md §29, module cash ; ADMIN et TRESORIER) : un solde par
+ * compte (decisions.md n° 50), jamais mélangés (§17), et journal des mouvements
+ * validés. Aucun calcul métier ici : tout vient du serveur.
  */
 @Component({
   selector: 'app-funds-page',
@@ -28,7 +28,8 @@ export class FundsPage implements OnInit {
   private readonly api = inject(FundOverviewApi);
 
   readonly formatFcfa = formatFcfa;
-  readonly fundLabels = FUND_LABELS;
+  readonly accountStyles = ACCOUNT_STYLES;
+  readonly figureLabels = FIGURE_LABELS;
   readonly movementStyles = MOVEMENT_STYLES;
 
   readonly loading = signal(true);
@@ -41,18 +42,21 @@ export class FundsPage implements OnInit {
 
   readonly movements = computed(() => this.overview()?.movements ?? []);
   readonly filtered = computed(() =>
-    this.filter() === 'ALL' ? this.movements() : this.movements().filter((m) => m.fund === this.filter()),
+    this.filter() === 'ALL' ? this.movements() : this.movements().filter((m) => m.account === this.filter()),
   );
   readonly paged = computed(() => paginate(this.filtered(), this.pageIndex(), this.pageSize()));
   readonly filterOptions = computed<FilterOption<FundFilter>[]>(() => [
     { value: 'ALL', label: 'Tous', count: this.movements().length },
-    { value: 'TONTINE_FUND', label: 'Fonds commun', count: this.movements().filter((m) => m.fund === 'TONTINE_FUND').length },
-    { value: 'SAVINGS', label: 'Épargne', count: this.movements().filter((m) => m.fund === 'SAVINGS').length },
+    ...(this.overview()?.accounts ?? []).map((a) => ({
+      value: a.account as FundFilter,
+      label: ACCOUNT_STYLES[a.account].label,
+      count: this.movements().filter((m) => m.account === a.account).length,
+    })),
   ]);
   readonly exportRows = computed(() =>
     this.filtered().map((m) => ({
       Date: m.date ?? '',
-      Fonds: FUND_LABELS[m.fund],
+      Compte: ACCOUNT_STYLES[m.account].label,
       Type: MOVEMENT_STYLES[m.type].label,
       Libellé: m.label,
       Membre: m.memberFullName,

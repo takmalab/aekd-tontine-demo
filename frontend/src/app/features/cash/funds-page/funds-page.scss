@@ -4,28 +4,25 @@
 
 .funds {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 16px;
   margin-bottom: 28px;
-}
-
-@media (max-width: 799.98px) {
-  .funds {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 
 .fund {
   padding: 20px 22px;
   border: 1px solid var(--mat-sys-outline-variant);
-  border-top: 4px solid var(--aekd-orange);
+  border-top: 4px solid var(--tone, var(--aekd-orange));
   border-radius: 16px;
   background: #fff;
   box-shadow: var(--aekd-shadow);
 
-  &--savings {
-    border-top-color: var(--aekd-brown);
-  }
+  // Une couleur par compte (fund.model.ts : ACCOUNT_STYLES.tone).
+  &--orange { --tone: var(--aekd-orange); }
+  &--brown { --tone: var(--aekd-brown); }
+  &--red { --tone: var(--aekd-red); }
+  &--blue { --tone: var(--aekd-blue); }
+  &--green { --tone: var(--aekd-green); }
 
   &__title {
     display: flex;
@@ -37,12 +34,8 @@
     color: var(--aekd-gray);
 
     mat-icon {
-      color: var(--aekd-orange);
+      color: var(--tone, var(--aekd-orange));
     }
-  }
-
-  &--savings &__title mat-icon {
-    color: var(--aekd-brown);
   }
 
   &__balance {
@@ -79,6 +72,7 @@
 
     dd {
       margin: 0;
+      white-space: nowrap;
       font-weight: 600;
       color: var(--aekd-gray);
     }
@@ -143,6 +137,16 @@
 
   &--out &__amount {
     color: var(--aekd-red-dark);
+  }
+
+  &__account {
+    color: #fff;
+
+    &--orange { background: var(--aekd-orange); }
+    &--brown { background: var(--aekd-brown); }
+    &--red { background: var(--aekd-red); }
+    &--blue { background: var(--aekd-blue); }
+    &--green { background: var(--aekd-green); }
   }
 }
 

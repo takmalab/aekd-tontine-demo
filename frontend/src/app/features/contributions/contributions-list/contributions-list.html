@@ -87,7 +87,7 @@
               {{ row.definition.mandatory ? 'Obligatoire' : 'Facultative' }}
             </span>
             <span class="chip chip--outline">
-              <mat-icon>{{ row.definition.fundDestination === 'TONTINE_FUND' ? 'account_balance' : 'savings' }}</mat-icon>
+              <mat-icon>{{ destinationIcons[row.definition.fundDestination] }}</mat-icon>
               {{ destinationLabels[row.definition.fundDestination] }}
             </span>
             @if (row.definition.visibility === 'PRIVATE') {

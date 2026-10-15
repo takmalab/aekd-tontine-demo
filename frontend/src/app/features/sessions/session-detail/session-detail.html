@@ -267,7 +267,7 @@
                     {{ item.definition.mandatory ? 'Obligatoire' : 'Facultative' }}
                   </span>
                   <span class="chip chip--outline">
-                    <mat-icon>{{ item.definition.fundDestination === 'TONTINE_FUND' ? 'account_balance' : 'savings' }}</mat-icon>
+                    <mat-icon>{{ destinationIcons[item.definition.fundDestination] }}</mat-icon>
                     {{ destinationLabels[item.definition.fundDestination] }}
                   </span>
                   <span class="chip chip--outline">

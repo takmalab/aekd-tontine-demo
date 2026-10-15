@@ -61,7 +61,7 @@
         }
         <ul class="hero__facts">
           <li>
-            <mat-icon>{{ d.fundDestination === 'TONTINE_FUND' ? 'account_balance' : 'savings' }}</mat-icon>
+            <mat-icon>{{ destinationIcons[d.fundDestination] }}</mat-icon>
             {{ destinationLabels[d.fundDestination] }}
           </li>
           <li>

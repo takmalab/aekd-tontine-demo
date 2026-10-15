@@ -180,10 +180,14 @@ public class SessionPayoutService {
                 payouts.stream().map(PayoutResponse::from).toList());
     }
 
-    /** Cotisation obligatoire du fonds commun (n° 46) ; l'épargne individuelle n'est jamais remise. */
+    /**
+     * Cotisation obligatoire du fonds commun ou de la Ration (n° 46 et 50) ; l'épargne
+     * individuelle et le fond de caisse ne sont jamais remis.
+     */
     private static boolean isRemittedToBeneficiary(ContributionPeriod period) {
         ContributionDefinition definition = period.getContributionDefinition();
-        return definition.isMandatory() && definition.getFundDestination() == FundDestination.TONTINE_FUND;
+        return definition.isMandatory() && (definition.getFundDestination() == FundDestination.TONTINE_FUND
+                || definition.getFundDestination() == FundDestination.RATION);
     }
 
     private static String blankToNull(String value) {

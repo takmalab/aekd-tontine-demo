@@ -16,6 +16,7 @@ import { formatFcfa, fromIsoDate } from '../../../shared/utils/format';
 import {
   CONTRIBUTION_STATUS_LABELS,
   FREQUENCY_LABELS,
+  FUND_DESTINATION_ICONS,
   FUND_DESTINATION_LABELS,
   PAYMENT_OPERATOR_LABELS,
 } from '../../contributions/contribution.model';
@@ -52,6 +53,7 @@ export class SessionDetail implements OnInit {
   readonly isStaff = this.authService.hasAnyRole(['ADMIN', 'TRESORIER']);
   readonly timingLabels = SESSION_TIMING_LABELS;
   readonly destinationLabels = FUND_DESTINATION_LABELS;
+  readonly destinationIcons = FUND_DESTINATION_ICONS;
   readonly statusLabels = CONTRIBUTION_STATUS_LABELS;
   readonly frequencyLabels = FREQUENCY_LABELS;
   readonly formatFcfa = formatFcfa;
