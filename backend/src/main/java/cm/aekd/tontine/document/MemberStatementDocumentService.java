@@ -141,7 +141,7 @@ public class MemberStatementDocumentService {
             });
         }
         pdf.table(new String[]{"Date", "Cotisation", "Séance", "Destination", "Opérateur", "Montant", "Statut"},
-                new float[]{1.2f, 2.2f, 2.0f, 1.6f, 1.6f, 1.9f, 1.2f}, payRows, 5);
+                new float[]{1.2f, 2.4f, 2.0f, 1.5f, 1.5f, 1.9f, 1.1f}, payRows, 5);
 
         // Versements libres d'épargne (docs/decisions.md n° 39), avec les intérêts
         // acquis à ce jour calculés exactement comme sur la page « Mon épargne ».
