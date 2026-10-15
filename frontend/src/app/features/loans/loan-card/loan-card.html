@@ -15,7 +15,12 @@
         </span>
       }
     </div>
-    <span [class]="'status status--' + l.status.toLowerCase()">{{ statusLabels[l.status] }}</span>
+    <span class="card__badges">
+      @if (l.overdue) {
+        <span class="status status--late">En retard</span>
+      }
+      <span [class]="'status status--' + l.status.toLowerCase()">{{ statusLabels[l.status] }}</span>
+    </span>
   </div>
 
   <p class="card__reason">« {{ l.reason }} »</p>
@@ -154,8 +159,15 @@
                     {{ repaymentStatusLabels[r.status] }}
                   </span>
                   <span class="history__meta">
-                    {{ fromIsoDate(r.paymentDate) | date: 'd MMM yyyy' }} · {{ operatorLabels[r.operator] }} · réf.
-                    {{ r.reference }}
+                    {{ fromIsoDate(r.paymentDate) | date: 'd MMM yyyy' }} ·
+                    @if (r.source === 'DIRECT' && r.operator) {
+                      {{ operatorLabels[r.operator] }} · réf. {{ r.reference }}
+                    } @else {
+                      {{ sourceLabels[r.source] }}
+                      @if (r.payerFullName && r.payerMemberId !== l.memberId) {
+                        de l'avaliste {{ r.payerFullName }}
+                      }
+                    }
                   </span>
                   <span class="history__actions">
                     @if (canDeclare() && r.status === 'PENDING') {
@@ -212,6 +224,12 @@
         <button mat-flat-button type="button" (click)="approve.emit(l)" [disabled]="waitingForGuarantor()">
           <mat-icon>task_alt</mat-icon>
           Approuver
+        </button>
+      }
+      @if (canRepay() && repayable() && l.overdue) {
+        <button mat-stroked-button type="button" (click)="deductFromSavings()" [disabled]="!balance()">
+          <mat-icon>savings</mat-icon>
+          Prélever sur l'épargne
         </button>
       }
       @if (canRepay() && repayable()) {

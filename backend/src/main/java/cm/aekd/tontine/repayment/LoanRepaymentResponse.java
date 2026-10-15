@@ -26,7 +26,12 @@ public record LoanRepaymentResponse(
         LoanRepaymentStatus status,
         String validatedByEmail,
         Instant validatedAt,
-        boolean hasProof
+        boolean hasProof,
+        /** Origine de l'argent (decisions.md n° 53). */
+        RepaymentSource source,
+        /** Membre dont l'argent a été retenu ou prélevé (emprunteur ou avaliste). */
+        UUID payerMemberId,
+        String payerFullName
 ) {
     public static LoanRepaymentResponse from(LoanRepayment repayment) {
         return new LoanRepaymentResponse(
@@ -43,7 +48,10 @@ public record LoanRepaymentResponse(
                 repayment.getStatus(),
                 repayment.getValidatedBy() != null ? repayment.getValidatedBy().getEmail() : null,
                 repayment.getValidatedAt(),
-                repayment.hasProof()
+                repayment.hasProof(),
+                repayment.getSource(),
+                repayment.getPayer() != null ? repayment.getPayer().getId() : null,
+                repayment.getPayer() != null ? repayment.getPayer().getFullName() : null
         );
     }
 }

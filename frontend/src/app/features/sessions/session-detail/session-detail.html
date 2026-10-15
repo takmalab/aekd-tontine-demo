@@ -190,7 +190,12 @@
                   <span>{{ fromIsoDate(h.payoutDate) | date: 'd MMM yyyy' }}</span>
                   <span>{{ h.memberFullName }}</span>
                   <strong>{{ formatFcfa(h.amount) }}</strong>
-                  <span class="payout__op">{{ operatorLabels[h.operator] }}{{ h.reference ? ' · ' + h.reference : '' }}</span>
+                  <span class="payout__op">
+                    {{ operatorLabels[h.operator] }}{{ h.reference ? ' · ' + h.reference : '' }}
+                    @if (h.deductedAmount > 0) {
+                      · dont {{ formatFcfa(h.deductedAmount) }} retenus pour des prêts
+                    }
+                  </span>
                 </li>
               }
             </ul>

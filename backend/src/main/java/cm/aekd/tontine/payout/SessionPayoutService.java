@@ -11,13 +11,20 @@ import cm.aekd.tontine.contribution.ContributionTransactionRepository;
 import cm.aekd.tontine.contribution.ContributionTransactionStatus;
 import cm.aekd.tontine.contribution.FundDestination;
 import cm.aekd.tontine.document.DocumentFormat;
+import cm.aekd.tontine.loan.GuarantorStatus;
+import cm.aekd.tontine.loan.Loan;
+import cm.aekd.tontine.loan.LoanRepository;
 import cm.aekd.tontine.member.Member;
+import cm.aekd.tontine.repayment.LoanRepaymentService;
+import cm.aekd.tontine.repayment.RepaymentSource;
 import cm.aekd.tontine.notification.NotificationService;
 import cm.aekd.tontine.notification.NotificationType;
 import cm.aekd.tontine.payout.SessionPayoutDtos.BeneficiaryShare;
 import cm.aekd.tontine.payout.SessionPayoutDtos.ContributionLine;
 import cm.aekd.tontine.payout.SessionPayoutDtos.PayoutOverview;
 import cm.aekd.tontine.payout.SessionPayoutDtos.PayoutRequest;
+import cm.aekd.tontine.payout.SessionPayoutDtos.DeductionLine;
+import cm.aekd.tontine.payout.SessionPayoutDtos.DeductionOption;
 import cm.aekd.tontine.payout.SessionPayoutDtos.PayoutResponse;
 import cm.aekd.tontine.session.Session;
 import cm.aekd.tontine.session.SessionBeneficiary;
@@ -32,6 +39,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -64,6 +73,8 @@ public class SessionPayoutService {
     private final UserRepository userRepository;
     private final AuditLogService auditLogService;
     private final NotificationService notificationService;
+    private final LoanRepository loanRepository;
+    private final LoanRepaymentService repaymentService;
 
     public SessionPayoutService(SessionRepository sessionRepository,
                                 SessionBeneficiaryRepository beneficiaryRepository,
@@ -73,7 +84,11 @@ public class SessionPayoutService {
                                 CurrentUserProvider currentUserProvider,
                                 UserRepository userRepository,
                                 AuditLogService auditLogService,
-                                NotificationService notificationService) {
+                                NotificationService notificationService,
+                                LoanRepository loanRepository,
+                                LoanRepaymentService repaymentService) {
+        this.loanRepository = loanRepository;
+        this.repaymentService = repaymentService;
         this.sessionRepository = sessionRepository;
         this.beneficiaryRepository = beneficiaryRepository;
         this.periodRepository = periodRepository;
@@ -123,19 +138,92 @@ public class SessionPayoutService {
                 .findFirst()
                 .orElseThrow();
 
-        SessionPayout payout = payoutRepository.save(new SessionPayout(session, member, request.amount(),
+        // Retenues pour rembourser des prêts (decisions.md n° 53), vérifiées avant d'enregistrer.
+        List<DeductionLine> deductions = request.deductions() == null ? List.of() : request.deductions();
+        Map<UUID, DeductionOption> options = deductionOptions(member).stream()
+                .collect(Collectors.toMap(DeductionOption::loanId, o -> o));
+        BigDecimal deducted = BigDecimal.ZERO;
+        for (DeductionLine line : deductions) {
+            DeductionOption option = options.get(line.loanId());
+            if (option == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Ce prêt ne concerne pas " + member.getFullName() + " (ni emprunteur ni avaliste)");
+            }
+            if (option.blockedReason() != null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, option.blockedReason());
+            }
+            if (line.amount().compareTo(option.outstanding()) > 0) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La retenue pour le prêt de "
+                        + option.borrowerFullName() + " dépasse ce qui reste à rembourser ("
+                        + DocumentFormat.fcfa(option.outstanding()) + ")");
+            }
+            deducted = deducted.add(line.amount());
+        }
+        if (deducted.compareTo(request.amount()) > 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Les retenues dépassent le montant de la remise");
+        }
+
+        SessionPayout payout = new SessionPayout(session, member, request.amount(),
                 request.payoutDate(), request.operator(), blankToNull(request.reference()),
-                blankToNull(request.observation()), recordedBy));
+                blankToNull(request.observation()), recordedBy);
+        payout.setDeductedAmount(deducted);
+        payout = payoutRepository.save(payout);
+        for (DeductionLine line : deductions) {
+            Loan loan = loanRepository.findById(line.loanId()).orElseThrow();
+            repaymentService.applyDeduction(loan, line.amount(), request.payoutDate(),
+                    RepaymentSource.PAYOUT_DEDUCTION, member, payout,
+                    "Retenue sur la cagnotte – " + session.getLabel());
+        }
 
         auditLogService.record(AuditAction.SESSION_PAYOUT_RECORDED, "SessionPayout", payout.getId(),
                 "Remise de " + DocumentFormat.fcfa(request.amount()) + " à " + member.getFullName()
                         + " (cagnotte de la séance \"" + session.getLabel() + "\")");
         notificationService.notifyMember(member, NotificationType.SESSION_PAYOUT_RECEIVED, "Cagnotte remise",
                 "Le trésorier a enregistré la remise de " + DocumentFormat.fcfa(request.amount())
-                        + " pour la séance \"" + session.getLabel() + "\".",
+                        + " pour la séance \"" + session.getLabel() + "\""
+                        + (deducted.signum() > 0 ? ", dont " + DocumentFormat.fcfa(deducted)
+                        + " retenus pour rembourser des prêts." : "."),
                 "/sessions/" + session.getId());
 
         return PayoutResponse.from(payout);
+    }
+
+    /**
+     * Prêts sur lesquels une retenue est possible à la remise de la cagnotte d'un
+     * membre (decisions.md n° 53) : ses propres prêts en cours, puis ceux qu'il
+     * garantit (seulement si l'épargne de l'emprunteur est épuisée).
+     */
+    @Transactional(readOnly = true)
+    public List<DeductionOption> deductionOptions(UUID sessionId, UUID memberId) {
+        getSessionOrThrow(sessionId);
+        Member member = beneficiaryRepository.findBySessionIdOrderByCreatedAtAsc(sessionId).stream()
+                .map(SessionBeneficiary::getMember)
+                .filter(m -> m.getId().equals(memberId))
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Ce membre n'est pas bénéficiaire de cette séance"));
+        return deductionOptions(member);
+    }
+
+    private List<DeductionOption> deductionOptions(Member member) {
+        LocalDate today = LocalDate.now(DocumentFormat.ZONE);
+        List<DeductionOption> options = new ArrayList<>();
+        for (Loan loan : loanRepository.findByMemberId(member.getId())) {
+            BigDecimal outstanding = repaymentService.outstanding(loan);
+            if (outstanding.signum() > 0) {
+                options.add(new DeductionOption(loan.getId(), loan.getMember().getFullName(), "BORROWER",
+                        outstanding, loan.isOverdue(today), null));
+            }
+        }
+        for (Loan loan : loanRepository.findByGuarantorIdOrderByCreatedAtDesc(member.getId())) {
+            BigDecimal outstanding = repaymentService.outstanding(loan);
+            if (outstanding.signum() > 0 && loan.getGuarantorStatus() == GuarantorStatus.ACCEPTED) {
+                options.add(new DeductionOption(loan.getId(), loan.getMember().getFullName(), "GUARANTOR",
+                        outstanding, loan.isOverdue(today), repaymentService.guarantorBlockReason(loan)));
+            }
+        }
+        return options;
     }
 
     private PayoutOverview buildOverview(Session session) {

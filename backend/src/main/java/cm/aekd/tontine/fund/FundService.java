@@ -174,7 +174,8 @@ public class FundService {
     public BigDecimal totalIndividualSavings() {
         return transactionRepository.sumAmountByStatusAndFundDestination(
                 ContributionTransactionStatus.VALIDATED, FundDestination.INDIVIDUAL_SAVINGS)
-                .add(depositRepository.sumValidated());
+                .add(depositRepository.sumValidated())
+                .subtract(repaymentRepository.sumAllSavingsDeductions());
     }
 
     /**
@@ -218,6 +219,8 @@ public class FundService {
     private BigDecimal savingsOf(UUID memberId) {
         return transactionRepository.sumAmountByStatusAndFundDestinationAndMember(
                 ContributionTransactionStatus.VALIDATED, FundDestination.INDIVIDUAL_SAVINGS, memberId)
-                .add(depositRepository.sumValidatedByMemberId(memberId));
+                .add(depositRepository.sumValidatedByMemberId(memberId))
+                // Prélèvements sur l'épargne pour rembourser un prêt (decisions.md n° 53).
+                .subtract(repaymentRepository.sumSavingsDeductionsByPayer(memberId));
     }
 }

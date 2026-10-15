@@ -11,7 +11,7 @@
       }
     </h2>
     <p class="head__subtitle">
-      {{ subject.label }} · {{ formatFcfa(subject.amount) }} · {{ operatorLabels[subject.operator] }}
+      {{ subject.label }} · {{ formatFcfa(subject.amount) }} · {{ subject.operator ? operatorLabels[subject.operator] : "Retenue" }}
     </p>
   </div>
 </div>

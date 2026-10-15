@@ -39,6 +39,14 @@ public class LoanRepaymentController {
     }
 
     /** Le membre déclare un remboursement de son propre prêt (en attente de validation). */
+    /** Prélèvement sur l'épargne de l'emprunteur ou de l'avaliste (decisions.md n° 53). */
+    @PostMapping("/savings-deduction")
+    @PreAuthorize("hasRole('TRESORIER')")
+    public ResponseEntity<LoanRepaymentResponse> deductFromSavings(@PathVariable UUID loanId,
+                                                                   @Valid @RequestBody SavingsDeductionRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(repaymentService.deductFromSavings(loanId, request));
+    }
+
     @PostMapping("/repayments/declare")
     public ResponseEntity<LoanRepaymentResponse> declare(@PathVariable UUID loanId,
                                                            @Valid @RequestBody LoanRepaymentRequest request) {

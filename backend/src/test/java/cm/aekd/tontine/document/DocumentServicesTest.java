@@ -210,7 +210,7 @@ class DocumentServicesTest {
         assertThat(statement.filename()).isEqualTo("releve-alice-ndongo.pdf");
         assertThat(text).contains("RELEVÉ INDIVIDUEL DU MEMBRE", "Alice Ndongo", "Épargne individuelle",
                 "Versé au fonds commun", "Cotisation 50 000 FCFA", "Validé",
-                "Versements d'épargne", "EPARGNE-OM-1", "Orange Money", "25 000 FCFA");
+                "Versements et prélèvements d'épargne", "EPARGNE-OM-1", "Orange Money", "25 000 FCFA");
 
         loginAs("doc-alice@test.aekd.cm", RoleName.MEMBRE);
         assertThatThrownBy(() -> statementService.statement(bruno.getId()))

@@ -108,12 +108,12 @@
               <div class="entry__top">
                 <span class="entry__label">{{ e.label }}</span>
                 <span [class]="'badge badge--' + e.status.toLowerCase()">{{ statusLabels[e.status] }}</span>
-                @if (e.source === 'CONTRIBUTION') {
+                @if (e.source !== 'DEPOSIT') {
                   <span class="badge badge--source">{{ sourceLabels[e.source] }}</span>
                 }
               </div>
               <p class="entry__meta">
-                {{ fromIsoDate(e.paymentDate) | date: 'd MMM yyyy' }} · {{ operatorLabels[e.operator] }} · réf.
+                {{ fromIsoDate(e.paymentDate) | date: 'd MMM yyyy' }} · {{ e.operator ? operatorLabels[e.operator] : sourceLabels[e.source] }} · réf.
                 {{ e.reference }}
                 @if (e.validatedAt && e.status === 'VALIDATED') {
                   · validé le {{ e.validatedAt | date: 'd MMM yyyy' }}

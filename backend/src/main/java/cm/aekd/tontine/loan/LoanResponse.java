@@ -35,6 +35,8 @@ public record LoanResponse(
         UUID guarantorMemberId,
         String guarantorFullName,
         GuarantorStatus guarantorStatus,
-        Instant guarantorDecidedAt
+        Instant guarantorDecidedAt,
+        /** Durée approuvée dépassée et prêt pas encore remboursé (decisions.md n° 53). */
+        boolean overdue
 ) {
 }

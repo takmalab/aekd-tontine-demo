@@ -122,7 +122,7 @@
               <p class="item__tx">
                 <mat-icon>payments</mat-icon>
                 <span>
-                  {{ operatorLabels[r.operator] }} · réf. <strong>{{ r.reference }}</strong> · payé le
+                  {{ r.operator ? operatorLabels[r.operator] : '' }} · réf. <strong>{{ r.reference }}</strong> · payé le
                   {{ fromIsoDate(r.paymentDate) | date: 'd MMM yyyy' }}
                 </span>
               </p>

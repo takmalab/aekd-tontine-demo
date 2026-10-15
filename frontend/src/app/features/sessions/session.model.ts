@@ -73,6 +73,20 @@ export interface SessionPayout {
   observation: string | null;
   recordedByEmail: string | null;
   createdAt: string;
+  /** Retenue pour rembourser des prêts ; le bénéficiaire a reçu amount − deductedAmount (n° 53). */
+  deductedAmount: number;
+}
+
+/** Prêt sur lequel retenir à la remise de la cagnotte (decisions.md n° 53). */
+export interface PayoutDeductionOption {
+  loanId: string;
+  borrowerFullName: string;
+  /** BORROWER : son propre prêt ; GUARANTOR : un prêt qu'il garantit. */
+  role: 'BORROWER' | 'GUARANTOR';
+  outstanding: number;
+  overdue: boolean;
+  /** Pourquoi la retenue est impossible (ex. l'emprunteur a encore de l'épargne). */
+  blockedReason: string | null;
 }
 
 export interface PayoutBeneficiaryShare {
@@ -105,4 +119,5 @@ export interface PayoutRequest {
   operator: PaymentOperator;
   reference: string | null;
   observation: string | null;
+  deductions?: { loanId: string; amount: number }[];
 }

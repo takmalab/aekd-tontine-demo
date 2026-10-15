@@ -489,7 +489,8 @@ public class LoanService {
                 loan.getGuarantor() != null ? loan.getGuarantor().getId() : null,
                 loan.getGuarantor() != null ? loan.getGuarantor().getFullName() : null,
                 loan.getGuarantorStatus(),
-                loan.getGuarantorDecidedAt()
+                loan.getGuarantorDecidedAt(),
+                loan.isOverdue(java.time.LocalDate.now(DocumentFormat.ZONE))
         );
     }
 }

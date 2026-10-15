@@ -25,7 +25,36 @@ public final class SessionPayoutDtos {
             @NotNull @PastOrPresent LocalDate payoutDate,
             @NotNull PaymentOperator operator,
             @Size(max = 150) String reference,
-            @Size(max = 1000) String observation
+            @Size(max = 1000) String observation,
+            /** Retenues pour rembourser des prêts (decisions.md n° 53), prises sur le montant. */
+            List<@jakarta.validation.Valid DeductionLine> deductions
+    ) {
+        public PayoutRequest(UUID memberId, BigDecimal amount, LocalDate payoutDate, PaymentOperator operator,
+                             String reference, String observation) {
+            this(memberId, amount, payoutDate, operator, reference, observation, null);
+        }
+    }
+
+    /** Retenue sur la cagnotte pour un prêt. */
+    public record DeductionLine(
+            @NotNull UUID loanId,
+            @NotNull @Positive @Digits(integer = 14, fraction = 0) BigDecimal amount
+    ) {
+    }
+
+    /**
+     * Prêt pouvant faire l'objet d'une retenue sur la cagnotte d'un bénéficiaire :
+     * le sien (BORROWER) ou un prêt qu'il garantit (GUARANTOR). {@code blockedReason}
+     * explique pourquoi la retenue n'est pas possible (ex. l'emprunteur a encore de
+     * l'épargne : l'emprunteur d'abord).
+     */
+    public record DeductionOption(
+            UUID loanId,
+            String borrowerFullName,
+            String role,
+            BigDecimal outstanding,
+            boolean overdue,
+            String blockedReason
     ) {
     }
 
@@ -40,7 +69,9 @@ public final class SessionPayoutDtos {
             String reference,
             String observation,
             String recordedByEmail,
-            Instant createdAt
+            Instant createdAt,
+            /** Retenue pour des prêts ; le bénéficiaire a reçu amount − deductedAmount. */
+            BigDecimal deductedAmount
     ) {
         static PayoutResponse from(SessionPayout payout) {
             return new PayoutResponse(
@@ -54,7 +85,8 @@ public final class SessionPayoutDtos {
                     payout.getReference(),
                     payout.getObservation(),
                     payout.getRecordedBy() != null ? payout.getRecordedBy().getEmail() : null,
-                    payout.getCreatedAt());
+                    payout.getCreatedAt(),
+                    payout.getDeductedAmount());
         }
     }
 

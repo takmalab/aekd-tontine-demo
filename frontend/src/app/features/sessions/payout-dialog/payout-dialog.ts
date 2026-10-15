@@ -1,5 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
@@ -10,7 +11,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { formatFcfa, toIsoDate } from '../../../shared/utils/format';
 import { PAYMENT_OPERATOR_LABELS, PaymentOperator } from '../../contributions/contribution.model';
-import { PayoutBeneficiaryShare, SessionPayout } from '../session.model';
+import { PayoutBeneficiaryShare, PayoutDeductionOption, SessionPayout } from '../session.model';
 import { SessionService } from '../session.service';
 
 export interface PayoutDialogData {
@@ -19,9 +20,18 @@ export interface PayoutDialogData {
   share: PayoutBeneficiaryShare;
 }
 
+/** Retenue proposée sur la cagnotte pour un prêt (decisions.md n° 53). */
+interface DeductionLine {
+  option: PayoutDeductionOption;
+  amount: number;
+}
+
 /**
  * Remise de la cagnotte à un bénéficiaire de la séance (docs/decisions.md n° 46).
  * Montant prérempli avec la part restante, qu'il ne peut pas dépasser.
+ * Si le bénéficiaire a un prêt en cours, ou garantit un prêt dont l'emprunteur n'a
+ * plus d'épargne, le reste à rembourser est retenu sur la cagnotte (n° 53) :
+ * prérempli, modifiable par le trésorier.
  * Se ferme avec la remise enregistrée, ou undefined.
  */
 @Component({
@@ -58,6 +68,12 @@ export class PayoutDialog {
   readonly saving = signal(false);
   readonly errorMessage = signal<string | null>(null);
 
+  /** Retenues possibles (prêt du bénéficiaire, puis prêts qu'il garantit). */
+  readonly lines = signal<DeductionLine[]>([]);
+  readonly blocked = signal<PayoutDeductionOption[]>([]);
+  /** Le trésorier a modifié une retenue : on ne recalcule plus quand le montant change. */
+  private edited = false;
+
   readonly form = this.fb.group({
     amount: [
       this.data.share.due as number | null,
@@ -69,8 +85,58 @@ export class PayoutDialog {
     observation: ['', Validators.maxLength(500)],
   });
 
+  private readonly amount = toSignal(this.form.controls.amount.valueChanges, {
+    initialValue: this.form.controls.amount.value,
+  });
+  readonly deducted = computed(() => this.lines().reduce((sum, l) => sum + (l.amount || 0), 0));
+  readonly handed = computed(() => Math.max(0, Number(this.amount() ?? 0) - this.deducted()));
+
+  constructor() {
+    this.sessionService.payoutDeductionOptions(this.data.sessionId, this.data.share.memberId).subscribe({
+      next: (options) => {
+        this.blocked.set(options.filter((o) => o.blockedReason));
+        this.lines.set(options.filter((o) => !o.blockedReason).map((option) => ({ option, amount: 0 })));
+        this.autofill();
+      },
+      error: () => this.errorMessage.set('Impossible de vérifier les prêts du bénéficiaire.'),
+    });
+    this.form.controls.amount.valueChanges.subscribe(() => {
+      if (!this.edited) {
+        this.autofill();
+      }
+    });
+  }
+
+  /** Remplit les retenues dans l'ordre (son prêt d'abord), sans dépasser le montant remis. */
+  private autofill(): void {
+    let budget = Number(this.form.controls.amount.value ?? 0);
+    this.lines.update((lines) =>
+      lines.map((line) => {
+        const amount = Math.max(0, Math.min(line.option.outstanding, budget));
+        budget -= amount;
+        return { ...line, amount };
+      }),
+    );
+  }
+
+  setLineAmount(loanId: string, event: Event): void {
+    this.edited = true;
+    const value = Math.max(0, Math.floor(Number((event.target as HTMLInputElement).value) || 0));
+    this.lines.update((lines) => lines.map((l) => (l.option.loanId === loanId ? { ...l, amount: value } : l)));
+  }
+
+  readonly linesError = computed(() => {
+    if (this.lines().some((l) => l.amount > l.option.outstanding)) {
+      return 'Une retenue dépasse ce qui reste à rembourser sur le prêt.';
+    }
+    if (this.deducted() > Number(this.amount() ?? 0)) {
+      return 'Les retenues dépassent le montant de la remise.';
+    }
+    return null;
+  });
+
   submit(): void {
-    if (this.form.invalid) {
+    if (this.form.invalid || this.linesError()) {
       this.form.markAllAsTouched();
       return;
     }
@@ -85,6 +151,9 @@ export class PayoutDialog {
         operator: v.operator!,
         reference: v.reference?.trim() || null,
         observation: v.observation?.trim() || null,
+        deductions: this.lines()
+          .filter((l) => l.amount > 0)
+          .map((l) => ({ loanId: l.option.loanId, amount: l.amount })),
       })
       .subscribe({
         next: (payout) => this.dialogRef.close(payout),

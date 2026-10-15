@@ -33,6 +33,13 @@ public class SessionPayoutController {
         return payoutService.overview(sessionId);
     }
 
+    /** Prêts du bénéficiaire (ou garantis par lui) sur lesquels retenir (decisions.md n° 53). */
+    @GetMapping("/deduction-options")
+    public java.util.List<SessionPayoutDtos.DeductionOption> deductionOptions(
+            @PathVariable UUID sessionId, @org.springframework.web.bind.annotation.RequestParam UUID memberId) {
+        return payoutService.deductionOptions(sessionId, memberId);
+    }
+
     @PostMapping
     public ResponseEntity<PayoutResponse> record(@PathVariable UUID sessionId,
                                                  @Valid @RequestBody PayoutRequest request) {

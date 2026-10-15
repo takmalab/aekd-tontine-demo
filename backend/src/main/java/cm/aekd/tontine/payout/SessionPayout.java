@@ -67,6 +67,10 @@ public class SessionPayout {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    /** Part retenue pour rembourser des prêts (decisions.md n° 53) ; remis = montant − retenue. */
+    @Column(name = "deducted_amount", nullable = false, precision = 14, scale = 0)
+    private BigDecimal deductedAmount = BigDecimal.ZERO;
+
     protected SessionPayout() {
     }
 
@@ -137,5 +141,13 @@ public class SessionPayout {
     @Override
     public int hashCode() {
         return Objects.hashCode(id);
+    }
+
+    public BigDecimal getDeductedAmount() {
+        return deductedAmount;
+    }
+
+    public void setDeductedAmount(BigDecimal deductedAmount) {
+        this.deductedAmount = deductedAmount;
     }
 }

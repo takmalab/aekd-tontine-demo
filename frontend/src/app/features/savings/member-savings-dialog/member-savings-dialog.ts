@@ -49,7 +49,7 @@ export interface MemberSavingsDialogData {
                 <span [class]="'badge badge--' + e.status.toLowerCase()">{{ statusLabels[e.status] }}</span>
                 <div class="meta">
                   {{ e.label }} · {{ fromIsoDate(e.paymentDate) | date: 'd MMM yyyy' }} ·
-                  {{ operatorLabels[e.operator] }} · réf. {{ e.reference }}
+                  {{ e.operator ? operatorLabels[e.operator] : 'Prélèvement (prêt)' }} · réf. {{ e.reference }}
                 </div>
               </div>
               @if (e.interest !== null) {

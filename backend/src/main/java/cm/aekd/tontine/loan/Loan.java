@@ -270,4 +270,12 @@ public class Loan {
         this.guarantorStatus = accepted ? GuarantorStatus.ACCEPTED : GuarantorStatus.DECLINED;
         this.guarantorDecidedAt = Instant.now();
     }
+
+    /** Durée approuvée dépassée alors que le prêt court encore (decisions.md n° 52 et 53). */
+    public boolean isOverdue(java.time.LocalDate today) {
+        return (status == LoanStatus.APPROVED || status == LoanStatus.IN_PROGRESS)
+                && decisionDate != null && approvedDurationMonths != null
+                && today.isAfter(java.time.LocalDate.ofInstant(decisionDate, java.time.ZoneId.of("Africa/Douala"))
+                .plusMonths(approvedDurationMonths));
+    }
 }

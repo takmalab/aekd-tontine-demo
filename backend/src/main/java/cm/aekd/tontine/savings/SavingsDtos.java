@@ -51,7 +51,9 @@ public final class SavingsDtos {
         /** Versement libre (bouton « Épargner »). */
         DEPOSIT,
         /** Paiement d'une cotisation destinée à l'épargne individuelle (ex. « Banque / Épargne »). */
-        CONTRIBUTION
+        CONTRIBUTION,
+        /** Prélèvement pour rembourser un prêt (decisions.md n° 53) : montant négatif. */
+        LOAN_DEDUCTION
     }
 
     /**

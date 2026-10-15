@@ -37,6 +37,7 @@ export type AuditAction =
   | 'LOAN_GUARANTEE_ACCEPTED'
   | 'LOAN_GUARANTEE_DECLINED'
   | 'LOAN_GUARANTOR_CHANGED'
+  | 'LOAN_DEDUCTION_RECORDED'
   | 'SANCTION_PAYMENT_DECLARED'
   | 'SANCTION_PAYMENT_VALIDATED'
   | 'SANCTION_PAYMENT_REJECTED'
@@ -106,6 +107,7 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   LOAN_GUARANTEE_ACCEPTED: 'Aval accepté',
   LOAN_GUARANTEE_DECLINED: 'Aval refusé',
   LOAN_GUARANTOR_CHANGED: "Changement d'avaliste",
+  LOAN_DEDUCTION_RECORDED: 'Retenue pour un prêt',
   SANCTION_PAYMENT_DECLARED: 'Paiement de sanction déclaré',
   SANCTION_PAYMENT_VALIDATED: 'Paiement de sanction validé',
   SANCTION_PAYMENT_REJECTED: 'Paiement de sanction rejeté',

@@ -130,7 +130,7 @@ public class ReceiptDocumentService {
         pdf.keyValues(List.of(
                 new String[]{"Membre", loan.getMember().getFullName()},
                 new String[]{"Date", date(repayment.getPaymentDate())},
-                new String[]{"Opérateur", DocumentFormat.operator(repayment.getOperator())},
+                new String[]{"Opérateur", DocumentFormat.repaymentMeans(repayment)},
                 new String[]{"Référence", repayment.getReference()},
                 new String[]{"Enregistré par", access.displayName(repayment.getRecordedBy())},
                 new String[]{"Enregistré le", dateTime(repayment.getCreatedAt())}

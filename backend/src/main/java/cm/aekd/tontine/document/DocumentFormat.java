@@ -77,6 +77,15 @@ public final class DocumentFormat {
         return value == null || value.isBlank() ? "–" : value;
     }
 
+    /** Moyen d'un remboursement : l'opérateur, ou la retenue / le prélèvement (decisions.md n° 53). */
+    public static String repaymentMeans(cm.aekd.tontine.repayment.LoanRepayment repayment) {
+        return switch (repayment.getSource()) {
+            case DIRECT -> operator(repayment.getOperator());
+            case PAYOUT_DEDUCTION -> "Retenue sur cagnotte";
+            case SAVINGS_DEDUCTION -> "Prélèvement sur épargne";
+        };
+    }
+
     public static String operator(PaymentOperator operator) {
         if (operator == null) {
             return "–";

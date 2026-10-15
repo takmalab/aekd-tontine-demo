@@ -1856,3 +1856,32 @@ Validé par le propriétaire du projet le 2026-10-15.
     est épuisée ;
   * le trésorier peut aussi **prélever sur l'épargne** de l'emprunteur, puis
     sur celle de l'avaliste si l'épargne de l'emprunteur est épuisée.
+
+## Points à valider
+
+```text
+À VALIDER
+```
+
+* La retenue sur la cagnotte est **proposée** (préremplie) mais le trésorier
+  peut la réduire ou la retirer. Faut-il l'imposer ?
+* Le prélèvement sur l'**épargne** n'est possible que pour un prêt **en retard**
+  (durée approuvée dépassée), lecture de « s'il ne rembourse pas ». La retenue
+  sur la **cagnotte** est possible dès que le prêt court.
+* « Épargne de l'emprunteur épuisée » = son capital d'épargne validé est à zéro
+  (les intérêts d'épargne ne sont pas comptés).
+* Une retenue ou un prélèvement est définitif (comme un remboursement validé).
+
+## Conséquence technique
+
+* `loan_policy.interest_period_months`, `loan_policy.max_guarantees_per_member`,
+  `loan.interest_period_months` (V27) ; `LoanInterest.interest(capital, taux, mois, période)`.
+* Une retenue ou un prélèvement est un `LoanRepayment` VALIDATED avec
+  `source` (PAYOUT_DEDUCTION, SAVINGS_DEDUCTION), `payer_member_id` et
+  `session_payout_id` ; `session_payout.deducted_amount` (V28). Le solde du
+  prêt et son passage à REPAID suivent donc les règles habituelles.
+* Épargne d'un membre = versements validés − prélèvements ; les prélèvements
+  apparaissent en négatif dans l'historique d'épargne et le relevé PDF.
+* Endpoints : `GET /api/sessions/{id}/payouts/deduction-options?memberId=`,
+  `POST /api/loans/{id}/savings-deduction` (TRESORIER) ; la remise de cagnotte
+  accepte une liste `deductions`.

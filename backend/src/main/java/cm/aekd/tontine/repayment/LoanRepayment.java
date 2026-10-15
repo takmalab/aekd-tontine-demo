@@ -83,6 +83,21 @@ public class LoanRepayment {
     @Column(name = "proof_file_size")
     private Long proofFileSize;
 
+    /** Origine de l'argent (decisions.md n° 53). */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "source", nullable = false, length = 20)
+    private RepaymentSource source = RepaymentSource.DIRECT;
+
+    /** Membre dont l'argent est pris pour une retenue ou un prélèvement : emprunteur ou avaliste. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "payer_member_id")
+    private cm.aekd.tontine.member.Member payer;
+
+    /** Remise de cagnotte sur laquelle la retenue a été faite. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "session_payout_id")
+    private cm.aekd.tontine.payout.SessionPayout sessionPayout;
+
     protected LoanRepayment() {
     }
 
@@ -201,5 +216,25 @@ public class LoanRepayment {
     @Override
     public int hashCode() {
         return Objects.hashCode(id);
+    }
+
+    public RepaymentSource getSource() {
+        return source;
+    }
+
+    public cm.aekd.tontine.member.Member getPayer() {
+        return payer;
+    }
+
+    public cm.aekd.tontine.payout.SessionPayout getSessionPayout() {
+        return sessionPayout;
+    }
+
+    /** Retenue sur cagnotte ou prélèvement sur épargne (decisions.md n° 53). */
+    public void markAsDeduction(RepaymentSource source, cm.aekd.tontine.member.Member payer,
+                                cm.aekd.tontine.payout.SessionPayout sessionPayout) {
+        this.source = source;
+        this.payer = payer;
+        this.sessionPayout = sessionPayout;
     }
 }

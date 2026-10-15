@@ -13,6 +13,7 @@ import {
   LoanRequest,
   LoanStatus,
   GuarantorCandidate,
+  SavingsDeductionRequest,
 } from './loan.model';
 
 /**
@@ -77,6 +78,11 @@ export class LoanService {
 
   answerGuarantee(loanId: string, accept: boolean): Observable<Loan> {
     return this.http.put<Loan>(`${this.api}/loans/${loanId}/guarantee/${accept ? 'accept' : 'decline'}`, {});
+  }
+
+  /** Prélèvement sur l'épargne de l'emprunteur ou de l'avaliste (decisions.md n° 53). */
+  deductFromSavings(loanId: string, request: SavingsDeductionRequest): Observable<LoanRepayment> {
+    return this.http.post<LoanRepayment>(`${this.api}/loans/${loanId}/savings-deduction`, request);
   }
 
   changeGuarantor(loanId: string, guarantorMemberId: string): Observable<Loan> {

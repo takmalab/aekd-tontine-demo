@@ -97,3 +97,62 @@
     gap: 0;
   }
 }
+
+.deductions {
+  margin: 0 0 14px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--aekd-blue-soft);
+
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 8px;
+    font-weight: 700;
+    font-size: 13.5px;
+
+    mat-icon {
+      color: var(--aekd-blue);
+    }
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  &__who {
+    display: flex;
+    flex-direction: column;
+    font-size: 13px;
+
+    small {
+      color: var(--aekd-gray-muted);
+    }
+  }
+
+  &__amount {
+    width: 150px;
+    flex: none;
+  }
+
+  &__blocked {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin: 0 0 8px;
+    color: var(--aekd-gray-muted);
+    font-size: 12.5px;
+
+    mat-icon {
+      flex: none;
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+}

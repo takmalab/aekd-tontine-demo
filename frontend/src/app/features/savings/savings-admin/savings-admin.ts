@@ -147,7 +147,7 @@ export class SavingsAdmin implements OnInit {
       Membre: e.memberFullName,
       Origine: e.label,
       Montant: formatFcfa(e.amount),
-      Opérateur: this.operatorLabels[e.operator],
+      Opérateur: e.operator ? this.operatorLabels[e.operator] : 'Prélèvement (prêt)',
       Référence: e.reference,
       Statut: this.statusLabels[e.status],
       Intérêts: e.interest === null ? '' : formatFcfa(e.interest),

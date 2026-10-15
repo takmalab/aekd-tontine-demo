@@ -9,6 +9,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { forkJoin } from 'rxjs';
 import { ConfirmDialog, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog';
 import { GuarantorDialog } from '../guarantor-dialog/guarantor-dialog';
+import { SavingsDeductionData, SavingsDeductionDialog } from '../savings-deduction-dialog/savings-deduction-dialog';
 import { DocumentService } from '../../../core/services/document.service';
 import { formatFcfa, fromIsoDate } from '../../../shared/utils/format';
 import { PAYMENT_OPERATOR_LABELS } from '../../contributions/contribution.model';
@@ -19,6 +20,7 @@ import {
   interestPeriodLabel,
   LOAN_STATUSES_WITH_BALANCE,
   LOAN_STATUS_LABELS,
+  REPAYMENT_SOURCE_LABELS,
   REPAYMENT_STATUS_LABELS,
   Loan,
   LoanBalance,
@@ -78,6 +80,7 @@ export class LoanCard {
     return l.guarantorStatus !== null && l.guarantorStatus !== 'ACCEPTED';
   });
   readonly repaymentStatusLabels = REPAYMENT_STATUS_LABELS;
+  readonly sourceLabels = REPAYMENT_SOURCE_LABELS;
   readonly operatorLabels = PAYMENT_OPERATOR_LABELS;
   readonly formatFcfa = formatFcfa;
   readonly fromIsoDate = fromIsoDate;
@@ -249,6 +252,25 @@ export class LoanCard {
             this.snackBar.open(err.error?.message || "Le changement d'avaliste a échoué.", 'OK', { duration: 6000 });
           },
         });
+      });
+  }
+
+  /** Prélèvement sur l'épargne d'un prêt en retard (decisions.md n° 53). */
+  deductFromSavings(): void {
+    const b = this.balance();
+    if (!b) {
+      return;
+    }
+    const data: SavingsDeductionData = { loan: this.loan(), outstanding: Math.max(0, b.remainingBalance - b.pendingAmount) };
+    this.dialog
+      .open(SavingsDeductionDialog, { data, width: '520px', maxWidth: 'calc(100vw - 24px)', autoFocus: false })
+      .afterClosed()
+      .subscribe((repayment?: LoanRepayment) => {
+        if (repayment) {
+          this.snackBar.open("Prélèvement sur l'épargne enregistré", 'OK', { duration: 4000 });
+          this.loadMoney();
+          this.changed.emit(this.loan());
+        }
       });
   }
 

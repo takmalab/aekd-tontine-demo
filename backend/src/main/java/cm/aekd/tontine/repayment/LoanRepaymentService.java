@@ -8,6 +8,7 @@ import cm.aekd.tontine.document.DocumentFormat;
 import cm.aekd.tontine.notification.NotificationService;
 import cm.aekd.tontine.notification.NotificationType;
 import cm.aekd.tontine.loan.Loan;
+import cm.aekd.tontine.member.Member;
 import cm.aekd.tontine.loan.LoanRepository;
 import cm.aekd.tontine.loan.LoanStatus;
 import cm.aekd.tontine.storage.FileStorageService;
@@ -25,6 +26,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -54,11 +56,14 @@ public class LoanRepaymentService {
     private final AuditLogService auditLogService;
     private final FileStorageService fileStorageService;
     private final NotificationService notificationService;
+    private final cm.aekd.tontine.fund.FundService fundService;
 
     public LoanRepaymentService(LoanRepository loanRepository, LoanRepaymentRepository repaymentRepository,
                                  CurrentUserProvider currentUserProvider, UserRepository userRepository,
                                  AuditLogService auditLogService, FileStorageService fileStorageService,
-                                 NotificationService notificationService) {
+                                 NotificationService notificationService,
+                                 cm.aekd.tontine.fund.FundService fundService) {
+        this.fundService = fundService;
         this.notificationService = notificationService;
         this.loanRepository = loanRepository;
         this.repaymentRepository = repaymentRepository;
@@ -274,6 +279,117 @@ public class LoanRepaymentService {
                 repaymentRepository.sumPendingAmountByLoanId(loanId),
                 loan.getApprovedAmount() != null ? loan.getApprovedAmount() : BigDecimal.ZERO,
                 loan.getInterestAmount(), loan.getInterestRate());
+    }
+
+    // ---------- Recouvrement (docs/decisions.md n° 53) ----------
+
+    /** Ce qui peut encore être recouvré : solde restant moins les remboursements en attente. */
+    @Transactional(readOnly = true)
+    public BigDecimal outstanding(Loan loan) {
+        if (!REPAYABLE.contains(loan.getStatus())) {
+            return BigDecimal.ZERO;
+        }
+        return remainingBalance(loan).subtract(repaymentRepository.sumPendingAmountByLoanId(loan.getId()))
+                .max(BigDecimal.ZERO);
+    }
+
+    /**
+     * L'avaliste peut-il être mis à contribution ? « L'emprunteur d'abord » : il faut
+     * que l'avaliste ait accepté et que l'épargne de l'emprunteur soit épuisée.
+     * Renvoie la raison du refus, ou null si c'est possible.
+     */
+    @Transactional(readOnly = true)
+    public String guarantorBlockReason(Loan loan) {
+        if (loan.getGuarantor() == null || loan.getGuarantorStatus() != cm.aekd.tontine.loan.GuarantorStatus.ACCEPTED) {
+            return "Ce prêt n'a pas d'avaliste qui a accepté";
+        }
+        BigDecimal borrowerSavings = fundService.individualSavingsOf(loan.getMember().getId());
+        if (borrowerSavings.signum() > 0) {
+            return "L'emprunteur a encore " + DocumentFormat.fcfa(borrowerSavings)
+                    + " d'épargne : prélevez-la d'abord (l'emprunteur d'abord)";
+        }
+        return null;
+    }
+
+    /**
+     * Enregistre une retenue sur cagnotte ou un prélèvement sur épargne comme un
+     * remboursement validé, puis met le prêt à jour (statut, solde).
+     */
+    public LoanRepayment applyDeduction(Loan loan, BigDecimal amount, LocalDate date, RepaymentSource source,
+                                        Member payer, cm.aekd.tontine.payout.SessionPayout payout, String reference) {
+        checkRepayable(loan);
+        BigDecimal available = outstanding(loan);
+        if (amount.signum() <= 0 || amount.compareTo(available) > 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La retenue (" + DocumentFormat.fcfa(amount)
+                    + ") dépasse ce qui reste à recouvrer sur le prêt de " + loan.getMember().getFullName()
+                    + " (" + DocumentFormat.fcfa(available) + ")");
+        }
+        BigDecimal remaining = remainingBalance(loan);
+        User recordedBy = currentUserOrThrow();
+        LoanRepayment repayment = new LoanRepayment(loan, amount, date, null, reference, recordedBy);
+        repayment.setValidatedBy(recordedBy);
+        repayment.setValidatedAt(Instant.now());
+        repayment.markAsDeduction(source, payer, payout);
+        repayment = repaymentRepository.save(repayment);
+        BigDecimal newRemaining = remaining.subtract(amount);
+        applyToLoan(loan, newRemaining);
+
+        boolean byGuarantor = !payer.getId().equals(loan.getMember().getId());
+        String how = source == RepaymentSource.PAYOUT_DEDUCTION ? "retenus sur la cagnotte" : "prélevés sur l'épargne";
+        auditLogService.record(AuditAction.LOAN_DEDUCTION_RECORDED, "LoanRepayment", repayment.getId(),
+                DocumentFormat.fcfa(amount) + " " + how + " de " + payer.getFullName()
+                        + (byGuarantor ? " (avaliste)" : "") + " pour le prêt de " + loan.getMember().getFullName());
+        notificationService.notifyMember(loan.getMember(), NotificationType.LOAN_DEDUCTION_RECORDED,
+                "Retenue pour votre prêt",
+                DocumentFormat.fcfa(amount) + " " + how + (byGuarantor ? " de votre avaliste " + payer.getFullName() : "")
+                        + " pour rembourser votre prêt. Reste à rembourser : " + DocumentFormat.fcfa(newRemaining) + ".",
+                "/my-loans");
+        if (byGuarantor) {
+            notificationService.notifyMember(payer, NotificationType.LOAN_DEDUCTION_RECORDED,
+                    "Retenue en tant qu'avaliste",
+                    DocumentFormat.fcfa(amount) + " " + how + " pour le prêt de " + loan.getMember().getFullName()
+                            + " que vous garantissez.",
+                    "/my-loans");
+        }
+        return repayment;
+    }
+
+    /**
+     * Prélèvement sur l'épargne de l'emprunteur, ou de l'avaliste si l'épargne de
+     * l'emprunteur est épuisée (decisions.md n° 53). Seulement pour un prêt dont
+     * l'échéance est dépassée (« s'il ne rembourse pas »).
+     */
+    public LoanRepaymentResponse deductFromSavings(UUID loanId, SavingsDeductionRequest request) {
+        Loan loan = getLoanOrThrow(loanId);
+        checkRepayable(loan);
+        if (!loan.isOverdue(LocalDate.now(DocumentFormat.ZONE))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Le prêt n'est pas en retard : l'épargne ne peut être prélevée qu'après l'échéance");
+        }
+        Member payer;
+        if (request.payer() == SavingsDeductionRequest.Payer.GUARANTOR) {
+            String reason = guarantorBlockReason(loan);
+            if (reason != null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, reason);
+            }
+            payer = loan.getGuarantor();
+        } else {
+            payer = loan.getMember();
+        }
+        UUID currentMemberId = currentUserProvider.currentMemberId().orElse(null);
+        if (currentMemberId != null && (currentMemberId.equals(loan.getMember().getId())
+                || currentMemberId.equals(payer.getId()))) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Vous ne pouvez pas faire ce prélèvement : il vous concerne (un autre membre du bureau doit le faire)");
+        }
+        BigDecimal savings = fundService.individualSavingsOf(payer.getId());
+        if (request.amount().compareTo(savings) > 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Épargne insuffisante : "
+                    + payer.getFullName() + " a " + DocumentFormat.fcfa(savings.max(BigDecimal.ZERO)) + " d'épargne");
+        }
+        LoanRepayment repayment = applyDeduction(loan, request.amount(), LocalDate.now(DocumentFormat.ZONE),
+                RepaymentSource.SAVINGS_DEDUCTION, payer, null, "Prélèvement sur l'épargne de " + payer.getFullName());
+        return LoanRepaymentResponse.from(repayment);
     }
 
     /** Capital + intérêts (CLAUDE.md §23, decisions.md n° 19) moins les remboursements validés. */

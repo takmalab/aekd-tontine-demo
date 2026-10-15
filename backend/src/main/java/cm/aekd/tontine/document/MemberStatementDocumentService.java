@@ -146,15 +146,17 @@ public class MemberStatementDocumentService {
         // Versements libres d'épargne (docs/decisions.md n° 39), avec les intérêts
         // acquis à ce jour calculés exactement comme sur la page « Mon épargne ».
         MemberSavingsResponse memberSavings = savingsService.ofMember(memberId);
+        // Avec les prélèvements pour rembourser un prêt (decisions.md n° 53), en négatif.
         List<EntryResponse> deposits = memberSavings.entries().stream()
-                .filter(e -> e.source() == EntrySource.DEPOSIT)
+                .filter(e -> e.source() != EntrySource.CONTRIBUTION)
                 .toList();
-        pdf.section("Versements d'épargne");
+        pdf.section("Versements et prélèvements d'épargne");
         List<Cell[]> depositRows = new ArrayList<>();
         for (EntryResponse e : deposits) {
             depositRows.add(new Cell[]{
                     Cell.of(date(e.paymentDate())),
-                    Cell.of(DocumentFormat.operator(e.operator())),
+                    Cell.of(e.source() == EntrySource.LOAN_DEDUCTION ? "Prélèvement (prêt)"
+                            : DocumentFormat.operator(e.operator())),
                     Cell.of(e.reference()),
                     Cell.of(fcfa(e.amount())),
                     Cell.of(e.interest() == null ? "–" : fcfa(e.interest()) + " (" + e.completeMonths() + " mois)"),
@@ -199,7 +201,7 @@ public class MemberStatementDocumentService {
                 .map(r -> new Cell[]{
                         Cell.of(date(r.getPaymentDate())),
                         Cell.of("PRE-" + DocumentFormat.shortRef(r.getLoan().getId())),
-                        Cell.of(DocumentFormat.operator(r.getOperator())),
+                        Cell.of(DocumentFormat.repaymentMeans(r)),
                         Cell.of(r.getReference()),
                         Cell.of(fcfa(r.getAmount())),
                         Cell.colored(DocumentFormat.repaymentStatus(r.getStatus()), repaymentColor(r.getStatus()))

@@ -13,6 +13,9 @@ import cm.aekd.tontine.member.Member;
 import cm.aekd.tontine.notification.NotificationService;
 import cm.aekd.tontine.notification.NotificationType;
 import cm.aekd.tontine.member.MemberRepository;
+import cm.aekd.tontine.repayment.LoanRepayment;
+import cm.aekd.tontine.repayment.LoanRepaymentRepository;
+import cm.aekd.tontine.repayment.RepaymentSource;
 import cm.aekd.tontine.savings.SavingsDtos.DepositRequest;
 import cm.aekd.tontine.savings.SavingsDtos.EntryResponse;
 import cm.aekd.tontine.savings.SavingsDtos.EntrySource;
@@ -66,6 +69,7 @@ import java.util.stream.Collectors;
 @Transactional
 public class SavingsService {
 
+
     /** Fuseau de l'association : les mois d'épargne sont comptés en dates locales de Douala. */
     private static final ZoneId ZONE = ZoneId.of("Africa/Douala");
     private static final int MONTHLY_HISTORY = 12;
@@ -80,6 +84,8 @@ public class SavingsService {
     private final AuditLogService auditLogService;
     private final NotificationService notificationService;
 
+    private final LoanRepaymentRepository repaymentRepository;
+
     public SavingsService(SavingsDepositRepository depositRepository,
                           SavingsInterestRateRepository rateRepository,
                           ContributionTransactionRepository transactionRepository,
@@ -88,7 +94,9 @@ public class SavingsService {
                           CurrentUserProvider currentUserProvider,
                           FileStorageService fileStorageService,
                           AuditLogService auditLogService,
-                          NotificationService notificationService) {
+                          NotificationService notificationService,
+                          LoanRepaymentRepository repaymentRepository) {
+        this.repaymentRepository = repaymentRepository;
         this.notificationService = notificationService;
         this.depositRepository = depositRepository;
         this.rateRepository = rateRepository;
@@ -242,6 +250,8 @@ public class SavingsService {
         depositRepository.findAllByOrderByCreatedAtDesc().forEach(d -> entries.add(toEntry(d, today, rates)));
         transactionRepository.findByContributionPeriod_ContributionDefinition_FundDestination(
                 FundDestination.INDIVIDUAL_SAVINGS).forEach(t -> entries.add(toEntry(t, today, rates)));
+        repaymentRepository.findBySource(RepaymentSource.SAVINGS_DEDUCTION)
+                .forEach(r -> entries.add(toEntry(r, today, rates)));
         entries.sort(ENTRY_ORDER);
         return entries;
     }
@@ -336,6 +346,8 @@ public class SavingsService {
                 .forEach(d -> entries.add(toEntry(d, today, rates)));
         transactionRepository.findByMemberIdAndContributionPeriod_ContributionDefinition_FundDestination(
                 member.getId(), FundDestination.INDIVIDUAL_SAVINGS).forEach(t -> entries.add(toEntry(t, today, rates)));
+        repaymentRepository.findBySourceAndPayerId(RepaymentSource.SAVINGS_DEDUCTION,
+                member.getId()).forEach(r -> entries.add(toEntry(r, today, rates)));
         entries.sort(ENTRY_ORDER);
 
         List<EntryResponse> validated = entries.stream().filter(e -> "VALIDATED".equals(e.status())).toList();
@@ -370,6 +382,24 @@ public class SavingsService {
                 t.getValidatedBy() != null ? t.getValidatedBy().getEmail() : null,
                 accrual.completeMonths(),
                 interestOrNull(t.getStatus() == ContributionTransactionStatus.VALIDATED, accrual, rates), false);
+    }
+
+    /**
+     * Prélèvement pour rembourser un prêt (decisions.md n° 53) : montant négatif ; ses
+     * « intérêts » négatifs retirent ce que l'argent prélevé aurait rapporté depuis.
+     */
+    private EntryResponse toEntry(LoanRepayment r, LocalDate today, List<Rate> rates) {
+        BigDecimal amount = r.getAmount().negate();
+        Accrual accrual = accrual(true, amount, r.getValidatedAt(), today, rates);
+        var payer = r.getPayer();
+        boolean byGuarantor = payer != null && !payer.getId().equals(r.getLoan().getMember().getId());
+        return new EntryResponse(r.getId(), EntrySource.LOAN_DEDUCTION, payer != null ? payer.getId() : null,
+                payer != null ? payer.getFullName() : null,
+                byGuarantor ? "Prélèvement – aval du prêt de " + r.getLoan().getMember().getFullName()
+                        : "Prélèvement pour rembourser le prêt",
+                amount, r.getPaymentDate(), null, r.getReference(), null, "VALIDATED", r.getCreatedAt(),
+                r.getValidatedAt(), r.getValidatedBy() != null ? r.getValidatedBy().getEmail() : null,
+                accrual.completeMonths(), interestOrNull(true, accrual, rates), false);
     }
 
     /** Seul un versement validé produit des intérêts, à partir de sa date de validation. */

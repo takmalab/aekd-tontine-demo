@@ -12,6 +12,7 @@ import {
   SessionPayout,
   SessionRequest,
   SessionTiming,
+  PayoutDeductionOption,
 } from './session.model';
 
 @Injectable({ providedIn: 'root' })
@@ -48,6 +49,13 @@ export class SessionService {
   }
 
   /** Refusé (400) au-delà de la part restante, (403) pour une remise à son propre profit. */
+  /** Prêts du bénéficiaire, ou garantis par lui, sur lesquels retenir (decisions.md n° 53). */
+  payoutDeductionOptions(sessionId: string, memberId: string): Observable<PayoutDeductionOption[]> {
+    return this.http.get<PayoutDeductionOption[]>(`${this.baseUrl}/${sessionId}/payouts/deduction-options`, {
+      params: { memberId },
+    });
+  }
+
   recordPayout(sessionId: string, request: PayoutRequest): Observable<SessionPayout> {
     return this.http.post<SessionPayout>(`${this.baseUrl}/${sessionId}/payouts`, request);
   }

@@ -37,7 +37,6 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class GuarantorStandingService {
 
-    private static final List<LoanStatus> RUNNING = List.of(LoanStatus.APPROVED, LoanStatus.IN_PROGRESS);
 
     private final ContributionParticipantRepository participantRepository;
     private final ContributionPeriodRepository periodRepository;
@@ -104,10 +103,7 @@ public class GuarantorStandingService {
         }
 
         long overdueLoans = loanRepository.findByMemberId(memberId).stream()
-                .filter(loan -> RUNNING.contains(loan.getStatus()))
-                .filter(loan -> loan.getDecisionDate() != null && loan.getApprovedDurationMonths() != null)
-                .filter(loan -> today.isAfter(LocalDate.ofInstant(loan.getDecisionDate(), DocumentFormat.ZONE)
-                        .plusMonths(loan.getApprovedDurationMonths())))
+                .filter(loan -> loan.isOverdue(today))
                 .count();
         if (overdueLoans > 0) {
             issues.add(overdueLoans + " prêt(s) en cours dont l'échéance est dépassée");

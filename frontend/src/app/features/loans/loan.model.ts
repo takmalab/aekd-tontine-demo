@@ -126,6 +126,8 @@ export interface Loan {
   guarantorFullName: string | null;
   guarantorStatus: GuarantorStatus | null;
   guarantorDecidedAt: string | null;
+  /** Durée approuvée dépassée, prêt pas encore remboursé (decisions.md n° 53). */
+  overdue: boolean;
 }
 
 /** Miroir de LoanRequest (backend). */
@@ -170,7 +172,8 @@ export interface LoanRepayment {
   memberFullName: string;
   amount: number;
   paymentDate: string;
-  operator: PaymentOperator;
+  /** Absent pour une retenue sur cagnotte ou un prélèvement sur épargne. */
+  operator: PaymentOperator | null;
   reference: string;
   recordedByEmail: string;
   createdAt: string;
@@ -178,6 +181,25 @@ export interface LoanRepayment {
   validatedByEmail: string | null;
   validatedAt: string | null;
   hasProof: boolean;
+  /** Origine de l'argent (decisions.md n° 53). */
+  source: RepaymentSource;
+  /** Membre dont l'argent a été retenu ou prélevé (emprunteur ou avaliste). */
+  payerMemberId: string | null;
+  payerFullName: string | null;
+}
+
+export type RepaymentSource = 'DIRECT' | 'PAYOUT_DEDUCTION' | 'SAVINGS_DEDUCTION';
+
+export const REPAYMENT_SOURCE_LABELS: Record<RepaymentSource, string> = {
+  DIRECT: 'Versement',
+  PAYOUT_DEDUCTION: 'Retenue sur cagnotte',
+  SAVINGS_DEDUCTION: "Prélèvement sur l'épargne",
+};
+
+/** Prélèvement sur l'épargne d'un prêt en retard (decisions.md n° 53). */
+export interface SavingsDeductionRequest {
+  payer: 'BORROWER' | 'GUARANTOR';
+  amount: number;
 }
 
 /**

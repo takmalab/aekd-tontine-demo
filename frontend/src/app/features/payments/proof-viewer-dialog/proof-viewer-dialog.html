@@ -4,7 +4,7 @@
     <h2 mat-dialog-title class="head__title">Justificatif</h2>
     <p class="head__subtitle">
       {{ subject.member }} · {{ subject.label }} · {{ formatFcfa(subject.amount) }} ·
-      {{ operatorLabels[subject.operator] }} · réf. {{ subject.reference }}
+      {{ subject.operator ? operatorLabels[subject.operator] : "Retenue" }} · réf. {{ subject.reference }}
     </p>
   </div>
 </div>

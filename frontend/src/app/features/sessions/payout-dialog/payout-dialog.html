@@ -28,6 +28,48 @@
       }
     </mat-form-field>
 
+    <!-- Retenues pour rembourser des prêts (decisions.md n° 53) -->
+    @if (lines().length > 0 || blocked().length > 0) {
+      <div class="deductions">
+        <p class="deductions__title"><mat-icon>account_balance</mat-icon> Retenues pour des prêts</p>
+        @for (line of lines(); track line.option.loanId) {
+          <div class="deductions__row">
+            <span class="deductions__who">
+              {{ line.option.role === 'BORROWER' ? 'Son prêt' : 'Prêt de ' + line.option.borrowerFullName + ' (avaliste)' }}
+              <small>Reste {{ formatFcfa(line.option.outstanding) }}{{ line.option.overdue ? ' · en retard' : '' }}</small>
+            </span>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="deductions__amount">
+              <input
+                matInput
+                type="number"
+                inputmode="numeric"
+                min="0"
+                step="1"
+                [max]="line.option.outstanding"
+                [value]="line.amount"
+                (input)="setLineAmount(line.option.loanId, $event)"
+                [attr.aria-label]="'Retenue pour le prêt de ' + line.option.borrowerFullName"
+              />
+              <span matTextSuffix>FCFA</span>
+            </mat-form-field>
+          </div>
+        }
+        @for (b of blocked(); track b.loanId) {
+          <p class="deductions__blocked">
+            <mat-icon>block</mat-icon>
+            <span>Prêt de {{ b.borrowerFullName }} (avaliste) : {{ b.blockedReason }}</span>
+          </p>
+        }
+        <dl class="summary">
+          <div><dt>Retenu pour des prêts</dt><dd>{{ formatFcfa(deducted()) }}</dd></div>
+          <div class="summary__due"><dt>Remis au bénéficiaire</dt><dd>{{ formatFcfa(handed()) }}</dd></div>
+        </dl>
+        @if (linesError(); as message) {
+          <p class="field-error">{{ message }}</p>
+        }
+      </div>
+    }
+
     <p class="label">Moyen de remise</p>
     <div class="operators" role="radiogroup" aria-label="Moyen de remise">
       @for (op of operators; track op[0]) {

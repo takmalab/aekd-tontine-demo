@@ -4,7 +4,7 @@ import { PaymentOperator } from '../contributions/contribution.model';
 export type SavingsStatus = 'PENDING' | 'VALIDATED' | 'REJECTED';
 
 /** DEPOSIT : versement libre (« Épargner ») ; CONTRIBUTION : cotisation « Banque / Épargne ». */
-export type SavingsSource = 'DEPOSIT' | 'CONTRIBUTION';
+export type SavingsSource = 'DEPOSIT' | 'CONTRIBUTION' | 'LOAN_DEDUCTION';
 
 export const SAVINGS_STATUS_LABELS: Record<SavingsStatus, string> = {
   PENDING: 'En attente de validation',
@@ -15,6 +15,7 @@ export const SAVINGS_STATUS_LABELS: Record<SavingsStatus, string> = {
 export const SAVINGS_SOURCE_LABELS: Record<SavingsSource, string> = {
   DEPOSIT: 'Versement libre',
   CONTRIBUTION: 'Cotisation',
+  LOAN_DEDUCTION: 'Prélèvement (prêt)',
 };
 
 /** Miroir de SavingsDtos.EntryResponse. `interest` : null si non validé ou aucun taux fixé. */
@@ -24,9 +25,10 @@ export interface SavingsEntry {
   memberId: string;
   memberFullName: string;
   label: string;
+  /** Négatif pour un prélèvement (LOAN_DEDUCTION, decisions.md n° 53). */
   amount: number;
   paymentDate: string;
-  operator: PaymentOperator;
+  operator: PaymentOperator | null;
   reference: string;
   observation: string | null;
   status: SavingsStatus;
