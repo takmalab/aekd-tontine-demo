@@ -36,6 +36,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Cotisations', path: '/contributions', icon: 'payments' },
   { label: 'Mes cotisations', path: '/my-contributions', icon: 'receipt_long', memberSpace: true },
   { label: 'Paiements', path: '/payments', icon: 'fact_check', roles: ['ADMIN', 'TRESORIER'] },
+  { label: 'Fonds', path: '/funds', icon: 'account_balance_wallet', roles: ['ADMIN', 'TRESORIER'] },
   { label: 'Membres', path: '/members', icon: 'group', roles: ['ADMIN', 'TRESORIER'] },
   { label: 'Sanctions', path: '/sanctions', icon: 'gavel' },
   { label: 'Mon épargne', path: '/my-savings', icon: 'savings', memberSpace: true },

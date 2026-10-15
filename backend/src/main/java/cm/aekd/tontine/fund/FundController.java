@@ -15,9 +15,18 @@ import java.util.UUID;
 public class FundController {
 
     private final FundService fundService;
+    private final FundOverviewService overviewService;
 
-    public FundController(FundService fundService) {
+    public FundController(FundService fundService, FundOverviewService overviewService) {
         this.fundService = fundService;
+        this.overviewService = overviewService;
+    }
+
+    /** Écran « Fonds » : soldes et journal des mouvements validés (CLAUDE.md §29). */
+    @GetMapping("/api/funds/overview")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TRESORIER')")
+    public FundOverviewResponse overview() {
+        return overviewService.overview();
     }
 
     @GetMapping("/api/funds/tontine")

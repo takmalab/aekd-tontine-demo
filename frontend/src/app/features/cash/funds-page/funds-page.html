@@ -1,0 +1,81 @@
+<section class="page">
+  <header class="page__header page__header--row">
+    <div>
+      <h1 class="page__title">Fonds</h1>
+      <p class="page__subtitle">
+        Fonds commun et épargne des membres, toujours séparés. Seules les opérations validées sont comptées.
+      </p>
+    </div>
+    <app-export-menu filename="mouvements-fonds" title="Mouvements des fonds" [rows]="exportRows()" />
+  </header>
+
+  @if (loading()) {
+    <app-page-state state="loading" title="Chargement…" />
+  } @else if (error()) {
+    <app-page-state state="error" icon="cloud_off" title="Impossible de charger les fonds">
+      <button mat-stroked-button (click)="load()"><mat-icon>refresh</mat-icon> Réessayer</button>
+    </app-page-state>
+  } @else if (overview(); as o) {
+    <div class="funds">
+      <section class="fund fund--tontine">
+        <h2 class="fund__title"><mat-icon>groups</mat-icon> Fonds commun</h2>
+        <p class="fund__balance">{{ formatFcfa(o.tontineFundBalance) }}</p>
+        <p class="fund__caption">Solde, reste à remettre aux bénéficiaires</p>
+        <dl class="fund__figures">
+          <div><dt>Collecté</dt><dd>{{ formatFcfa(o.tontineFundCollected) }}</dd></div>
+          <div><dt>Remis aux bénéficiaires</dt><dd>{{ formatFcfa(o.tontineFundRemitted) }}</dd></div>
+        </dl>
+      </section>
+
+      <section class="fund fund--savings">
+        <h2 class="fund__title"><mat-icon>savings</mat-icon> Épargne et prêts</h2>
+        <p class="fund__balance">{{ formatFcfa(o.availableForLending) }}</p>
+        <p class="fund__caption">Disponible pour prêter</p>
+        <dl class="fund__figures">
+          <div><dt>Épargne totale</dt><dd>{{ formatFcfa(o.totalIndividualSavings) }}</dd></div>
+          <div><dt>Capital prêté non remboursé</dt><dd>{{ formatFcfa(o.outstandingLoanCapital) }}</dd></div>
+          <div><dt>Intérêts perçus</dt><dd>{{ formatFcfa(o.loanInterestCollected) }}</dd></div>
+        </dl>
+      </section>
+    </div>
+
+    <h2 class="group-title">Mouvements</h2>
+    @if (movements().length === 0) {
+      <app-page-state state="empty" icon="receipt_long" title="Aucun mouvement validé pour l'instant" />
+    } @else {
+      <app-filter-chips
+        [options]="filterOptions()"
+        [active]="filter()"
+        ariaLabel="Filtrer par fonds"
+        (activeChange)="setFilter($event)"
+      />
+
+      <div class="moves">
+        @for (m of paged(); track $index) {
+          <article class="move" [class.move--out]="m.direction === 'OUT'">
+            <span class="move__icon"><mat-icon>{{ movementStyles[m.type].icon }}</mat-icon></span>
+            <div class="move__text">
+              <span class="move__label">{{ m.label }}</span>
+              <span class="move__meta">
+                {{ m.memberFullName }} · {{ movementStyles[m.type].label }}
+                @if (m.date) {
+                  · {{ m.date | date: 'd MMM yyyy' }}
+                }
+              </span>
+            </div>
+            <span class="chip" [class.chip--orange]="m.fund === 'TONTINE_FUND'" [class.chip--brown]="m.fund === 'SAVINGS'">{{ fundLabels[m.fund] }}</span>
+            <span class="move__amount">{{ m.direction === 'OUT' ? '−' : '+' }} {{ formatFcfa(m.amount) }}</span>
+          </article>
+        }
+      </div>
+
+      <app-pagination
+        [total]="filtered().length"
+        [pageIndex]="pageIndex()"
+        [pageSize]="pageSize()"
+        (pageIndexChange)="pageIndex.set($event)"
+        (pageSizeChange)="pageSize.set($event); pageIndex.set(0)"
+      />
+    }
+  }
+</section>

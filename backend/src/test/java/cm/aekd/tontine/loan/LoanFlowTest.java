@@ -7,6 +7,8 @@ import cm.aekd.tontine.repayment.LoanRepaymentRequest;
 import cm.aekd.tontine.repayment.LoanRepaymentResponse;
 import cm.aekd.tontine.repayment.LoanRepaymentService;
 import cm.aekd.tontine.contribution.PaymentOperator;
+import cm.aekd.tontine.fund.FundOverviewResponse;
+import cm.aekd.tontine.fund.FundOverviewService;
 import cm.aekd.tontine.fund.FundService;
 import cm.aekd.tontine.savings.SavingsDepositRepository;
 import cm.aekd.tontine.savings.TestSavings;
@@ -66,6 +68,9 @@ class LoanFlowTest {
 
     @Autowired
     private FundService fundService;
+
+    @Autowired
+    private FundOverviewService fundOverviewService;
 
     @AfterEach
     void clearSecurityContext() {
@@ -132,6 +137,15 @@ class LoanFlowTest {
         assertThat(balanceAfterFirst.remainingBalance()).isEqualByComparingTo(new BigDecimal(340000));
         // Répartition proportionnelle : 50 000 x 300 000 / 390 000 = 38 461 de capital redevenu prêtable.
         assertThat(capitalBefore.subtract(fundService.outstandingLoanCapital())).isEqualByComparingTo("38461");
+
+        // Écran « Fonds » : intérêts perçus = 50 000 - 38 461 ; prêt et remboursement dans le journal.
+        FundOverviewResponse overview = fundOverviewService.overview();
+        assertThat(overview.loanInterestCollected()).isEqualByComparingTo("11539");
+        assertThat(overview.movements()).extracting(FundOverviewResponse.Movement::type)
+                .contains(FundOverviewResponse.MovementType.LOAN_DISBURSED, FundOverviewResponse.MovementType.LOAN_REPAYMENT,
+                        FundOverviewResponse.MovementType.SAVINGS_DEPOSIT);
+        assertThat(overview.movements()).filteredOn(m -> m.type() == FundOverviewResponse.MovementType.LOAN_DISBURSED)
+                .allMatch(m -> m.fund() == FundOverviewResponse.Fund.SAVINGS && m.direction() == FundOverviewResponse.Direction.OUT);
 
         LoanResponse afterFirstRepayment = loanService.findById(approved.id());
         assertThat(afterFirstRepayment.status()).isEqualTo(LoanStatus.IN_PROGRESS);

@@ -122,6 +122,12 @@ export const routes: Routes = [
         loadComponent: () => import('./features/audit/audit-log/audit-log').then((m) => m.AuditLogPage),
       },
       {
+        path: 'funds',
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN', 'TRESORIER'] },
+        loadComponent: () => import('./features/cash/funds-page/funds-page').then((m) => m.FundsPage),
+      },
+      {
         path: 'settings/sms',
         canActivate: [roleGuard],
         data: { roles: ['ADMIN'] },
