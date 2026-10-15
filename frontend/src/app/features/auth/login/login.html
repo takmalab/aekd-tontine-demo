@@ -60,7 +60,57 @@
         </button>
       </div>
 
-      @if (method() === 'email') {
+      @if (otpStep() === 'code') {
+        <form [formGroup]="codeForm" (ngSubmit)="verifyCode()" class="form otp-step" novalidate>
+          <div class="otp-step__art" aria-hidden="true">
+            <mat-icon class="otp-step__art-icon">lock</mat-icon>
+            <mat-icon class="otp-step__art-key">key</mat-icon>
+          </div>
+          <h3 class="otp-step__title">Saisissez le code</h3>
+          <p class="otp-step__text">
+            @if (otpChannel() === 'email') {
+              Si <strong>{{ otpEmail() }}</strong> correspond à un compte actif dont l'adresse est vérifiée, un code à
+              6 chiffres vient de lui être envoyé par e-mail. Il expire dans {{ expiresInMinutes() }} minutes.
+            } @else {
+              Si un compte actif utilise le <strong>{{ displayedPhone() }}</strong>, un code à 6 chiffres vient de lui
+              être envoyé par SMS. Il expire dans {{ expiresInMinutes() }} minutes.
+            }
+          </p>
+
+          <app-otp-input formControlName="code" [invalid]="!!errorMessage()" (completed)="verifyCode()" />
+
+          @if (errorMessage(); as message) {
+            <p class="form__error" role="alert">
+              <mat-icon>error_outline</mat-icon>
+              <span>{{ message }}</span>
+            </p>
+          }
+
+          <button mat-flat-button type="submit" class="form__submit otp-step__submit" [disabled]="loading()">
+            @if (loading()) {
+              <mat-spinner diameter="22" />
+            } @else {
+              <span class="form__submit-label">
+                Vérifier le code
+                <mat-icon>verified_user</mat-icon>
+              </span>
+            }
+          </button>
+
+          <div class="otp-step__links">
+            <button type="button" class="otp-step__link" (click)="requestCode()" [disabled]="loading() || resendIn() > 0">
+              @if (resendIn() > 0) {
+                Renvoyer le code dans {{ resendIn() }} s
+              } @else {
+                Renvoyer le code
+              }
+            </button>
+            <button type="button" class="otp-step__link" (click)="changePhone()" [disabled]="loading()">
+              {{ otpChannel() === 'email' ? "Changer d'adresse" : 'Changer de numéro' }}
+            </button>
+          </div>
+        </form>
+      } @else if (method() === 'email') {
         <form [formGroup]="form" (ngSubmit)="submit()" class="form" novalidate>
           <mat-form-field appearance="outline" class="form__field">
             <mat-label>Email</mat-label>
@@ -114,8 +164,14 @@
               </span>
             }
           </button>
+
+          <!-- Connexion par code e-mail (decisions.md n° 55) -->
+          <button type="button" class="otp-step__link form__alt" (click)="requestEmailCode()" [disabled]="loading()">
+            <mat-icon>forward_to_inbox</mat-icon>
+            Recevoir plutôt un code par e-mail
+          </button>
         </form>
-      } @else if (otpStep() === 'phone') {
+      } @else {
         <form [formGroup]="phoneForm" (ngSubmit)="requestCode()" class="form otp-step" novalidate>
           <div class="otp-step__art" aria-hidden="true">
             <mat-icon class="otp-step__art-icon">phone_in_talk</mat-icon>
@@ -145,51 +201,6 @@
               </span>
             }
           </button>
-        </form>
-      } @else {
-        <form [formGroup]="codeForm" (ngSubmit)="verifyCode()" class="form otp-step" novalidate>
-          <div class="otp-step__art" aria-hidden="true">
-            <mat-icon class="otp-step__art-icon">lock</mat-icon>
-            <mat-icon class="otp-step__art-key">key</mat-icon>
-          </div>
-          <h3 class="otp-step__title">Saisissez le code</h3>
-          <p class="otp-step__text">
-            Si un compte actif utilise le <strong>{{ displayedPhone() }}</strong>, un code à 6 chiffres vient de lui
-            être envoyé par SMS. Il expire dans {{ expiresInMinutes() }} minutes.
-          </p>
-
-          <app-otp-input formControlName="code" [invalid]="!!errorMessage()" (completed)="verifyCode()" />
-
-          @if (errorMessage(); as message) {
-            <p class="form__error" role="alert">
-              <mat-icon>error_outline</mat-icon>
-              <span>{{ message }}</span>
-            </p>
-          }
-
-          <button mat-flat-button type="submit" class="form__submit otp-step__submit" [disabled]="loading()">
-            @if (loading()) {
-              <mat-spinner diameter="22" />
-            } @else {
-              <span class="form__submit-label">
-                Vérifier le code
-                <mat-icon>verified_user</mat-icon>
-              </span>
-            }
-          </button>
-
-          <div class="otp-step__links">
-            <button type="button" class="otp-step__link" (click)="requestCode()" [disabled]="loading() || resendIn() > 0">
-              @if (resendIn() > 0) {
-                Renvoyer le code dans {{ resendIn() }} s
-              } @else {
-                Renvoyer le code
-              }
-            </button>
-            <button type="button" class="otp-step__link" (click)="changePhone()" [disabled]="loading()">
-              Changer de numéro
-            </button>
-          </div>
         </form>
       }
 

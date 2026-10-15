@@ -28,8 +28,11 @@ public class AuthController {
     private final AuthService authService;
     private final UserService userService;
     private final OtpService otpService;
+    private final cm.aekd.tontine.auth.emailcode.EmailCodeService emailCodeService;
 
-    public AuthController(AuthService authService, UserService userService, OtpService otpService) {
+    public AuthController(AuthService authService, UserService userService, OtpService otpService,
+                          cm.aekd.tontine.auth.emailcode.EmailCodeService emailCodeService) {
+        this.emailCodeService = emailCodeService;
         this.authService = authService;
         this.otpService = otpService;
         this.userService = userService;
@@ -72,6 +75,47 @@ public class AuthController {
     public ResponseEntity<RegisterResponse> register(@Valid @RequestBody RegisterRequest request) {
         RegisterResponse response = userService.registerSelf(
                 request.email(), request.password(), request.fullName(), request.phone());
+        // Code de confirmation de l'adresse (decisions.md n° 55). Un échec d'envoi
+        // n'annule pas l'inscription : le membre peut redemander le code.
+        try {
+            emailCodeService.sendVerification(request.email());
+        } catch (org.springframework.web.server.ResponseStatusException e) {
+            org.slf4j.LoggerFactory.getLogger(AuthController.class)
+                    .warn("Code de confirmation non envoyé à {} : {}", request.email(), e.getReason());
+        }
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    // ---------- Codes par e-mail (decisions.md n° 55) ----------
+
+    public record EmailRequest(@jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Email String email) {
+    }
+
+    public record EmailCodeRequest(@jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Email String email,
+                                   @jakarta.validation.constraints.NotBlank String code) {
+    }
+
+    /** Renvoie le code de confirmation de l'adresse (page d'attente). */
+    @PostMapping("/email/verification")
+    public cm.aekd.tontine.auth.emailcode.EmailCodeService.CodeSent sendVerification(@Valid @RequestBody EmailRequest request) {
+        return emailCodeService.sendVerification(request.email());
+    }
+
+    @PostMapping("/email/verify")
+    public ResponseEntity<Void> verifyEmail(@Valid @RequestBody EmailCodeRequest request) {
+        emailCodeService.verifyEmail(request.email(), request.code());
+        return ResponseEntity.noContent().build();
+    }
+
+    /** Connexion par code e-mail, étape 1. */
+    @PostMapping("/email-otp/request")
+    public cm.aekd.tontine.auth.emailcode.EmailCodeService.CodeSent requestEmailLoginCode(@Valid @RequestBody EmailRequest request) {
+        return emailCodeService.requestLoginCode(request.email());
+    }
+
+    /** Connexion par code e-mail, étape 2 : même jeton que /login. */
+    @PostMapping("/email-otp/verify")
+    public LoginResponse verifyEmailLoginCode(@Valid @RequestBody EmailCodeRequest request) {
+        return emailCodeService.verifyLoginCode(request.email(), request.code());
     }
 }

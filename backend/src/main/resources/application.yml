@@ -92,6 +92,16 @@ app:
       app-name-variable: ${SCMCHOST_OTP_APP_NAME_VARIABLE:NOM_APP}
       app-name: ${SCMCHOST_OTP_APP_NAME:AEKD Tontine}
 
+  # E-mails (decisions.md n° 55) : "log" = simulation (e-mail ecrit dans les journaux),
+  # "brevo" = envoi reel par l'API Brevo. Secret : uniquement par variable d'environnement.
+  email:
+    provider: ${APP_EMAIL_PROVIDER:log}
+    from-address: ${APP_EMAIL_FROM_ADDRESS:}
+    from-name: ${APP_EMAIL_FROM_NAME:AEKD Tontine}
+    brevo:
+      base-url: ${BREVO_API_URL:https://api.brevo.com}
+      api-key: ${BREVO_API_KEY:}
+
   # Connexion par code SMS (valeurs validees, decisions.md n° 47).
   otp:
     code-length: 6

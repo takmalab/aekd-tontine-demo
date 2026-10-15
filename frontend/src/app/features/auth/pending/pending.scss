@@ -58,3 +58,72 @@
 a.register-form__submit {
   width: 100%;
 }
+
+/* Confirmation de l'adresse e-mail (decisions.md n° 55) */
+.confirm {
+  margin: 0 0 16px;
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--aekd-blue-soft, rgba(33, 99, 160, 0.06));
+
+  &__title {
+    margin: 0 0 4px;
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  &__text {
+    margin: 0 0 12px;
+    font-size: 13px;
+    color: var(--aekd-gray-muted);
+  }
+
+  &__error {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 8px 0;
+    color: #c62828;
+    font-size: 13px;
+  }
+
+  &__done {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 0;
+    font-size: 13.5px;
+
+    mat-icon {
+      flex: none;
+      color: #2e7d32;
+    }
+  }
+
+  &__links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 8px;
+
+    button {
+      border: 0;
+      background: none;
+      color: var(--aekd-orange);
+      font: inherit;
+      font-size: 13px;
+      cursor: pointer;
+
+      &:disabled {
+        color: var(--aekd-gray-muted);
+        cursor: default;
+      }
+    }
+  }
+
+  form .register-form__submit {
+    width: 100%;
+    margin-top: 12px;
+  }
+}

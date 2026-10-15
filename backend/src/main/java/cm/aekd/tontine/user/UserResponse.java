@@ -14,6 +14,8 @@ public record UserResponse(
         List<RoleName> roles,
         UUID memberId,
         String memberFullName,
-        Instant createdAt
+        Instant createdAt,
+        /** Adresse confirmée par code (decisions.md n° 55). */
+        boolean emailVerified
 ) {
 }

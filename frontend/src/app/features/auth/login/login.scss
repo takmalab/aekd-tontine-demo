@@ -577,3 +577,18 @@
     }
   }
 }
+
+/* Lien « Recevoir plutôt un code par e-mail » (decisions.md n° 55) */
+.form__alt {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 4px auto 0;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}

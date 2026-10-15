@@ -14,6 +14,8 @@ import { formatPhone } from '../../../shared/utils/countries';
 
 type LoginMethod = 'email' | 'phone';
 type OtpStep = 'phone' | 'code';
+/** Canal du code : SMS (n° 47) ou e-mail pour une adresse vérifiée (n° 55). */
+type OtpChannel = 'sms' | 'email';
 
 @Component({
   selector: 'app-login',
@@ -43,6 +45,9 @@ export class Login {
   /** Connexion par email + mot de passe, ou par code SMS (docs/decisions.md n° 47). */
   readonly method = signal<LoginMethod>('phone');
   readonly otpStep = signal<OtpStep>('phone');
+  readonly otpChannel = signal<OtpChannel>('sms');
+  /** Adresse à laquelle le code e-mail a été demandé. */
+  readonly otpEmail = signal<string | null>(null);
   /** Numéro normalisé renvoyé par le serveur (+237XXXXXXXXX). */
   readonly otpPhone = signal<string | null>(null);
   readonly expiresInMinutes = signal(5);
@@ -74,6 +79,41 @@ export class Login {
   selectMethod(method: LoginMethod): void {
     this.method.set(method);
     this.errorMessage.set(null);
+    this.otpStep.set('phone');
+    this.stopResendTimer();
+  }
+
+  /** Connexion par code e-mail (decisions.md n° 55) : pas besoin du mot de passe. */
+  requestEmailCode(): void {
+    const control = this.form.controls.email;
+    const resending = this.otpStep() === 'code';
+    if (!resending && control.invalid) {
+      control.markAsTouched();
+      return;
+    }
+    const email = resending ? this.otpEmail()! : control.value!.trim();
+    this.loading.set(true);
+    this.errorMessage.set(null);
+    this.authService.requestEmailCode(email).subscribe({
+      next: (response) => {
+        this.loading.set(false);
+        this.otpChannel.set('email');
+        this.otpEmail.set(response.email);
+        this.expiresInMinutes.set(Math.round(response.expiresInSeconds / 60));
+        this.otpStep.set('code');
+        this.codeForm.reset();
+        this.startResendTimer(response.resendAfterSeconds);
+        setTimeout(() => this.otpInput()?.focusFirstEmpty());
+      },
+      error: (error: HttpErrorResponse) => {
+        this.loading.set(false);
+        if (error.status === 403) {
+          this.router.navigate(['/pending'], { state: { email } });
+          return;
+        }
+        this.errorMessage.set(this.serverMessage(error));
+      },
+    });
   }
 
   submit(): void {
@@ -94,7 +134,7 @@ export class Login {
       error: (error: HttpErrorResponse) => {
         this.loading.set(false);
         if (error.status === 403) {
-          this.router.navigate(['/pending']);
+          this.router.navigate(['/pending'], { state: { email: email!.trim() } });
           return;
         }
         this.errorMessage.set(
@@ -107,6 +147,10 @@ export class Login {
   }
 
   requestCode(): void {
+    if (this.otpStep() === 'code' && this.otpChannel() === 'email') {
+      this.requestEmailCode();
+      return;
+    }
     // "Renvoyer le code" depuis l'étape 2 réutilise le numéro déjà validé par le serveur.
     const resending = this.otpStep() === 'code';
     if (!resending && this.phoneForm.invalid) {
@@ -121,6 +165,7 @@ export class Login {
     this.authService.requestOtp({ phone }).subscribe({
       next: (response) => {
         this.loading.set(false);
+        this.otpChannel.set('sms');
         this.otpPhone.set(response.phone);
         this.expiresInMinutes.set(Math.round(response.expiresInSeconds / 60));
         this.otpStep.set('code');
@@ -153,7 +198,12 @@ export class Login {
     this.loading.set(true);
     this.errorMessage.set(null);
 
-    this.authService.verifyOtp({ phone: this.otpPhone()!, code: this.codeForm.getRawValue().code! }).subscribe({
+    const code = this.codeForm.getRawValue().code!;
+    const verification =
+      this.otpChannel() === 'email'
+        ? this.authService.verifyEmailCode(this.otpEmail()!, code)
+        : this.authService.verifyOtp({ phone: this.otpPhone()!, code });
+    verification.subscribe({
       next: () => {
         this.loading.set(false);
         this.stopResendTimer();

@@ -59,7 +59,7 @@ export class Register {
           this.loading.set(false);
           this.form.reset();
           // Compte en attente de validation : page d'attente (decisions.md n° 54).
-          this.router.navigate(['/pending'], { state: { name: fullName } });
+          this.router.navigate(['/pending'], { state: { name: fullName, email: email!.trim(), codeSent: true } });
         },
         error: (error: HttpErrorResponse) => {
           this.loading.set(false);

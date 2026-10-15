@@ -1,0 +1,96 @@
+<div class="register-page aekd-pattern-symboles">
+  <div class="register-page__glow register-page__glow--orange"></div>
+  <div class="register-page__glow register-page__glow--brown"></div>
+
+  <mat-card class="register-card" appearance="outlined">
+    <div class="register-card__header">
+      <img class="register-card__logo" src="assets/logo-aekd.png" alt="Amicale des Enfants Kamkop de Douala – AEKD" />
+      <span class="pending__icon"><mat-icon>hourglass_top</mat-icon></span>
+      <h1 class="register-card__title">Compte en attente de validation</h1>
+      <p class="register-card__subtitle">
+        @if (name) {
+          Merci {{ name }} !
+        }
+        Votre compte a bien été créé. Un administrateur doit le valider avant que vous puissiez accéder à
+        l'application.
+      </p>
+    </div>
+
+    <mat-card-content>
+      <ul class="pending__steps">
+        <li><mat-icon>check_circle</mat-icon> Inscription enregistrée</li>
+        <li [class.pending__steps--current]="step() !== 'done'">
+          <mat-icon>{{ step() === 'done' ? 'check_circle' : 'mark_email_unread' }}</mat-icon>
+          Adresse e-mail confirmée
+        </li>
+        <li [class.pending__steps--current]="step() === 'done'">
+          <mat-icon>hourglass_top</mat-icon> Validation par l'administrateur
+        </li>
+        <li><mat-icon>login</mat-icon> Connexion à l'application</li>
+      </ul>
+
+      <!-- Confirmation de l'adresse par code (decisions.md n° 55) -->
+      <section class="confirm">
+        @if (step() === 'done') {
+          <p class="confirm__done">
+            <mat-icon>verified</mat-icon>
+            <span>Adresse <strong>{{ email }}</strong> confirmée. Vous pourrez aussi vous connecter avec un code reçu par e-mail.</span>
+          </p>
+        } @else if (step() === 'code') {
+          <h2 class="confirm__title">Confirmez votre adresse e-mail</h2>
+          <p class="confirm__text">
+            Un code à 6 chiffres a été envoyé à <strong>{{ email }}</strong> (pensez à regarder dans les spams).
+          </p>
+          <form [formGroup]="codeForm" (ngSubmit)="verify()" novalidate>
+            <app-otp-input formControlName="code" [invalid]="!!errorMessage()" (completed)="verify()" />
+            @if (errorMessage(); as message) {
+              <p class="confirm__error" role="alert"><mat-icon>error_outline</mat-icon> {{ message }}</p>
+            }
+            <button mat-flat-button type="submit" class="register-form__submit" [disabled]="loading()">
+              @if (loading()) {
+                <mat-spinner diameter="20" />
+              } @else {
+                Confirmer mon adresse
+              }
+            </button>
+          </form>
+          <div class="confirm__links">
+            <button type="button" (click)="sendCode()" [disabled]="loading() || resendIn() > 0">
+              {{ resendIn() > 0 ? 'Renvoyer le code dans ' + resendIn() + ' s' : 'Renvoyer le code' }}
+            </button>
+            <button type="button" (click)="changeEmail()" [disabled]="loading()">Changer d'adresse</button>
+          </div>
+        } @else {
+          <h2 class="confirm__title">Confirmez votre adresse e-mail</h2>
+          <p class="confirm__text">Recevez un code pour prouver que cette adresse est bien la vôtre.</p>
+          <form [formGroup]="emailForm" (ngSubmit)="sendCode()" novalidate>
+            <mat-form-field appearance="outline" class="register-form__field">
+              <mat-label>Adresse e-mail</mat-label>
+              <mat-icon matPrefix>mail</mat-icon>
+              <input matInput type="email" formControlName="email" autocomplete="email" />
+              @if (emailForm.controls.email.invalid) {
+                <mat-error>Adresse e-mail invalide</mat-error>
+              }
+            </mat-form-field>
+            @if (errorMessage(); as message) {
+              <p class="confirm__error" role="alert"><mat-icon>error_outline</mat-icon> {{ message }}</p>
+            }
+            <button mat-stroked-button type="submit" class="register-form__submit" [disabled]="loading()">
+              @if (loading()) {
+                <mat-spinner diameter="20" />
+              } @else {
+                Recevoir le code
+              }
+            </button>
+          </form>
+        }
+      </section>
+
+      <p class="pending__hint">
+        Revenez vous connecter un peu plus tard : dès que votre compte est validé, vous accédez directement à
+        votre espace.
+      </p>
+      <a mat-button routerLink="/login" class="register-form__submit">Retour à la connexion</a>
+    </mat-card-content>
+  </mat-card>
+</div>

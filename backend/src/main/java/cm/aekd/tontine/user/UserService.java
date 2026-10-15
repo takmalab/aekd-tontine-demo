@@ -215,7 +215,8 @@ public class UserService {
                 roleNames,
                 member != null ? member.getId() : null,
                 member != null ? member.getFullName() : null,
-                user.getCreatedAt()
+                user.getCreatedAt(),
+                user.isEmailVerified()
         );
     }
 }

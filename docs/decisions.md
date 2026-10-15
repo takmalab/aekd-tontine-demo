@@ -1926,3 +1926,51 @@ Validé par le propriétaire du projet le 2026-10-15.
   juste, ou demande de code SMS pour son numéro). Un mauvais mot de passe
   reste un 401 qui ne révèle rien. La demande de code SMS révèle en revanche
   qu'un numéro appartient à un compte en attente (accepté pour l'ergonomie).
+
+---
+
+# 55. Codes par e-mail : confirmation de l'adresse et connexion
+
+## Question
+
+Comment profiter des vraies adresses e-mail des membres, en plus des SMS ?
+
+## Statut
+
+```text
+DÉCIDÉ
+```
+
+## Décision
+
+Validé par le propriétaire du projet le 2026-10-16.
+
+* **Confirmation de l'adresse** : à l'inscription, un code à 6 chiffres est
+  envoyé par e-mail ; le membre le saisit sur la page d'attente. Un membre
+  déjà inscrit peut vérifier son adresse depuis « Mon profil ».
+* **Connexion par code e-mail** : sur la page de connexion (onglet Email),
+  « Recevoir plutôt un code par e-mail ». Seulement pour un compte actif dont
+  l'adresse est **vérifiée** ; réponse identique sinon.
+* Mêmes règles que les codes SMS (n° 47) : 6 chiffres, 5 minutes, 5 essais,
+  60 secondes avant d'en redemander un, 5 demandes par heure et par adresse.
+* Envoi par le service **Brevo** (API HTTPS). Tant qu'il n'est pas configuré,
+  les e-mails sont simulés : écrits dans les journaux du serveur.
+
+## Points à valider
+
+```text
+À VALIDER
+```
+
+* La confirmation de l'adresse ne bloque pas la validation du compte par
+  l'administrateur : il voit seulement si l'adresse est vérifiée.
+* Changer d'adresse e-mail annule sa vérification.
+
+## Conséquence technique
+
+* `users.email_verified_at` et table `email_code` (V30, hash du code seulement).
+* Variables : `APP_EMAIL_PROVIDER` (`log` ou `brevo`), `BREVO_API_KEY`,
+  `APP_EMAIL_FROM_ADDRESS` (expéditeur validé dans Brevo), `APP_EMAIL_FROM_NAME`.
+* Endpoints publics : `POST /api/auth/email/verification`, `/email/verify`,
+  `/email-otp/request`, `/email-otp/verify` ; profil :
+  `GET /api/profile/email`, `POST /api/profile/email/code`, `/verify`.

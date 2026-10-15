@@ -40,13 +40,49 @@
     <section class="card">
       <h2 class="card__title"><mat-icon>badge</mat-icon> Compte</h2>
       <dl class="facts">
-        <div><dt>E-mail</dt><dd>{{ user()?.email }}</dd></div>
+        <div>
+          <dt>E-mail</dt>
+          <dd>
+            {{ user()?.email }}
+            @if (emailVerified() === true) {
+              <span class="badge badge--ok"><mat-icon>verified</mat-icon> Vérifiée</span>
+            } @else if (emailVerified() === false) {
+              <span class="badge badge--warn">Non vérifiée</span>
+            }
+          </dd>
+        </div>
         @if (member(); as m) {
           <div><dt>Téléphone</dt><dd>{{ m.phone ?? '—' }}</dd></div>
           <div><dt>Membre depuis</dt><dd>{{ m.joinDate | date: 'd MMMM yyyy' }}</dd></div>
         }
         <div><dt>Rôle</dt><dd>{{ roles() }}</dd></div>
       </dl>
+
+      <!-- Vérification de l'adresse (decisions.md n° 55) -->
+      @if (emailVerified() === false) {
+        <div class="verify">
+          @if (emailStep() === 'code') {
+            <p class="verify__text">Saisissez le code reçu à {{ user()?.email }} (pensez aux spams).</p>
+            <app-otp-input [formControl]="emailCode" [invalid]="!!emailError()" (completed)="verifyEmailCode()" />
+            <div class="verify__actions">
+              <button mat-button type="button" (click)="sendEmailCode()" [disabled]="emailBusy()">Renvoyer</button>
+              <button mat-flat-button type="button" (click)="verifyEmailCode()" [disabled]="emailBusy() || emailCode.invalid">
+                Vérifier
+              </button>
+            </div>
+          } @else {
+            <p class="verify__text">
+              Vérifiez votre adresse pour pouvoir vous connecter avec un code reçu par e-mail.
+            </p>
+            <button mat-stroked-button type="button" (click)="sendEmailCode()" [disabled]="emailBusy()">
+              <mat-icon>mark_email_unread</mat-icon> Recevoir un code
+            </button>
+          }
+          @if (emailError(); as message) {
+            <p class="verify__error" role="alert">{{ message }}</p>
+          }
+        </div>
+      }
     </section>
   </div>
 </section>

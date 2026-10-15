@@ -54,6 +54,8 @@ export type AuditAction =
   | 'USER_APPROVED'
   | 'USER_UPDATED'
   | 'USER_LOGIN_OTP'
+  | 'USER_LOGIN_EMAIL_CODE'
+  | 'USER_EMAIL_VERIFIED'
   | 'SMS_SETTINGS_UPDATED'
   | 'SMS_TEST_SENT'
   | 'USER_DELETED';
@@ -124,6 +126,8 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   USER_APPROVED: 'Compte validé',
   USER_UPDATED: 'Compte modifié',
   USER_LOGIN_OTP: 'Connexion par code SMS',
+  USER_LOGIN_EMAIL_CODE: 'Connexion par code e-mail',
+  USER_EMAIL_VERIFIED: 'Adresse e-mail vérifiée',
   SMS_SETTINGS_UPDATED: 'Fournisseur SMS modifié',
   SMS_TEST_SENT: 'SMS de test envoyé',
   USER_DELETED: 'Compte supprimé',

@@ -4,6 +4,7 @@ import { Observable, finalize, shareReplay, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   CurrentUser,
+  EmailCodeSent,
   LoginRequest,
   LoginResponse,
   OtpRequest,
@@ -60,6 +61,42 @@ export class AuthService {
     return this.http
       .post<LoginResponse>(`${environment.apiUrl}/auth/otp/verify`, request)
       .pipe(tap((response) => this.setSession(response)));
+  }
+
+  // ---------- Codes par e-mail (decisions.md n° 55) ----------
+
+  /** Connexion par code e-mail, étape 1 (adresse vérifiée uniquement). */
+  requestEmailCode(email: string): Observable<EmailCodeSent> {
+    return this.http.post<EmailCodeSent>(`${environment.apiUrl}/auth/email-otp/request`, { email });
+  }
+
+  /** Connexion par code e-mail, étape 2 : même session qu'une connexion par mot de passe. */
+  verifyEmailCode(email: string, code: string): Observable<LoginResponse> {
+    return this.http
+      .post<LoginResponse>(`${environment.apiUrl}/auth/email-otp/verify`, { email, code })
+      .pipe(tap((response) => this.setSession(response)));
+  }
+
+  /** (Re)envoie le code de confirmation de l'adresse (page d'attente). */
+  sendEmailVerification(email: string): Observable<EmailCodeSent> {
+    return this.http.post<EmailCodeSent>(`${environment.apiUrl}/auth/email/verification`, { email });
+  }
+
+  verifyEmailAddress(email: string, code: string): Observable<void> {
+    return this.http.post<void>(`${environment.apiUrl}/auth/email/verify`, { email, code });
+  }
+
+  /** « Mon profil » : adresse du compte connecté et son état de vérification. */
+  profileEmail(): Observable<{ email: string; verified: boolean }> {
+    return this.http.get<{ email: string; verified: boolean }>(`${environment.apiUrl}/profile/email`);
+  }
+
+  sendProfileEmailCode(): Observable<EmailCodeSent> {
+    return this.http.post<EmailCodeSent>(`${environment.apiUrl}/profile/email/code`, {});
+  }
+
+  verifyProfileEmail(code: string): Observable<void> {
+    return this.http.post<void>(`${environment.apiUrl}/profile/email/verify`, { code });
   }
 
   register(request: RegisterRequest): Observable<RegisterResponse> {

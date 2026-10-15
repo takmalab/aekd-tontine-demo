@@ -62,6 +62,10 @@ public class User {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    /** Date de vérification de l'adresse e-mail par code (decisions.md n° 55) ; null = non vérifiée. */
+    @Column(name = "email_verified_at")
+    private Instant emailVerifiedAt;
+
     /** Photo de profil facultative : clé sur le stockage (FileStorageService). */
     @Column(name = "photo_storage_key", length = 500)
     private String photoStorageKey;
@@ -98,6 +102,9 @@ public class User {
     }
 
     public void setEmail(String email) {
+        if (this.email != null && !this.email.equalsIgnoreCase(email)) {
+            this.emailVerifiedAt = null;
+        }
         this.email = email;
     }
 
@@ -160,6 +167,18 @@ public class User {
     public void setPhoto(String storageKey, String contentType) {
         this.photoStorageKey = storageKey;
         this.photoContentType = storageKey == null ? null : contentType;
+    }
+
+    public boolean isEmailVerified() {
+        return emailVerifiedAt != null;
+    }
+
+    public Instant getEmailVerifiedAt() {
+        return emailVerifiedAt;
+    }
+
+    public void markEmailVerified() {
+        this.emailVerifiedAt = Instant.now();
     }
 
     @Override

@@ -18,6 +18,14 @@ export interface OtpRequest {
   phone: string;
 }
 
+/** Code envoyé par e-mail (decisions.md n° 55) : réponse identique que l'adresse ait un compte ou non. */
+export interface EmailCodeSent {
+  email: string;
+  message: string;
+  expiresInSeconds: number;
+  resendAfterSeconds: number;
+}
+
 export interface OtpRequestResponse {
   phone: string;
   message: string;

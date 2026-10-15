@@ -130,3 +130,58 @@
     overflow-wrap: anywhere;
   }
 }
+
+/* Vérification de l'adresse e-mail (decisions.md n° 55) */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  vertical-align: middle;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+
+  &--ok {
+    background: rgba(46, 125, 50, 0.1);
+    color: #2e7d32;
+  }
+
+  &--warn {
+    background: rgba(232, 110, 9, 0.12);
+    color: var(--aekd-orange);
+  }
+}
+
+.verify {
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--aekd-blue-soft);
+
+  &__text {
+    margin: 0 0 10px;
+    font-size: 13px;
+    color: var(--aekd-gray);
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  &__error {
+    margin: 8px 0 0;
+    color: #c62828;
+    font-size: 13px;
+  }
+}
