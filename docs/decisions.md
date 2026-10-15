@@ -1627,3 +1627,32 @@ d'attente ») :
   n'est enregistré, `app.sms.provider` s'applique.
 * `GET / PUT /api/settings/sms`, `POST /api/settings/sms/test` (ADMIN).
 * Interface : page « Paramètres SMS » dans le menu de l'administrateur.
+
+---
+
+# 49. Qui configure les politiques de prêt ?
+
+## Question
+
+CLAUDE.md se contredit : le §6 range « configurer les règles de prêt » parmi
+les droits de l'ADMIN seulement, le §20 indique que les règles de prêt sont
+« définies par le trésorier ou l'administrateur ».
+
+## Statut
+
+```text
+DÉCIDÉ
+```
+
+## Décision
+
+Validé par le propriétaire du projet le 2026-10-15 : le **trésorier et
+l'administrateur** créent, modifient, activent, désactivent et suppriment les
+politiques de prêt (§20). Les membres les consultent.
+
+## Conséquence technique
+
+* `/api/loan-policies` (POST, PUT, DELETE) : rôle TRESORIER ; l'ADMIN y accède
+  par la hiérarchie des rôles (décision n° 40).
+* Écran « Politiques de prêt » : boutons de gestion visibles pour le trésorier.
+* Chaque modification reste inscrite au journal d'audit.

@@ -7,7 +7,7 @@
         expliquée au membre et au trésorier.
       </p>
     </div>
-    @if (isAdmin) {
+    @if (canManage) {
       <button mat-flat-button class="page__action" (click)="create()">
         <mat-icon>add</mat-icon>
         Nouvelle politique
@@ -28,7 +28,7 @@
       <mat-icon class="state__icon">policy</mat-icon>
       <p class="state__title">Aucune politique de prêt</p>
       <p class="state__text">
-        @if (isAdmin) {
+        @if (canManage) {
           Créez une politique pour permettre les demandes de prêt.
         } @else {
           Les demandes de prêt seront possibles dès qu'une politique sera définie par l'administration.
@@ -55,7 +55,7 @@
             <h2 class="policy__name">{{ p.name }}</h2>
             <span class="policy__top-right">
               <span class="badge" [class.badge--active]="p.active">{{ p.active ? 'Active' : 'Inactive' }}</span>
-              @if (isAdmin) {
+              @if (canManage) {
                 <app-action-menu [actions]="actionsFor(p)" [disabled]="busyId() === p.id" (selected)="onAction($event, p)" />
               }
             </span>

@@ -33,8 +33,10 @@ public class LoanController {
         this.loanService = loanService;
     }
 
+    // Politiques de prêt : trésorier et administrateur (CLAUDE.md §20, decisions.md n° 49) ;
+    // l'ADMIN y accède par la hiérarchie des rôles (n° 40).
     @PostMapping("/api/loan-policies")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('TRESORIER')")
     public ResponseEntity<LoanPolicyResponse> createPolicy(@Valid @RequestBody LoanPolicyRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(policyService.create(request));
     }
@@ -45,25 +47,25 @@ public class LoanController {
     }
 
     @PutMapping("/api/loan-policies/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('TRESORIER')")
     public LoanPolicyResponse updatePolicy(@PathVariable UUID id, @Valid @RequestBody LoanPolicyRequest request) {
         return policyService.update(id, request);
     }
 
     @PutMapping("/api/loan-policies/{id}/activate")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('TRESORIER')")
     public LoanPolicyResponse activatePolicy(@PathVariable UUID id) {
         return policyService.activate(id);
     }
 
     @PutMapping("/api/loan-policies/{id}/deactivate")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('TRESORIER')")
     public LoanPolicyResponse deactivatePolicy(@PathVariable UUID id) {
         return policyService.deactivate(id);
     }
 
     @DeleteMapping("/api/loan-policies/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('TRESORIER')")
     public ResponseEntity<Void> deletePolicy(@PathVariable UUID id) {
         policyService.delete(id);
         return ResponseEntity.noContent().build();

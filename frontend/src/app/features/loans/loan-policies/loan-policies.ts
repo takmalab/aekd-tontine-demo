@@ -22,8 +22,9 @@ interface Term {
 type PolicyAction = 'edit' | 'toggle' | 'delete';
 
 /**
- * Politiques de prêt (CLAUDE.md §20) : consultables par tous ; création et
- * désactivation réservées à l'ADMIN (§6 — pas au trésorier).
+ * Politiques de prêt (CLAUDE.md §20) : consultables par tous ; création,
+ * modification, activation et suppression par le trésorier et l'administrateur
+ * (decisions.md n° 49).
  */
 @Component({
   selector: 'app-loan-policies',
@@ -37,7 +38,8 @@ export class LoanPolicies implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
 
-  readonly isAdmin = this.authService.hasRole('ADMIN');
+  /** TRESORIER, ou ADMIN par héritage des droits (decisions.md n° 40). */
+  readonly canManage = this.authService.hasRole('TRESORIER');
 
   readonly loading = signal(true);
   readonly error = signal(false);
@@ -85,7 +87,7 @@ export class LoanPolicies implements OnInit {
     return terms;
   }
 
-  /** Actions du menu (⋮) d'une politique — ADMIN uniquement, cf. gabarit. */
+  /** Actions du menu (⋮) d'une politique — trésorier et administrateur, cf. gabarit. */
   actionsFor(policy: LoanPolicy): MenuAction<PolicyAction>[] {
     return [
       { label: 'Modifier', icon: 'edit', action: 'edit' },
