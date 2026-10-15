@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, signal } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import { Observable, finalize, shareReplay, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   CurrentUser,
@@ -15,6 +15,8 @@ import {
 } from '../models/auth.model';
 
 const TOKEN_KEY = 'aekd_token';
+/** Jeton de renouvellement de la session sur cet appareil (decisions.md n° 54). */
+const REFRESH_KEY = 'aekd_refresh';
 
 /**
  * Hiérarchie des rôles, miroir de SecurityConfig.roleHierarchy (backend) :
@@ -36,6 +38,9 @@ export class AuthService {
 
   readonly currentUser = this.currentUserSignal.asReadonly();
   readonly isAuthenticated = computed(() => this.currentUserSignal() !== null);
+
+  /** Renouvellement en cours, partagé : plusieurs requêtes expirées n'en déclenchent qu'un. */
+  private refreshing: Observable<LoginResponse> | null = null;
 
   constructor(private readonly http: HttpClient) {}
 
@@ -61,10 +66,46 @@ export class AuthService {
     return this.http.post<RegisterResponse>(`${environment.apiUrl}/auth/register`, request);
   }
 
+  /**
+   * Déconnexion volontaire : le serveur révoque la session de cet appareil, qui
+   * devra se reconnecter (code SMS ou mot de passe).
+   */
   logout(): void {
+    const refreshToken = localStorage.getItem(REFRESH_KEY);
+    if (refreshToken) {
+      this.http.post(`${environment.apiUrl}/auth/logout`, { refreshToken }).subscribe({ error: () => undefined });
+    }
+    this.clearSession();
+  }
+
+  /** Oublie la session locale (sans appel au serveur). */
+  clearSession(): void {
     localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_KEY);
     localStorage.removeItem(USER_KEY);
     this.currentUserSignal.set(null);
+  }
+
+  hasRefreshToken(): boolean {
+    return !!localStorage.getItem(REFRESH_KEY);
+  }
+
+  /**
+   * Nouveau jeton d'accès sans ressaisir code ni mot de passe, tant que la session
+   * a servi dans les 30 derniers jours (decisions.md n° 54).
+   */
+  refreshSession(): Observable<LoginResponse> {
+    if (!this.refreshing) {
+      const refreshToken = localStorage.getItem(REFRESH_KEY) ?? '';
+      this.refreshing = this.http
+        .post<LoginResponse>(`${environment.apiUrl}/auth/refresh`, { refreshToken })
+        .pipe(
+          tap((response) => this.setSession(response)),
+          finalize(() => (this.refreshing = null)),
+          shareReplay(1),
+        );
+    }
+    return this.refreshing;
   }
 
   getToken(): string | null {
@@ -87,6 +128,7 @@ export class AuthService {
 
   private setSession(response: LoginResponse): void {
     localStorage.setItem(TOKEN_KEY, response.token);
+    localStorage.setItem(REFRESH_KEY, response.refreshToken);
     const user: CurrentUser = { email: response.email, roles: response.roles };
     localStorage.setItem(USER_KEY, JSON.stringify(user));
     this.currentUserSignal.set(user);

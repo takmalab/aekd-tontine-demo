@@ -189,10 +189,13 @@ class OtpServiceTest {
 
     @Test
     void accountsAwaitingValidationReceiveNoCode() {
+        // decisions.md n° 54 : l'interface affiche la page « compte en attente ».
         createUser("otp.pending@test.aekd.cm", PHONE, UserStatus.PENDING_VALIDATION);
 
-        otpService.requestCode(new OtpRequest(PHONE));
-
+        assertThatThrownBy(() -> otpService.requestCode(new OtpRequest(PHONE)))
+                .isInstanceOfSatisfying(ResponseStatusException.class,
+                        e -> assertThat(e.getStatusCode().value()).isEqualTo(403))
+                .hasMessageContaining("en attente de validation");
         assertThat(sms.sent).isEmpty();
     }
 

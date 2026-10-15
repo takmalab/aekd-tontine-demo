@@ -83,7 +83,7 @@ export const LOAN_RULE_LABELS: Record<string, string> = {
 export type GuarantorStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED';
 
 export const GUARANTOR_STATUS_LABELS: Record<GuarantorStatus, string> = {
-  PENDING: 'En attente de son accord',
+  PENDING: 'En attente de votre accord',
   ACCEPTED: 'A accepté',
   DECLINED: 'A refusé',
 };

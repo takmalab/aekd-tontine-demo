@@ -83,9 +83,12 @@ public class OtpService {
                     "Trop de demandes de code pour ce numéro. Réessayez plus tard ou connectez-vous avec votre email");
         }
 
-        User user = userRepository.findByPhone(phone)
-                .filter(candidate -> candidate.getStatus() == UserStatus.ACTIVE)
-                .orElse(null);
+        User owner = userRepository.findByPhone(phone).orElse(null);
+        // Compte inscrit pas encore validé : page d'attente plutôt qu'un code qui n'arrivera pas (n° 54).
+        if (owner != null && owner.getStatus() == UserStatus.PENDING_VALIDATION) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, cm.aekd.tontine.auth.AuthService.PENDING_MESSAGE);
+        }
+        User user = owner != null && owner.getStatus() == UserStatus.ACTIVE ? owner : null;
         String code = generateCode();
 
         challengeRepository.consumeAllActive(phone, now);

@@ -52,6 +52,22 @@ public class AuthController {
         return otpService.verifyCode(request);
     }
 
+    /** Renouvelle la session de l'appareil (decisions.md n° 54) : nouveau jeton d'accès et de renouvellement. */
+    @PostMapping("/refresh")
+    public LoginResponse refresh(@Valid @RequestBody RefreshRequest request) {
+        return authService.refresh(request.refreshToken());
+    }
+
+    /** Déconnexion : le jeton de renouvellement de cet appareil est révoqué. */
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@RequestBody(required = false) RefreshRequest request) {
+        authService.logout(request == null ? null : request.refreshToken());
+        return ResponseEntity.noContent().build();
+    }
+
+    public record RefreshRequest(@jakarta.validation.constraints.NotBlank String refreshToken) {
+    }
+
     @PostMapping("/register")
     public ResponseEntity<RegisterResponse> register(@Valid @RequestBody RegisterRequest request) {
         RegisterResponse response = userService.registerSelf(

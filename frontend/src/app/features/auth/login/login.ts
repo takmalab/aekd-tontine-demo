@@ -93,9 +93,13 @@ export class Login {
       },
       error: (error: HttpErrorResponse) => {
         this.loading.set(false);
+        if (error.status === 403) {
+          this.router.navigate(['/pending']);
+          return;
+        }
         this.errorMessage.set(
           error.status === 401
-            ? 'Email ou mot de passe incorrect, ou compte pas encore validé par un administrateur.'
+            ? 'Email ou mot de passe incorrect.'
             : "Une erreur est survenue. Vérifiez que le serveur est démarré.",
         );
       },
@@ -126,6 +130,11 @@ export class Login {
       },
       error: (error: HttpErrorResponse) => {
         this.loading.set(false);
+        // Numéro d'un compte pas encore validé (decisions.md n° 54).
+        if (error.status === 403) {
+          this.router.navigate(['/pending']);
+          return;
+        }
         this.errorMessage.set(this.serverMessage(error));
       },
     });

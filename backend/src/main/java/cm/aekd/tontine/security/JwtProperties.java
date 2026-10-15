@@ -21,6 +21,10 @@ public class JwtProperties {
     @Positive
     private long expirationMinutes;
 
+    /** Durée de vie d'une session sans activité, en jours (decisions.md n° 54). */
+    @Positive
+    private long refreshTokenDays = 30;
+
     public String getSecret() {
         return secret;
     }
@@ -35,5 +39,13 @@ public class JwtProperties {
 
     public void setExpirationMinutes(long expirationMinutes) {
         this.expirationMinutes = expirationMinutes;
+    }
+
+    public long getRefreshTokenDays() {
+        return refreshTokenDays;
+    }
+
+    public void setRefreshTokenDays(long refreshTokenDays) {
+        this.refreshTokenDays = refreshTokenDays;
     }
 }

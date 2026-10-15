@@ -49,6 +49,9 @@ app:
   jwt:
     secret: ${APP_JWT_SECRET:dev-only-secret-please-change-me-aekd-tontine-mvp}
     expiration-minutes: ${APP_JWT_EXPIRATION_MINUTES:60}
+    # Session sur l'appareil : renouvelée sans reconnexion pendant ce nombre de jours
+    # sans activité (docs/decisions.md n° 54).
+    refresh-token-days: ${APP_JWT_REFRESH_TOKEN_DAYS:30}
 
   storage:
     local:

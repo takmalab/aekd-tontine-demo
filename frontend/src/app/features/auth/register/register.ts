@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -28,6 +28,7 @@ import { AuthService } from '../../../core/services/auth.service';
 export class Register {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
 
   readonly loading = signal(false);
   readonly errorMessage = signal<string | null>(null);
@@ -54,10 +55,11 @@ export class Register {
     this.authService
       .register({ fullName: fullName!, email: email!, phone: phone || undefined, password: password! })
       .subscribe({
-        next: (response) => {
+        next: () => {
           this.loading.set(false);
-          this.successMessage.set(response.message);
           this.form.reset();
+          // Compte en attente de validation : page d'attente (decisions.md n° 54).
+          this.router.navigate(['/pending'], { state: { name: fullName } });
         },
         error: (error: HttpErrorResponse) => {
           this.loading.set(false);

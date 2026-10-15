@@ -1886,3 +1886,43 @@ Validé par le propriétaire du projet le 2026-10-15.
 * Endpoints : `GET /api/sessions/{id}/payouts/deduction-options?memberId=`,
   `POST /api/loans/{id}/savings-deduction` (TRESORIER) ; la remise de cagnotte
   accepte une liste `deductions`.
+
+---
+
+# 54. Session longue sur l'appareil et page « compte en attente »
+
+## Question
+
+Faut-il redemander le code SMS ou le mot de passe à chaque retour sur
+l'application ? Que voit un membre inscrit dont le compte n'est pas validé ?
+
+## Statut
+
+```text
+DÉCIDÉ
+```
+
+## Décision
+
+Validé par le propriétaire du projet le 2026-10-15.
+
+* Un membre connecté reste connecté sur son appareil **30 jours sans
+  activité** ; la durée repart à zéro à chaque utilisation. La déconnexion y
+  met fin immédiatement. Au-delà, il se reconnecte (code SMS ou mot de passe).
+* Un membre inscrit dont le compte n'est pas encore validé arrive sur une page
+  « Compte en attente de validation par l'administrateur » : juste après
+  l'inscription, et à chaque tentative de connexion (mot de passe juste, ou
+  demande de code SMS) tant que l'administrateur n'a pas validé.
+
+## Conséquence technique
+
+* Le jeton d'accès (JWT) reste valable 60 minutes. Un jeton de renouvellement
+  aléatoire (table `refresh_token`, V29, empreinte SHA-256 seulement) permet
+  d'en obtenir un nouveau en silence ; il est remplacé à chaque utilisation et
+  révoqué à la déconnexion. Durée réglable : `APP_JWT_REFRESH_TOKEN_DAYS` (30).
+* Endpoints publics `POST /api/auth/refresh` et `POST /api/auth/logout`.
+* Un compte DISABLED ne peut plus renouveler sa session.
+* Compte en attente : réponse 403 « en attente de validation » (mot de passe
+  juste, ou demande de code SMS pour son numéro). Un mauvais mot de passe
+  reste un 401 qui ne révèle rien. La demande de code SMS révèle en revanche
+  qu'un numéro appartient à un compte en attente (accepté pour l'ergonomie).

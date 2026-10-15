@@ -9,6 +9,8 @@ export interface LoginResponse {
   token: string;
   email: string;
   roles: RoleName[];
+  /** Jeton de renouvellement : garde la session 30 jours sans activité (decisions.md n° 54). */
+  refreshToken: string;
 }
 
 /** Connexion par code SMS (docs/decisions.md n° 47). */
