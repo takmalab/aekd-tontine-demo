@@ -1856,6 +1856,12 @@ Validé par le propriétaire du projet le 2026-10-15.
     est épuisée ;
   * le trésorier peut aussi **prélever sur l'épargne** de l'emprunteur, puis
     sur celle de l'avaliste si l'épargne de l'emprunteur est épuisée.
+* Précisions validées le 2026-10-15 :
+  * la retenue sur la cagnotte est **préremplie** ; le trésorier peut la
+    réduire ou la retirer ;
+  * le prélèvement sur l'**épargne** n'est possible que pour un prêt **en
+    retard** (durée approuvée dépassée) ; la retenue sur la **cagnotte** est
+    possible dès que le prêt court.
 
 ## Points à valider
 
@@ -1863,11 +1869,6 @@ Validé par le propriétaire du projet le 2026-10-15.
 À VALIDER
 ```
 
-* La retenue sur la cagnotte est **proposée** (préremplie) mais le trésorier
-  peut la réduire ou la retirer. Faut-il l'imposer ?
-* Le prélèvement sur l'**épargne** n'est possible que pour un prêt **en retard**
-  (durée approuvée dépassée), lecture de « s'il ne rembourse pas ». La retenue
-  sur la **cagnotte** est possible dès que le prêt court.
 * « Épargne de l'emprunteur épuisée » = son capital d'épargne validé est à zéro
   (les intérêts d'épargne ne sont pas comptés).
 * Une retenue ou un prélèvement est définitif (comme un remboursement validé).
