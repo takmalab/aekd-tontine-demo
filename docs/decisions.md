@@ -1764,3 +1764,56 @@ Validé par le propriétaire du projet le 2026-10-15.
   `GET /api/members/{memberId}/photo` (tout utilisateur connecté).
 * L'image est recadrée en carré 320 px (JPEG) dans le navigateur ; le serveur
   n'accepte que JPG, PNG ou WEBP de 2 Mo au plus.
+
+---
+
+# 52. Avaliste d'un prêt
+
+## Question
+
+Comment garantir un prêt si le membre emprunteur ne rembourse pas ?
+
+## Statut
+
+```text
+DÉCIDÉ
+```
+
+## Décision
+
+Validé par le propriétaire du projet le 2026-10-15.
+
+* À la demande de prêt, le membre désigne un **avaliste** : un autre membre
+  actif, garant si le prêt n'est pas remboursé.
+* La politique de prêt indique si l'avaliste est **obligatoire** (case
+  « Avaliste obligatoire », réglée par le trésorier ou l'administrateur).
+* L'avaliste **accepte ou refuse**. Le trésorier ne peut approuver le prêt
+  qu'après son accord. En cas de refus, le membre en désigne un autre.
+* L'avaliste doit être **à jour**. Règle « Avaliste à jour », **signalée au
+  trésorier** comme les autres règles de prêt (elle ne bloque pas la demande) :
+  * aucune cotisation obligatoire échue et non soldée (en retard, ou payée en
+    partie après l'échéance) ;
+  * aucune sanction monétaire appliquée qui reste à payer (seuls les paiements
+    validés comptent) ;
+  * aucun prêt en cours dont la durée approuvée est dépassée.
+
+## Points à valider
+
+```text
+À VALIDER
+```
+
+* Ce qui se passe concrètement si l'emprunteur ne rembourse pas : rien n'est
+  automatisé (pas de prélèvement sur l'épargne de l'avaliste, par exemple).
+* Un même membre peut-il garantir plusieurs prêts à la fois ? Aujourd'hui, oui.
+* La règle « à jour » est évaluée à la demande (et à chaque changement
+  d'avaliste), pas recalculée au moment de l'approbation.
+
+## Conséquence technique
+
+* `loan_policy.guarantor_required` ; `loan.guarantor_member_id`,
+  `guarantor_status` (PENDING, ACCEPTED, DECLINED), `guarantor_decided_at` (V26).
+* `GuarantorStandingService` calcule ce qui empêche un membre d'être à jour.
+* Endpoints : `GET /api/loans/guarantor-candidates`, `GET /api/loans/guaranteed`,
+  `PUT /api/loans/{id}/guarantee/accept|decline`, `PUT /api/loans/{id}/guarantor`.
+* L'avaliste peut consulter le prêt qu'il garantit.

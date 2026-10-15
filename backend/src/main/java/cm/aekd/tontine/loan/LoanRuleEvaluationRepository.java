@@ -8,4 +8,6 @@ import java.util.UUID;
 public interface LoanRuleEvaluationRepository extends JpaRepository<LoanRuleEvaluation, UUID> {
 
     List<LoanRuleEvaluation> findByLoanId(UUID loanId);
+
+    void deleteByLoanIdAndRuleName(UUID loanId, String ruleName);
 }

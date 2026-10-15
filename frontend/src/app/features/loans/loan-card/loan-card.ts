@@ -5,13 +5,17 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { HttpErrorResponse } from '@angular/common/http';
 import { forkJoin } from 'rxjs';
+import { ConfirmDialog, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog';
+import { GuarantorDialog } from '../guarantor-dialog/guarantor-dialog';
 import { DocumentService } from '../../../core/services/document.service';
 import { formatFcfa, fromIsoDate } from '../../../shared/utils/format';
 import { PAYMENT_OPERATOR_LABELS } from '../../contributions/contribution.model';
 import { ProofUploadData, ProofUploadDialog } from '../../payments/proof-upload-dialog/proof-upload-dialog';
 import { ProofViewerData, ProofViewerDialog } from '../../payments/proof-viewer-dialog/proof-viewer-dialog';
 import {
+  GUARANTOR_STATUS_LABELS,
   LOAN_STATUSES_WITH_BALANCE,
   LOAN_STATUS_LABELS,
   REPAYMENT_STATUS_LABELS,
@@ -53,12 +57,24 @@ export class LoanCard {
    * validation, docs/decisions.md n° 38) et justificatif de ses remboursements.
    */
   readonly canDeclare = input(false);
+  /** Vue de l'avaliste (decisions.md n° 52) : accepter ou refuser de garantir le prêt. */
+  readonly asGuarantor = input(false);
 
   readonly approve = output<Loan>();
   readonly reject = output<Loan>();
   readonly repay = output<{ loan: Loan; balance: LoanBalance }>();
+  /** Le prêt a changé ici (réponse de l'avaliste, nouvel avaliste) : la page le remplace. */
+  readonly changed = output<Loan>();
 
   readonly statusLabels = LOAN_STATUS_LABELS;
+  readonly guarantorLabels = GUARANTOR_STATUS_LABELS;
+  readonly guarantorBusy = signal(false);
+
+  /** L'approbation attend l'accord de l'avaliste (n° 52) ; le serveur le vérifie aussi. */
+  readonly waitingForGuarantor = computed(() => {
+    const l = this.loan();
+    return l.guarantorStatus !== null && l.guarantorStatus !== 'ACCEPTED';
+  });
   readonly repaymentStatusLabels = REPAYMENT_STATUS_LABELS;
   readonly operatorLabels = PAYMENT_OPERATOR_LABELS;
   readonly formatFcfa = formatFcfa;
@@ -169,6 +185,69 @@ export class LoanCard {
   viewProof(repayment: LoanRepayment): void {
     const data: ProofViewerData = { repayment };
     this.dialog.open(ProofViewerDialog, { data, width: '760px', maxWidth: 'calc(100vw - 24px)', autoFocus: false });
+  }
+
+  /** L'avaliste accepte ou refuse, après confirmation. */
+  answerGuarantee(accept: boolean): void {
+    const l = this.loan();
+    const data: ConfirmDialogData = accept
+      ? {
+          title: "Accepter d'être avaliste ?",
+          message: `Vous vous portez garant(e) du prêt de ${formatFcfa(l.requestedAmount)} demandé par ${l.memberFullName}, s'il n'est pas remboursé.`,
+          confirmLabel: 'Accepter',
+          icon: 'handshake',
+        }
+      : {
+          title: 'Refuser cet aval ?',
+          message: `${l.memberFullName} devra choisir un autre avaliste.`,
+          confirmLabel: 'Refuser',
+          cancelLabel: 'Retour',
+          icon: 'block',
+        };
+    this.dialog
+      .open(ConfirmDialog, { data, width: '460px', maxWidth: 'calc(100vw - 32px)' })
+      .afterClosed()
+      .subscribe((confirmed) => {
+        if (!confirmed) {
+          return;
+        }
+        this.guarantorBusy.set(true);
+        this.loanService.answerGuarantee(l.id, accept).subscribe({
+          next: (loan) => {
+            this.guarantorBusy.set(false);
+            this.snackBar.open(accept ? 'Aval accepté' : 'Aval refusé', 'OK', { duration: 4000 });
+            this.changed.emit(loan);
+          },
+          error: (err: HttpErrorResponse) => {
+            this.guarantorBusy.set(false);
+            this.snackBar.open(err.error?.message || "L'opération a échoué.", 'OK', { duration: 6000 });
+          },
+        });
+      });
+  }
+
+  /** Le demandeur désigne un autre avaliste. */
+  changeGuarantor(): void {
+    this.dialog
+      .open(GuarantorDialog, { data: this.loan(), width: '460px', maxWidth: 'calc(100vw - 24px)', autoFocus: false })
+      .afterClosed()
+      .subscribe((memberId?: string) => {
+        if (!memberId) {
+          return;
+        }
+        this.guarantorBusy.set(true);
+        this.loanService.changeGuarantor(this.loan().id, memberId).subscribe({
+          next: (loan) => {
+            this.guarantorBusy.set(false);
+            this.snackBar.open(`${loan.guarantorFullName} a été prévenu(e)`, 'OK', { duration: 4000 });
+            this.changed.emit(loan);
+          },
+          error: (err: HttpErrorResponse) => {
+            this.guarantorBusy.set(false);
+            this.snackBar.open(err.error?.message || "Le changement d'avaliste a échoué.", 'OK', { duration: 6000 });
+          },
+        });
+      });
   }
 
   emitRepay(): void {

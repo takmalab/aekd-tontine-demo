@@ -14,14 +14,16 @@ public record LoanPolicyResponse(
         BigDecimal minSavingsRequired,
         Integer minSeniorityMonths,
         Integer maxActiveLoans,
-        boolean active
+        boolean active,
+        boolean guarantorRequired
 ) {
     public static LoanPolicyResponse from(LoanPolicy policy) {
         return new LoanPolicyResponse(
                 policy.getId(), policy.getName(), policy.getDescription(), policy.getMinAmount(),
                 policy.getMaxAmount(), policy.getMaxDurationMonths(), policy.getInterestRate(),
                 policy.getMinSavingsRequired(), policy.getMinSeniorityMonths(), policy.getMaxActiveLoans(),
-                policy.isActive()
+                policy.isActive(),
+                policy.isGuarantorRequired()
         );
     }
 }

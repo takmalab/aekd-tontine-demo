@@ -9,5 +9,7 @@ public interface ContributionParticipantRepository extends JpaRepository<Contrib
 
     List<ContributionParticipant> findByContributionDefinitionId(UUID contributionDefinitionId);
 
+    List<ContributionParticipant> findByMemberId(UUID memberId);
+
     boolean existsByContributionDefinitionIdAndMemberId(UUID contributionDefinitionId, UUID memberId);
 }

@@ -81,6 +81,37 @@ public class LoanController {
         return loanService.findMine();
     }
 
+    /** Avaliste (docs/decisions.md n° 52) : membres pouvant être désignés. */
+    @GetMapping("/api/loans/guarantor-candidates")
+    public List<LoanService.GuarantorCandidate> guarantorCandidates() {
+        return loanService.guarantorCandidates();
+    }
+
+    /** Prêts dont le membre connecté est l'avaliste. */
+    @GetMapping("/api/loans/guaranteed")
+    public List<LoanResponse> guaranteed() {
+        return loanService.findGuaranteed();
+    }
+
+    @PutMapping("/api/loans/{id}/guarantee/accept")
+    public LoanResponse acceptGuarantee(@PathVariable UUID id) {
+        return loanService.answerGuarantee(id, true);
+    }
+
+    @PutMapping("/api/loans/{id}/guarantee/decline")
+    public LoanResponse declineGuarantee(@PathVariable UUID id) {
+        return loanService.answerGuarantee(id, false);
+    }
+
+    /** Le demandeur désigne un autre avaliste (après un refus, par exemple). */
+    @PutMapping("/api/loans/{id}/guarantor")
+    public LoanResponse changeGuarantor(@PathVariable UUID id, @Valid @RequestBody GuarantorChangeRequest request) {
+        return loanService.changeGuarantor(id, request.guarantorMemberId());
+    }
+
+    public record GuarantorChangeRequest(@jakarta.validation.constraints.NotNull UUID guarantorMemberId) {
+    }
+
     @GetMapping("/api/loans")
     @PreAuthorize("hasAnyRole('ADMIN', 'TRESORIER')")
     public List<LoanResponse> all(@RequestParam(required = false) LoanStatus status) {

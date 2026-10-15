@@ -28,6 +28,11 @@ public record LoanResponse(
         String decisionByEmail,
         String rejectionReason,
         List<LoanRuleEvaluationResponse> ruleEvaluations,
-        Instant requestedAt
+        Instant requestedAt,
+        /** Avaliste (decisions.md n° 52) : absent si aucun n'a été désigné. */
+        UUID guarantorMemberId,
+        String guarantorFullName,
+        GuarantorStatus guarantorStatus,
+        Instant guarantorDecidedAt
 ) {
 }

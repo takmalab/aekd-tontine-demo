@@ -321,4 +321,53 @@ class LoanFlowTest {
         assertThatThrownBy(() -> loanService.approve(requested.id(), new LoanApprovalRequest(new BigDecimal(20000), 2)))
                 .isInstanceOf(ResponseStatusException.class);
     }
+
+    @Test
+    void guarantorMustAcceptBeforeApproval() {
+        // docs/decisions.md n° 52 : avaliste obligatoire selon la politique, il accepte ou refuse.
+        Member admin = createMember(RoleName.ADMIN, "guaradmin", LocalDate.now());
+        Member treasurer = createMember(RoleName.TRESORIER, "guartreso", LocalDate.now());
+        Member borrower = createMember(RoleName.MEMBRE, "guarborrower", LocalDate.now());
+        Member first = createMember(RoleName.MEMBRE, "guarfirst", LocalDate.now());
+        Member second = createMember(RoleName.MEMBRE, "guarsecond", LocalDate.now());
+        TestSavings.seedValidated(depositRepository, borrower, new BigDecimal(500000));
+
+        loginAsMember(admin, RoleName.ADMIN);
+        policyService.create(new LoanPolicyRequest("Avec avaliste", null, null, null, null, null, null, null, null, true));
+
+        loginAsMember(borrower, RoleName.MEMBRE);
+        assertThatThrownBy(() -> loanService.request(new LoanRequest(new BigDecimal(20000), 2, "Motif")))
+                .hasMessageContaining("exige un avaliste");
+        assertThatThrownBy(() -> loanService.request(new LoanRequest(new BigDecimal(20000), 2, "Motif", borrower.getId())))
+                .hasMessageContaining("propre avaliste");
+        LoanResponse requested = loanService.request(new LoanRequest(new BigDecimal(20000), 2, "Motif", first.getId()));
+        assertThat(requested.guarantorStatus()).isEqualTo(GuarantorStatus.PENDING);
+        assertThat(requested.ruleEvaluations()).anyMatch(e -> e.ruleName().equals("AVALISTE_A_JOUR") && e.respected());
+
+        loginAsMember(treasurer, RoleName.TRESORIER);
+        assertThatThrownBy(() -> loanService.approve(requested.id(), new LoanApprovalRequest(new BigDecimal(20000), 2)))
+                .hasMessageContaining("pas encore accepté");
+
+        loginAsMember(second, RoleName.MEMBRE);
+        assertThatThrownBy(() -> loanService.answerGuarantee(requested.id(), true))
+                .hasMessageContaining("pas l'avaliste");
+
+        loginAsMember(first, RoleName.MEMBRE);
+        assertThat(loanService.findGuaranteed()).extracting(LoanResponse::id).contains(requested.id());
+        assertThat(loanService.findById(requested.id()).id()).isEqualTo(requested.id());
+        loanService.answerGuarantee(requested.id(), false);
+
+        loginAsMember(borrower, RoleName.MEMBRE);
+        LoanResponse changed = loanService.changeGuarantor(requested.id(), second.getId());
+        assertThat(changed.guarantorMemberId()).isEqualTo(second.getId());
+        assertThat(changed.guarantorStatus()).isEqualTo(GuarantorStatus.PENDING);
+        assertThat(changed.ruleEvaluations()).filteredOn(e -> e.ruleName().equals("AVALISTE_A_JOUR")).hasSize(1);
+
+        loginAsMember(second, RoleName.MEMBRE);
+        loanService.answerGuarantee(requested.id(), true);
+
+        loginAsMember(treasurer, RoleName.TRESORIER);
+        LoanResponse approved = loanService.approve(requested.id(), new LoanApprovalRequest(new BigDecimal(20000), 2));
+        assertThat(approved.status()).isEqualTo(LoanStatus.APPROVED);
+    }
 }

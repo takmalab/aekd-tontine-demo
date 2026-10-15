@@ -34,6 +34,9 @@ export type AuditAction =
   | 'SAVINGS_DEPOSIT_DECLARED'
   | 'SAVINGS_DEPOSIT_VALIDATED'
   | 'SAVINGS_DEPOSIT_REJECTED'
+  | 'LOAN_GUARANTEE_ACCEPTED'
+  | 'LOAN_GUARANTEE_DECLINED'
+  | 'LOAN_GUARANTOR_CHANGED'
   | 'SANCTION_PAYMENT_DECLARED'
   | 'SANCTION_PAYMENT_VALIDATED'
   | 'SANCTION_PAYMENT_REJECTED'
@@ -100,6 +103,9 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   SAVINGS_DEPOSIT_DECLARED: "Versement d'épargne déclaré",
   SAVINGS_DEPOSIT_VALIDATED: "Versement d'épargne validé",
   SAVINGS_DEPOSIT_REJECTED: "Versement d'épargne rejeté",
+  LOAN_GUARANTEE_ACCEPTED: 'Aval accepté',
+  LOAN_GUARANTEE_DECLINED: 'Aval refusé',
+  LOAN_GUARANTOR_CHANGED: "Changement d'avaliste",
   SANCTION_PAYMENT_DECLARED: 'Paiement de sanction déclaré',
   SANCTION_PAYMENT_VALIDATED: 'Paiement de sanction validé',
   SANCTION_PAYMENT_REJECTED: 'Paiement de sanction rejeté',

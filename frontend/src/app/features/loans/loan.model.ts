@@ -25,6 +25,8 @@ export interface LoanPolicy {
   minSeniorityMonths: number | null;
   maxActiveLoans: number | null;
   active: boolean;
+  /** Un avaliste doit être désigné pour chaque demande (decisions.md n° 52). */
+  guarantorRequired: boolean;
 }
 
 /** Miroir de LoanPolicyRequest (backend) — ADMIN uniquement. */
@@ -45,7 +47,23 @@ export const LOAN_RULE_LABELS: Record<string, string> = {
   EPARGNE_MINIMALE: 'Épargne minimale',
   ANCIENNETE_MINIMALE: 'Ancienneté minimale',
   NOMBRE_PRETS_ACTIFS: 'Prêts actifs',
+  AVALISTE_A_JOUR: 'Avaliste à jour',
 };
+
+/** Réponse de l'avaliste (decisions.md n° 52). */
+export type GuarantorStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED';
+
+export const GUARANTOR_STATUS_LABELS: Record<GuarantorStatus, string> = {
+  PENDING: 'En attente de son accord',
+  ACCEPTED: 'A accepté',
+  DECLINED: 'A refusé',
+};
+
+/** Membre pouvant être désigné avaliste. */
+export interface GuarantorCandidate {
+  memberId: string;
+  fullName: string;
+}
 
 /** Miroir de LoanResponse (backend). */
 export interface Loan {
@@ -72,6 +90,11 @@ export interface Loan {
   rejectionReason: string | null;
   ruleEvaluations: LoanRuleEvaluation[];
   requestedAt: string;
+  /** Avaliste (decisions.md n° 52), absent si aucun n'a été désigné. */
+  guarantorMemberId: string | null;
+  guarantorFullName: string | null;
+  guarantorStatus: GuarantorStatus | null;
+  guarantorDecidedAt: string | null;
 }
 
 /** Miroir de LoanRequest (backend). */
@@ -79,6 +102,7 @@ export interface LoanRequest {
   amount: number;
   durationMonths: number;
   reason: string;
+  guarantorMemberId?: string | null;
 }
 
 /** Miroir de LoanApprovalRequest (backend) — TRESORIER et ADMIN (décision n° 40). */

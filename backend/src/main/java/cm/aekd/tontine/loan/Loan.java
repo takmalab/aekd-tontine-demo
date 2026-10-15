@@ -87,6 +87,18 @@ public class Loan {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    /** Avaliste désigné par le membre (decisions.md n° 52), facultatif selon la politique. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "guarantor_member_id")
+    private Member guarantor;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "guarantor_status", length = 20)
+    private GuarantorStatus guarantorStatus;
+
+    @Column(name = "guarantor_decided_at")
+    private Instant guarantorDecidedAt;
+
     protected Loan() {
     }
 
@@ -224,5 +236,29 @@ public class Loan {
     @Override
     public int hashCode() {
         return Objects.hashCode(id);
+    }
+
+    public Member getGuarantor() {
+        return guarantor;
+    }
+
+    public GuarantorStatus getGuarantorStatus() {
+        return guarantorStatus;
+    }
+
+    public Instant getGuarantorDecidedAt() {
+        return guarantorDecidedAt;
+    }
+
+    /** Désigne (ou remplace) l'avaliste : sa réponse est de nouveau attendue. */
+    public void designateGuarantor(Member member) {
+        this.guarantor = member;
+        this.guarantorStatus = member == null ? null : GuarantorStatus.PENDING;
+        this.guarantorDecidedAt = null;
+    }
+
+    public void guarantorAnswers(boolean accepted) {
+        this.guarantorStatus = accepted ? GuarantorStatus.ACCEPTED : GuarantorStatus.DECLINED;
+        this.guarantorDecidedAt = Instant.now();
     }
 }

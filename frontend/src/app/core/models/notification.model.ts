@@ -9,6 +9,9 @@ export type NotificationType =
   | 'LOAN_REPAYMENT_RECORDED'
   | 'SAVINGS_DEPOSIT_VALIDATED'
   | 'SAVINGS_DEPOSIT_REJECTED'
+  | 'LOAN_GUARANTEE_REQUESTED'
+  | 'LOAN_GUARANTEE_ACCEPTED'
+  | 'LOAN_GUARANTEE_DECLINED'
   | 'SANCTION_PAYMENT_VALIDATED'
   | 'SANCTION_PAYMENT_REJECTED'
   | 'LOAN_APPROVED'
@@ -58,6 +61,9 @@ export const NOTIFICATION_STYLE: Record<NotificationType, { icon: string; tone: 
   LOAN_REPAYMENT_RECORDED: { icon: 'receipt_long', tone: 'good' },
   SAVINGS_DEPOSIT_VALIDATED: { icon: 'savings', tone: 'good' },
   SAVINGS_DEPOSIT_REJECTED: { icon: 'cancel', tone: 'bad' },
+  LOAN_GUARANTEE_REQUESTED: { icon: 'handshake', tone: 'todo' },
+  LOAN_GUARANTEE_ACCEPTED: { icon: 'handshake', tone: 'good' },
+  LOAN_GUARANTEE_DECLINED: { icon: 'cancel', tone: 'bad' },
   SANCTION_PAYMENT_VALIDATED: { icon: 'task_alt', tone: 'good' },
   SANCTION_PAYMENT_REJECTED: { icon: 'cancel', tone: 'bad' },
   LOAN_APPROVED: { icon: 'account_balance', tone: 'good' },

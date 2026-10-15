@@ -2,6 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -33,6 +34,7 @@ const positiveInt = [Validators.min(1), Validators.pattern(/^\d+$/)];
 @Component({
   selector: 'app-policy-form-dialog',
   imports: [
+    MatCheckboxModule,
     ReactiveFormsModule,
     MatDialogModule,
     MatFormFieldModule,
@@ -68,6 +70,7 @@ export class PolicyFormDialog {
         [Validators.min(0), Validators.pattern(/^\d+$/)],
       ],
       maxActiveLoans: [this.editing?.maxActiveLoans ?? (null as number | null), positiveInt],
+      guarantorRequired: [this.editing?.guarantorRequired ?? false],
     },
     { validators: minMaxValidator },
   );
@@ -94,6 +97,7 @@ export class PolicyFormDialog {
       minSavingsRequired: this.num(v.minSavingsRequired),
       minSeniorityMonths: this.num(v.minSeniorityMonths),
       maxActiveLoans: this.num(v.maxActiveLoans),
+      guarantorRequired: !!v.guarantorRequired,
     };
     const call = this.editing
       ? this.loanService.updatePolicy(this.editing.id, request)

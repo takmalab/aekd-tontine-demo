@@ -78,6 +78,7 @@ export class LoanPolicies implements OnInit {
       terms.push({ icon: 'schedule', label: 'Durée maximale', value: `${p.maxDurationMonths} mois` });
     if (p.maxActiveLoans !== null)
       terms.push({ icon: 'filter_1', label: 'Prêts actifs maximum', value: `${p.maxActiveLoans}` });
+    if (p.guarantorRequired) terms.push({ icon: 'handshake', label: 'Avaliste', value: 'Obligatoire' });
     if (p.minSavingsRequired !== null)
       terms.push({ icon: 'savings', label: 'Épargne minimale', value: formatFcfa(p.minSavingsRequired) });
     if (p.minSeniorityMonths !== null)

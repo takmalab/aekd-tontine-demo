@@ -32,6 +32,7 @@ public class LoanPolicyService {
         LoanPolicy policy = new LoanPolicy(request.name(), request.description(), request.minAmount(),
                 request.maxAmount(), request.maxDurationMonths(), request.interestRate(),
                 request.minSavingsRequired(), request.minSeniorityMonths(), request.maxActiveLoans());
+        policy.setGuarantorRequired(Boolean.TRUE.equals(request.guarantorRequired()));
         policy = policyRepository.save(policy);
 
         auditLogService.record(AuditAction.LOAN_POLICY_CREATED, "LoanPolicy", policy.getId(),
@@ -64,6 +65,7 @@ public class LoanPolicyService {
         policy.update(request.name(), request.description(), request.minAmount(), request.maxAmount(),
                 request.maxDurationMonths(), request.interestRate(), request.minSavingsRequired(),
                 request.minSeniorityMonths(), request.maxActiveLoans());
+        policy.setGuarantorRequired(Boolean.TRUE.equals(request.guarantorRequired()));
         policy = policyRepository.save(policy);
 
         auditLogService.record(AuditAction.LOAN_POLICY_UPDATED, "LoanPolicy", policy.getId(),

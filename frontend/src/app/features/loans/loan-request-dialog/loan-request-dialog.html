@@ -18,6 +18,15 @@
       </span>
     </p>
     <app-rule-checklist [evaluations]="loan.ruleEvaluations" />
+    @if (loan.guarantorFullName) {
+      <p class="info">
+        <mat-icon>handshake</mat-icon>
+        <span>
+          <strong>{{ loan.guarantorFullName }}</strong> a été prévenu(e) : le prêt ne pourra être approuvé qu'après
+          son accord comme avaliste.
+        </span>
+      </p>
+    }
     @if (hasFailedRule(loan)) {
       <p class="note">
         Une règle non respectée ne bloque pas la demande : le trésorier en tiendra compte pour sa décision.
@@ -63,6 +72,9 @@
             }
             @if (p.interestRate !== null) {
               <li>Taux d'intérêt : {{ p.interestRate }} % par mois</li>
+            }
+            @if (p.guarantorRequired) {
+              <li>Avaliste obligatoire</li>
             }
           </ul>
         </div>
@@ -115,6 +127,22 @@
         <textarea matInput formControlName="reason" rows="3" placeholder="Ex. : frais de scolarité, équipement…"></textarea>
         @if (form.controls.reason.hasError('required')) {
           <mat-error>Le motif est requis</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Avaliste{{ guarantorRequired ? '' : ' (facultatif)' }}</mat-label>
+        <mat-select formControlName="guarantorMemberId">
+          @if (!guarantorRequired) {
+            <mat-option [value]="null">Aucun avaliste</mat-option>
+          }
+          @for (c of candidates(); track c.memberId) {
+            <mat-option [value]="c.memberId">{{ c.fullName }}</mat-option>
+          }
+        </mat-select>
+        <mat-hint>Le membre garant si le prêt n'est pas remboursé. Il devra accepter.</mat-hint>
+        @if (form.controls.guarantorMemberId.hasError('required')) {
+          <mat-error>La politique de prêt exige un avaliste</mat-error>
         }
       </mat-form-field>
 

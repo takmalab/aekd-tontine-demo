@@ -73,6 +73,9 @@ class SanctionFlowTest {
     private cm.aekd.tontine.fund.AccountOperationService operationService;
 
     @Autowired
+    private cm.aekd.tontine.loan.GuarantorStandingService guarantorStandingService;
+
+    @Autowired
     private RoleRepository roleRepository;
 
     @Autowired
@@ -373,5 +376,26 @@ class SanctionFlowTest {
             cm.aekd.tontine.fund.FundAccount target, int amount) {
         return new cm.aekd.tontine.fund.AccountOperationDtos.OperationRequest(type, source, target,
                 new BigDecimal(amount), LocalDate.of(2026, 10, 1), "Test", null);
+    }
+
+    @Test
+    void memberWithLateContributionAndUnpaidSanctionIsNotUpToDateAsGuarantor() {
+        // decisions.md n° 52 : « à jour » = cotisations, sanctions et prêts.
+        Member treasurer = createMember(RoleName.TRESORIER, "standing-treso");
+        Member lateMember = createMember(RoleName.MEMBRE, "standing-late");
+        ContributionPeriodResponse period = setupMandatoryDefinition(treasurer, lateMember,
+                LocalDate.now().minusDays(10), new BigDecimal(10000));
+        assertThat(guarantorStandingService.issuesOf(lateMember.getId()))
+                .containsExactly("1 cotisation(s) obligatoire(s) en retard");
+
+        loginAsMember(treasurer, RoleName.TRESORIER);
+        SanctionRuleResponse rule = ruleService.create(new SanctionRuleRequest(
+                period.contributionDefinitionId(), SanctionType.MONETARY, 3, new BigDecimal(2000), null));
+        appliedService.apply(rule.id(), new ApplySanctionRequest(lateMember.getId(), period.id()));
+
+        assertThat(guarantorStandingService.issuesOf(lateMember.getId()))
+                .hasSize(2)
+                .anyMatch(issue -> issue.startsWith("1 sanction(s) non payée(s)"));
+        assertThat(guarantorStandingService.issuesOf(treasurer.getId())).isEmpty();
     }
 }

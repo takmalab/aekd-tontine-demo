@@ -61,6 +61,10 @@ public class LoanPolicy {
     @Column(name = "active", nullable = false)
     private boolean active = true;
 
+    /** Un avaliste doit-il être désigné pour chaque demande ? (decisions.md n° 52) */
+    @Column(name = "guarantor_required", nullable = false)
+    private boolean guarantorRequired;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -182,5 +186,13 @@ public class LoanPolicy {
     @Override
     public int hashCode() {
         return Objects.hashCode(id);
+    }
+
+    public boolean isGuarantorRequired() {
+        return guarantorRequired;
+    }
+
+    public void setGuarantorRequired(boolean guarantorRequired) {
+        this.guarantorRequired = guarantorRequired;
     }
 }

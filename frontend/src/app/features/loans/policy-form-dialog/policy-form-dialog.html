@@ -78,6 +78,10 @@
       </mat-form-field>
     </div>
 
+    <mat-checkbox formControlName="guarantorRequired">
+      Avaliste obligatoire : chaque demande doit désigner un membre garant, qui doit accepter
+    </mat-checkbox>
+
     @if (errorMessage(); as message) {
       <p class="notice" role="alert">
         <mat-icon>error_outline</mat-icon>

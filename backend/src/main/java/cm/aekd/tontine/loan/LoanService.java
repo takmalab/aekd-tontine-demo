@@ -33,7 +33,8 @@ import java.util.UUID;
  * latitude pour approuver malgré une règle non respectée.
  *
  * Seule exception : l'approbation est bloquée si le montant dépasse l'argent
- * d'épargne disponible pour prêter (docs/decisions.md n° 46).
+ * d'épargne disponible pour prêter (docs/decisions.md n° 46), ou si l'avaliste
+ * désigné n'a pas encore accepté (n° 52).
  */
 @Service
 @Transactional
@@ -51,12 +52,15 @@ public class LoanService {
     private final UserRepository userRepository;
     private final AuditLogService auditLogService;
     private final NotificationService notificationService;
+    private final GuarantorStandingService guarantorStandingService;
 
     public LoanService(LoanRepository loanRepository, LoanPolicyRepository policyRepository,
                         LoanRuleEvaluationRepository evaluationRepository, MemberRepository memberRepository,
                         FundService fundService, CurrentUserProvider currentUserProvider,
                         UserRepository userRepository, AuditLogService auditLogService,
-                        NotificationService notificationService) {
+                        NotificationService notificationService,
+                        GuarantorStandingService guarantorStandingService) {
+        this.guarantorStandingService = guarantorStandingService;
         this.notificationService = notificationService;
         this.loanRepository = loanRepository;
         this.policyRepository = policyRepository;
@@ -85,10 +89,16 @@ public class LoanService {
                 ? loanRepository.countByMemberIdAndStatusIn(member.getId(), ACTIVE_STATUSES)
                 : 0;
 
+        Member guarantor = resolveGuarantor(request.guarantorMemberId(), member, policy);
+
         Loan loan = new Loan(member, policy, request.amount(), request.durationMonths(), request.reason());
+        loan.designateGuarantor(guarantor);
         loan = loanRepository.save(loan);
 
         List<LoanRuleEvaluation> evaluations = evaluateRules(loan, member, policy, activeLoansBeforeThisRequest);
+        if (guarantor != null) {
+            evaluations.add(guarantorEvaluation(loan, guarantor));
+        }
         evaluationRepository.saveAll(evaluations);
 
         auditLogService.record(AuditAction.LOAN_REQUESTED, "Loan", loan.getId(),
@@ -102,8 +112,133 @@ public class LoanService {
         notificationService.notifyOtherMembersExceptStaff(member, null, "Demande de prêt",
                 member.getFullName() + " demande un prêt de " + DocumentFormat.fcfa(loan.getRequestedAmount())
                         + " sur " + loan.getRequestedDurationMonths() + " mois.");
+        if (guarantor != null) {
+            askGuarantor(loan);
+        }
 
         return toResponse(loan);
+    }
+
+    // ---------- Avaliste (docs/decisions.md n° 52) ----------
+
+    /** Membres que le demandeur peut désigner comme avaliste : actifs, sauf lui-même. */
+    @Transactional(readOnly = true)
+    public List<GuarantorCandidate> guarantorCandidates() {
+        UUID memberId = currentUserProvider.currentMemberId().orElse(null);
+        return memberRepository.findAll().stream()
+                .filter(Member::isActive)
+                .filter(m -> !m.getId().equals(memberId))
+                .sorted(java.util.Comparator.comparing(Member::getFullName, String.CASE_INSENSITIVE_ORDER))
+                .map(m -> new GuarantorCandidate(m.getId(), m.getFullName()))
+                .toList();
+    }
+
+    public record GuarantorCandidate(UUID memberId, String fullName) {
+    }
+
+    /** Prêts dont le membre connecté est l'avaliste. */
+    @Transactional(readOnly = true)
+    public List<LoanResponse> findGuaranteed() {
+        UUID memberId = currentUserProvider.currentMemberId()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "Aucun profil membre associé à ce compte"));
+        return loanRepository.findByGuarantorIdOrderByCreatedAtDesc(memberId).stream().map(this::toResponse).toList();
+    }
+
+    /** L'avaliste accepte ou refuse de garantir le prêt. */
+    public LoanResponse answerGuarantee(UUID id, boolean accepted) {
+        Loan loan = getOrThrow(id);
+        UUID currentMemberId = currentUserProvider.currentMemberId().orElse(null);
+        if (loan.getGuarantor() == null || currentMemberId == null
+                || !currentMemberId.equals(loan.getGuarantor().getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Vous n'êtes pas l'avaliste de ce prêt");
+        }
+        if (loan.getStatus() != LoanStatus.REQUESTED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ce prêt n'est plus en attente de décision");
+        }
+        if (loan.getGuarantorStatus() != GuarantorStatus.PENDING) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Vous avez déjà répondu pour ce prêt");
+        }
+        loan.guarantorAnswers(accepted);
+
+        String guarantorName = loan.getGuarantor().getFullName();
+        auditLogService.record(accepted ? AuditAction.LOAN_GUARANTEE_ACCEPTED : AuditAction.LOAN_GUARANTEE_DECLINED,
+                "Loan", loan.getId(), guarantorName + (accepted ? " accepte" : " refuse")
+                        + " d'être l'avaliste du prêt de " + loan.getMember().getFullName());
+        NotificationType type = accepted ? NotificationType.LOAN_GUARANTEE_ACCEPTED : NotificationType.LOAN_GUARANTEE_DECLINED;
+        String title = accepted ? "Avaliste d'accord" : "Avaliste : refus";
+        notificationService.notifyMember(loan.getMember(), type, title, accepted
+                ? guarantorName + " accepte d'être l'avaliste de votre demande de prêt."
+                : guarantorName + " refuse d'être l'avaliste de votre demande de prêt. Choisissez un autre avaliste.",
+                "/my-loans");
+        notificationService.notifyStaff(type, title, guarantorName + (accepted ? " accepte" : " refuse")
+                + " d'être l'avaliste du prêt demandé par " + loan.getMember().getFullName() + ".", "/loans");
+        return toResponse(loan);
+    }
+
+    /** Le demandeur désigne un autre avaliste, tant que le prêt n'est pas décidé ni garanti. */
+    public LoanResponse changeGuarantor(UUID id, UUID guarantorMemberId) {
+        Loan loan = getOrThrow(id);
+        UUID currentMemberId = currentUserProvider.currentMemberId().orElse(null);
+        if (currentMemberId == null || !currentMemberId.equals(loan.getMember().getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Seul le demandeur peut changer d'avaliste");
+        }
+        if (loan.getStatus() != LoanStatus.REQUESTED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ce prêt n'est plus en attente de décision");
+        }
+        if (loan.getGuarantorStatus() == GuarantorStatus.ACCEPTED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Votre avaliste a déjà accepté");
+        }
+        Member guarantor = resolveGuarantor(guarantorMemberId, loan.getMember(), loan.getLoanPolicy());
+        if (guarantor == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Choisissez un avaliste");
+        }
+        loan.designateGuarantor(guarantor);
+        evaluationRepository.deleteByLoanIdAndRuleName(loan.getId(), GUARANTOR_RULE);
+        evaluationRepository.save(guarantorEvaluation(loan, guarantor));
+
+        auditLogService.record(AuditAction.LOAN_GUARANTOR_CHANGED, "Loan", loan.getId(),
+                loan.getMember().getFullName() + " désigne " + guarantor.getFullName() + " comme avaliste");
+        askGuarantor(loan);
+        return toResponse(loan);
+    }
+
+    private static final String GUARANTOR_RULE = "AVALISTE_A_JOUR";
+
+    /** Vérifie l'avaliste demandé ; null s'il n'y en a pas (et que la politique le permet). */
+    private Member resolveGuarantor(UUID guarantorMemberId, Member borrower, LoanPolicy policy) {
+        if (guarantorMemberId == null) {
+            if (policy.isGuarantorRequired()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "La politique de prêt exige un avaliste : choisissez un membre garant");
+            }
+            return null;
+        }
+        if (guarantorMemberId.equals(borrower.getId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Vous ne pouvez pas être votre propre avaliste");
+        }
+        Member guarantor = memberRepository.findById(guarantorMemberId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Avaliste introuvable"));
+        if (!guarantor.isActive()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cet avaliste n'est plus un membre actif");
+        }
+        return guarantor;
+    }
+
+    /** Règle « Avaliste à jour » : signalée au trésorier, ne bloque pas (décision n° 52). */
+    private LoanRuleEvaluation guarantorEvaluation(Loan loan, Member guarantor) {
+        List<String> issues = guarantorStandingService.issuesOf(guarantor.getId());
+        return new LoanRuleEvaluation(loan, GUARANTOR_RULE, issues.isEmpty(), issues.isEmpty()
+                ? "Avaliste à jour (" + guarantor.getFullName() + ")"
+                : "Avaliste " + guarantor.getFullName() + " pas à jour : " + String.join(", ", issues));
+    }
+
+    private void askGuarantor(Loan loan) {
+        notificationService.notifyMember(loan.getGuarantor(), NotificationType.LOAN_GUARANTEE_REQUESTED,
+                "Demande d'aval", loan.getMember().getFullName() + " vous désigne comme avaliste de son prêt de "
+                        + DocumentFormat.fcfa(loan.getRequestedAmount()) + " sur " + loan.getRequestedDurationMonths()
+                        + " mois. Acceptez ou refusez.",
+                "/my-loans");
     }
 
     public LoanResponse approve(UUID id, LoanApprovalRequest request) {
@@ -113,6 +248,17 @@ public class LoanService {
         }
         checkNotOwnLoan(loan);
         User decider = currentDeciderOrThrow();
+
+        // L'avaliste désigné doit avoir accepté (docs/decisions.md n° 52).
+        if (loan.getGuarantor() != null && loan.getGuarantorStatus() != GuarantorStatus.ACCEPTED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, loan.getGuarantorStatus() == GuarantorStatus.DECLINED
+                    ? "Approbation impossible : l'avaliste a refusé. Le membre doit en désigner un autre."
+                    : "Approbation impossible : l'avaliste n'a pas encore accepté.");
+        }
+        if (loan.getGuarantor() == null && loan.getLoanPolicy().isGuarantorRequired()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Approbation impossible : la politique de prêt exige un avaliste.");
+        }
 
         // L'argent prêté vient de l'épargne des membres (docs/decisions.md n° 46) :
         // l'approbation est bloquée au-delà de l'argent d'épargne disponible.
@@ -271,7 +417,9 @@ public class LoanService {
             return;
         }
         UUID currentMemberId = currentUserProvider.currentMemberId().orElse(null);
-        if (currentMemberId == null || !currentMemberId.equals(loan.getMember().getId())) {
+        boolean isGuarantor = currentMemberId != null && loan.getGuarantor() != null
+                && currentMemberId.equals(loan.getGuarantor().getId());
+        if (!isGuarantor && (currentMemberId == null || !currentMemberId.equals(loan.getMember().getId()))) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Prêt introuvable");
         }
     }
@@ -314,7 +462,11 @@ public class LoanService {
                 loan.getDecisionBy() != null ? loan.getDecisionBy().getEmail() : null,
                 loan.getRejectionReason(),
                 evaluations,
-                loan.getCreatedAt()
+                loan.getCreatedAt(),
+                loan.getGuarantor() != null ? loan.getGuarantor().getId() : null,
+                loan.getGuarantor() != null ? loan.getGuarantor().getFullName() : null,
+                loan.getGuarantorStatus(),
+                loan.getGuarantorDecidedAt()
         );
     }
 }

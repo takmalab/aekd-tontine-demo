@@ -34,6 +34,34 @@
     }
   </ul>
 
+  <!-- Avaliste (decisions.md n° 52) -->
+  @if (l.guarantorFullName) {
+    <div [class]="'guarantor guarantor--' + (l.guarantorStatus ?? 'pending').toLowerCase()">
+      <mat-icon>handshake</mat-icon>
+      <span class="guarantor__text">
+        <span class="guarantor__label">Avaliste</span>
+        <strong>{{ asGuarantor() ? 'Vous' : l.guarantorFullName }}</strong>
+        @if (l.guarantorStatus) {
+          <span class="guarantor__status">{{ guarantorLabels[l.guarantorStatus] }}</span>
+        }
+      </span>
+      @if (l.status === 'REQUESTED') {
+        @if (asGuarantor() && l.guarantorStatus === 'PENDING') {
+          <span class="guarantor__actions">
+            <button mat-button type="button" (click)="answerGuarantee(false)" [disabled]="guarantorBusy()">Refuser</button>
+            <button mat-flat-button type="button" (click)="answerGuarantee(true)" [disabled]="guarantorBusy()">
+              Accepter
+            </button>
+          </span>
+        } @else if (canDeclare() && !asGuarantor() && l.guarantorStatus !== 'ACCEPTED') {
+          <button mat-button type="button" class="guarantor__change" (click)="changeGuarantor()" [disabled]="guarantorBusy()">
+            <mat-icon>swap_horiz</mat-icon> Changer
+          </button>
+        }
+      }
+    </div>
+  }
+
   @if (l.status === 'REJECTED' && l.rejectionReason) {
     <p class="card__rejection">
       <mat-icon>info</mat-icon>
@@ -175,7 +203,12 @@
           <mat-icon>block</mat-icon>
           Rejeter
         </button>
-        <button mat-flat-button type="button" (click)="approve.emit(l)">
+        @if (waitingForGuarantor()) {
+          <span class="actions__note">
+            {{ l.guarantorStatus === 'DECLINED' ? "L'avaliste a refusé : le membre doit en choisir un autre." : "En attente de l'accord de l'avaliste." }}
+          </span>
+        }
+        <button mat-flat-button type="button" (click)="approve.emit(l)" [disabled]="waitingForGuarantor()">
           <mat-icon>task_alt</mat-icon>
           Approuver
         </button>

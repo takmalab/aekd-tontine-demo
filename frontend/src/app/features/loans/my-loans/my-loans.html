@@ -42,7 +42,7 @@
       <h2 class="group-title"><mat-icon>pending_actions</mat-icon> En cours <span class="count">{{ ongoing().length }}</span></h2>
       <div class="grid">
         @for (loan of ongoing(); track loan.id) {
-          <app-loan-card [loan]="loan" [canDeclare]="true" />
+          <app-loan-card [loan]="loan" [canDeclare]="true" (changed)="load()" />
         }
       </div>
     }
@@ -54,5 +54,20 @@
         }
       </div>
     }
+  }
+
+  @if (!loading() && !error() && guaranteed().length > 0) {
+    <h2 class="group-title">
+      <mat-icon>handshake</mat-icon> Prêts dont je suis l'avaliste
+      <span class="count">{{ guaranteed().length }}</span>
+      @if (toAnswer() > 0) {
+        <span class="count count--todo">{{ toAnswer() }} à répondre</span>
+      }
+    </h2>
+    <div class="grid">
+      @for (loan of guaranteed(); track loan.id) {
+        <app-loan-card [loan]="loan" [showMember]="true" [asGuarantor]="true" (changed)="load()" />
+      }
+    </div>
   }
 </section>

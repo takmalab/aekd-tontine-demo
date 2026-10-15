@@ -12,6 +12,7 @@ import {
   LoanRepaymentRequest,
   LoanRequest,
   LoanStatus,
+  GuarantorCandidate,
 } from './loan.model';
 
 /**
@@ -61,6 +62,25 @@ export class LoanService {
 
   mine(): Observable<Loan[]> {
     return this.http.get<Loan[]>(`${this.api}/loans/mine`);
+  }
+
+  // ---------- Avaliste (decisions.md n° 52) ----------
+
+  guarantorCandidates(): Observable<GuarantorCandidate[]> {
+    return this.http.get<GuarantorCandidate[]>(`${this.api}/loans/guarantor-candidates`);
+  }
+
+  /** Prêts dont le membre connecté est l'avaliste. */
+  guaranteed(): Observable<Loan[]> {
+    return this.http.get<Loan[]>(`${this.api}/loans/guaranteed`);
+  }
+
+  answerGuarantee(loanId: string, accept: boolean): Observable<Loan> {
+    return this.http.put<Loan>(`${this.api}/loans/${loanId}/guarantee/${accept ? 'accept' : 'decline'}`, {});
+  }
+
+  changeGuarantor(loanId: string, guarantorMemberId: string): Observable<Loan> {
+    return this.http.put<Loan>(`${this.api}/loans/${loanId}/guarantor`, { guarantorMemberId });
   }
 
   list(status?: LoanStatus): Observable<Loan[]> {

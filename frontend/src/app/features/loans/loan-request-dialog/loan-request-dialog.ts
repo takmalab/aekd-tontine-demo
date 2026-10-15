@@ -8,9 +8,11 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSelectModule } from '@angular/material/select';
+import { catchError, of } from 'rxjs';
 import { formatFcfa } from '../../../shared/utils/format';
 import { LoanCost } from '../loan-cost/loan-cost';
-import { Loan, LoanPolicy } from '../loan.model';
+import { GuarantorCandidate, Loan, LoanPolicy } from '../loan.model';
 import { LoanService } from '../loan.service';
 import { RuleChecklist } from '../rule-checklist/rule-checklist';
 
@@ -38,6 +40,7 @@ export interface LoanRequestData {
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    MatSelectModule,
     RuleChecklist,
   ],
   templateUrl: './loan-request-dialog.html',
@@ -57,10 +60,23 @@ export class LoanRequestDialog {
   /** Prêt enregistré : affiche le résultat de l'évaluation des règles. */
   readonly result = signal<Loan | null>(null);
 
+  /**
+   * Avaliste obligatoire (decisions.md n° 52) : si plusieurs politiques sont actives,
+   * on ne sait pas laquelle s'appliquera, il est donc demandé dès que l'une l'exige.
+   */
+  readonly guarantorRequired = this.data.activePolicies.some((p) => p.guarantorRequired);
+
+  /** Membres pouvant être avalistes (actifs, sauf soi-même). */
+  readonly candidates = toSignal(
+    this.loanService.guarantorCandidates().pipe(catchError(() => of([] as GuarantorCandidate[]))),
+    { initialValue: [] as GuarantorCandidate[] },
+  );
+
   readonly form = this.fb.group({
     amount: [null as number | null, [Validators.required, Validators.min(1), Validators.pattern(/^\d+$/)]],
     durationMonths: [null as number | null, [Validators.required, Validators.min(1), Validators.pattern(/^\d+$/)]],
     reason: ['', [Validators.required, Validators.maxLength(500)]],
+    guarantorMemberId: [null as string | null, this.guarantorRequired ? Validators.required : []],
   });
 
   /** Montant et durée saisis : le coût du prêt se met à jour pendant la saisie. */
@@ -75,7 +91,12 @@ export class LoanRequestDialog {
     this.saving.set(true);
     this.errorMessage.set(null);
     this.loanService
-      .request({ amount: Number(v.amount), durationMonths: Number(v.durationMonths), reason: v.reason!.trim() })
+      .request({
+        amount: Number(v.amount),
+        durationMonths: Number(v.durationMonths),
+        reason: v.reason!.trim(),
+        guarantorMemberId: v.guarantorMemberId,
+      })
       .subscribe({
         next: (loan) => {
           this.saving.set(false);
@@ -85,7 +106,8 @@ export class LoanRequestDialog {
           this.saving.set(false);
           this.errorMessage.set(
             error.status === 400
-              ? "Demande impossible : aucune politique de prêt n'est active, ou les informations sont invalides."
+              ? error.error?.message ||
+                  "Demande impossible : aucune politique de prêt n'est active, ou les informations sont invalides."
               : error.status === 403
                 ? "Ce compte n'est rattaché à aucun membre : il ne peut pas demander de prêt."
                 : 'Une erreur est survenue. Vérifiez que le serveur est démarré.',

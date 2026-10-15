@@ -30,6 +30,11 @@ export class MyLoans implements OnInit {
   readonly noMemberProfile = signal(false);
   readonly loans = signal<Loan[]>([]);
   readonly policies = signal<LoanPolicy[]>([]);
+  /** Prêts dont je suis l'avaliste (decisions.md n° 52). */
+  readonly guaranteed = signal<Loan[]>([]);
+  readonly toAnswer = computed(
+    () => this.guaranteed().filter((l) => l.status === 'REQUESTED' && l.guarantorStatus === 'PENDING').length,
+  );
 
   readonly activePolicies = computed(() => this.policies().filter((p) => p.active));
   readonly ongoing = computed(() =>
@@ -48,8 +53,10 @@ export class MyLoans implements OnInit {
     forkJoin({
       loans: this.loanService.mine(),
       policies: this.loanService.listPolicies().pipe(catchError(() => of([] as LoanPolicy[]))),
+      guaranteed: this.loanService.guaranteed().pipe(catchError(() => of([] as Loan[]))),
     }).subscribe({
-      next: ({ loans, policies }) => {
+      next: ({ loans, policies, guaranteed }) => {
+        this.guaranteed.set(guaranteed);
         this.loans.set([...loans].sort((a, b) => b.requestedAt.localeCompare(a.requestedAt)));
         this.policies.set(policies);
         this.loading.set(false);
