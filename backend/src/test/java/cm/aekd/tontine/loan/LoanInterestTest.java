@@ -30,6 +30,17 @@ class LoanInterestTest {
     }
 
     @Test
+    void ratePerPeriodIsProrated() {
+        // decisions.md n° 53 : 5 % tous les 2 mois. Sur 2 mois → 5 % ; sur 3 mois → 7,5 %.
+        assertThat(LoanInterest.interest(bd("300000"), bd("5"), 2, 2)).isEqualByComparingTo("15000");
+        assertThat(LoanInterest.interest(bd("300000"), bd("5"), 3, 2)).isEqualByComparingTo("22500");
+        // Trimestriel : 6 % par trimestre sur 1 mois → 2 %.
+        assertThat(LoanInterest.interest(bd("100000"), bd("6"), 1, 3)).isEqualByComparingTo("2000");
+        assertThat(LoanInterest.periodLabel(2)).isEqualTo("tous les 2 mois");
+        assertThat(LoanInterest.periodLabel(3)).isEqualTo("par trimestre");
+    }
+
+    @Test
     void noRateMeansNoInterest() {
         assertThat(LoanInterest.interest(bd("300000"), null, 6)).isEqualByComparingTo("0");
         assertThat(LoanInterest.interest(bd("300000"), bd("0"), 6)).isEqualByComparingTo("0");

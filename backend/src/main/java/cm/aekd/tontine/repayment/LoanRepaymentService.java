@@ -325,7 +325,10 @@ public class LoanRepaymentService {
             return;
         }
         UUID currentMemberId = currentUserProvider.currentMemberId().orElse(null);
-        if (currentMemberId == null || !currentMemberId.equals(loan.getMember().getId())) {
+        // L'avaliste suit aussi le prêt qu'il garantit (docs/decisions.md n° 52).
+        boolean isGuarantor = currentMemberId != null && loan.getGuarantor() != null
+                && currentMemberId.equals(loan.getGuarantor().getId());
+        if (!isGuarantor && (currentMemberId == null || !currentMemberId.equals(loan.getMember().getId()))) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Prêt introuvable");
         }
     }

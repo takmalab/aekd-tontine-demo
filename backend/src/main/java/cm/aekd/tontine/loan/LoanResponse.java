@@ -15,8 +15,10 @@ public record LoanResponse(
         BigDecimal approvedAmount,
         int requestedDurationMonths,
         Integer approvedDurationMonths,
-        /** Taux mensuel (%) : figé sur le prêt une fois approuvé, sinon celui de la politique. */
+        /** Taux (%) par période : figé sur le prêt une fois approuvé, sinon celui de la politique. */
         BigDecimal interestRate,
+        /** Période du taux en mois (decisions.md n° 53). */
+        int interestPeriodMonths,
         BigDecimal interestAmount,
         /** Capital + intérêts à rembourser. */
         BigDecimal totalDue,

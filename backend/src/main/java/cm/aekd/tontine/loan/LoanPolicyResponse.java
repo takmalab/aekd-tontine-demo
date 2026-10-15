@@ -15,7 +15,9 @@ public record LoanPolicyResponse(
         Integer minSeniorityMonths,
         Integer maxActiveLoans,
         boolean active,
-        boolean guarantorRequired
+        boolean guarantorRequired,
+        int interestPeriodMonths,
+        Integer maxGuaranteesPerMember
 ) {
     public static LoanPolicyResponse from(LoanPolicy policy) {
         return new LoanPolicyResponse(
@@ -23,7 +25,9 @@ public record LoanPolicyResponse(
                 policy.getMaxAmount(), policy.getMaxDurationMonths(), policy.getInterestRate(),
                 policy.getMinSavingsRequired(), policy.getMinSeniorityMonths(), policy.getMaxActiveLoans(),
                 policy.isActive(),
-                policy.isGuarantorRequired()
+                policy.isGuarantorRequired(),
+                policy.getInterestPeriodMonths(),
+                policy.getMaxGuaranteesPerMember()
         );
     }
 }

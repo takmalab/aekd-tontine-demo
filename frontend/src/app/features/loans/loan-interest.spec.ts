@@ -17,6 +17,13 @@ describe('loanInterest', () => {
     expect(loanInterest(100000, 0.1, 3)).toBe(300);
   });
 
+  it('prorates a rate set per period of several months', () => {
+    // decisions.md n° 53 : 5 % tous les 2 mois.
+    expect(loanInterest(300000, 5, 2, 2)).toBe(15000);
+    expect(loanInterest(300000, 5, 3, 2)).toBe(22500);
+    expect(loanInterest(100000, 6, 1, 3)).toBe(2000);
+  });
+
   it('returns 0 without a rate or an amount', () => {
     expect(loanInterest(300000, null, 6)).toBe(0);
     expect(loanInterest(300000, 0, 6)).toBe(0);

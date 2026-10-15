@@ -87,6 +87,10 @@ public class Loan {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    /** Période du taux en mois (decisions.md n° 53), figée à l'approbation avec le taux. */
+    @Column(name = "interest_period_months")
+    private Integer interestPeriodMonths;
+
     /** Avaliste désigné par le membre (decisions.md n° 52), facultatif selon la politique. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "guarantor_member_id")
@@ -160,13 +164,18 @@ public class Loan {
     }
 
     /**
-     * Fige le taux mensuel de la politique et calcule les intérêts sur le capital
-     * et la durée approuvés (LoanInterest).
+     * Fige le taux et sa période (decisions.md n° 53) et calcule les intérêts sur
+     * le capital et la durée approuvés (LoanInterest).
      */
-    public void applyInterest(BigDecimal monthlyRatePercent) {
-        this.interestRate = monthlyRatePercent;
-        this.interestAmount = LoanInterest.interest(approvedAmount, monthlyRatePercent,
-                approvedDurationMonths != null ? approvedDurationMonths : 0);
+    public void applyInterest(BigDecimal ratePercent, int periodMonths) {
+        this.interestRate = ratePercent;
+        this.interestPeriodMonths = periodMonths;
+        this.interestAmount = LoanInterest.interest(approvedAmount, ratePercent,
+                approvedDurationMonths != null ? approvedDurationMonths : 0, periodMonths);
+    }
+
+    public Integer getInterestPeriodMonths() {
+        return interestPeriodMonths;
     }
 
     public BigDecimal getInterestRate() {

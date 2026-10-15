@@ -3,12 +3,13 @@ import { Component, inject, signal } from '@angular/core';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatSelectModule } from '@angular/material/select';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { LoanPolicy } from '../loan.model';
+import { INTEREST_PERIODS, LoanPolicy } from '../loan.model';
 import { LoanService } from '../loan.service';
 
 /** Le montant minimum ne peut pas dépasser le maximum (même contrôle que le backend). */
@@ -35,6 +36,7 @@ const positiveInt = [Validators.min(1), Validators.pattern(/^\d+$/)];
   selector: 'app-policy-form-dialog',
   imports: [
     MatCheckboxModule,
+    MatSelectModule,
     ReactiveFormsModule,
     MatDialogModule,
     MatFormFieldModule,
@@ -47,6 +49,7 @@ const positiveInt = [Validators.min(1), Validators.pattern(/^\d+$/)];
   styleUrl: './policy-form-dialog.scss',
 })
 export class PolicyFormDialog {
+  readonly periods = INTEREST_PERIODS;
   private readonly fb = inject(FormBuilder);
   private readonly loanService = inject(LoanService);
   private readonly dialogRef = inject<MatDialogRef<PolicyFormDialog, LoanPolicy>>(MatDialogRef);
@@ -71,6 +74,8 @@ export class PolicyFormDialog {
       ],
       maxActiveLoans: [this.editing?.maxActiveLoans ?? (null as number | null), positiveInt],
       guarantorRequired: [this.editing?.guarantorRequired ?? false],
+      interestPeriodMonths: [this.editing?.interestPeriodMonths ?? 1],
+      maxGuaranteesPerMember: [this.editing?.maxGuaranteesPerMember ?? (null as number | null), positiveInt],
     },
     { validators: minMaxValidator },
   );
@@ -98,6 +103,8 @@ export class PolicyFormDialog {
       minSeniorityMonths: this.num(v.minSeniorityMonths),
       maxActiveLoans: this.num(v.maxActiveLoans),
       guarantorRequired: !!v.guarantorRequired,
+      interestPeriodMonths: Number(v.interestPeriodMonths ?? 1),
+      maxGuaranteesPerMember: this.num(v.maxGuaranteesPerMember),
     };
     const call = this.editing
       ? this.loanService.updatePolicy(this.editing.id, request)

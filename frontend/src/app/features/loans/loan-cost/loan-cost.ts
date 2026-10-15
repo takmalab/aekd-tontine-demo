@@ -2,6 +2,7 @@ import { Component, computed, input } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { formatFcfa } from '../../../shared/utils/format';
 import { loanInterest } from '../loan-interest';
+import { interestPeriodLabel } from '../loan.model';
 
 /**
  * Coût d'un prêt : capital, intérêts et total à rembourser (docs/decisions.md
@@ -15,8 +16,10 @@ import { loanInterest } from '../loan-interest';
 })
 export class LoanCost {
   readonly capital = input<number | null>(null);
-  /** Taux mensuel en %. */
+  /** Taux en %, par période de `period` mois. */
   readonly rate = input<number | null>(null);
+  /** Période du taux en mois (decisions.md n° 53). */
+  readonly period = input<number | null>(1);
   readonly months = input<number | null>(null);
   /** Intérêts déjà calculés par le serveur ; à défaut, calculés ici. */
   readonly interestAmount = input<number | null>(null);
@@ -25,8 +28,9 @@ export class LoanCost {
 
   readonly formatFcfa = formatFcfa;
   readonly interest = computed(
-    () => this.interestAmount() ?? loanInterest(this.capital(), this.rate(), this.months()),
+    () => this.interestAmount() ?? loanInterest(this.capital(), this.rate(), this.months(), this.period()),
   );
   readonly total = computed(() => (this.capital() ?? 0) + this.interest());
   readonly rateLabel = computed(() => String(this.rate() ?? 0).replace('.', ','));
+  readonly periodLabel = computed(() => interestPeriodLabel(this.period()));
 }

@@ -16,6 +16,7 @@ import { ProofUploadData, ProofUploadDialog } from '../../payments/proof-upload-
 import { ProofViewerData, ProofViewerDialog } from '../../payments/proof-viewer-dialog/proof-viewer-dialog';
 import {
   GUARANTOR_STATUS_LABELS,
+  interestPeriodLabel,
   LOAN_STATUSES_WITH_BALANCE,
   LOAN_STATUS_LABELS,
   REPAYMENT_STATUS_LABELS,
@@ -68,6 +69,7 @@ export class LoanCard {
 
   readonly statusLabels = LOAN_STATUS_LABELS;
   readonly guarantorLabels = GUARANTOR_STATUS_LABELS;
+  readonly periodLabel = interestPeriodLabel;
   readonly guarantorBusy = signal(false);
 
   /** L'approbation attend l'accord de l'avaliste (n° 52) ; le serveur le vérifie aussi. */

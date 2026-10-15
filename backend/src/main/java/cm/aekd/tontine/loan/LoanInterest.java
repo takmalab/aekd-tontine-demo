@@ -14,6 +14,11 @@ import java.math.RoundingMode;
  *   <b>proportionnellement</b> entre capital et intérêts.</li>
  * </ul>
  * Exemple : 300 000 FCFA sur 6 mois à 5 % → 90 000 d'intérêts, 390 000 à rembourser.
+ *
+ * <p>Période du taux (decisions.md n° 53) : le taux peut s'appliquer par période
+ * de N mois (bimestriel, trimestriel…). Les intérêts sont alors au prorata :
+ * capital × taux % × (durée en mois / N). Ex. 5 % tous les 2 mois sur 2 mois → 5 %,
+ * sur 3 mois → 7,5 %.
  */
 public final class LoanInterest {
 
@@ -23,15 +28,33 @@ public final class LoanInterest {
     private LoanInterest() {
     }
 
-    /** Intérêts dus ; 0 si aucun taux n'est défini. */
+    /** Intérêts dus avec un taux mensuel ; 0 si aucun taux n'est défini. */
     public static BigDecimal interest(BigDecimal capital, BigDecimal monthlyRatePercent, int months) {
-        if (capital == null || monthlyRatePercent == null || monthlyRatePercent.signum() <= 0 || months <= 0) {
+        return interest(capital, monthlyRatePercent, months, 1);
+    }
+
+    /** Intérêts dus avec un taux par période de {@code periodMonths} mois, au prorata de la durée. */
+    public static BigDecimal interest(BigDecimal capital, BigDecimal ratePercent, int months, int periodMonths) {
+        if (capital == null || ratePercent == null || ratePercent.signum() <= 0 || months <= 0) {
             return BigDecimal.ZERO;
         }
-        BigDecimal raw = capital.multiply(monthlyRatePercent)
+        int period = Math.max(1, periodMonths);
+        BigDecimal raw = capital.multiply(ratePercent)
                 .multiply(BigDecimal.valueOf(months))
-                .divide(HUNDRED, 10, RoundingMode.HALF_UP);
+                .divide(HUNDRED.multiply(BigDecimal.valueOf(period)), 10, RoundingMode.HALF_UP);
         return roundUpToFive(raw);
+    }
+
+    /** « par mois », « tous les 2 mois », « par trimestre »… pour les libellés. */
+    public static String periodLabel(Integer periodMonths) {
+        int period = periodMonths == null ? 1 : periodMonths;
+        return switch (period) {
+            case 1 -> "par mois";
+            case 3 -> "par trimestre";
+            case 6 -> "par semestre";
+            case 12 -> "par an";
+            default -> "tous les " + period + " mois";
+        };
     }
 
     /**

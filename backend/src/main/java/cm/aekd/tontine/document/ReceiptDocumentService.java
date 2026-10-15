@@ -146,7 +146,8 @@ public class ReceiptDocumentService {
                 + " + intérêts de " + fcfa(loan.getInterestAmount())
                 + (loan.getInterestRate() != null
                         ? " (taux de " + loan.getInterestRate().stripTrailingZeros().toPlainString().replace('.', ',')
-                                + " % par mois sur " + loan.getApprovedDurationMonths() + " mois)."
+                                + " % " + cm.aekd.tontine.loan.LoanInterest.periodLabel(loan.getInterestPeriodMonths())
+                                + " sur " + loan.getApprovedDurationMonths() + " mois)."
                         : "."));
 
         pdf.signatures("Le trésorier", "Le membre");

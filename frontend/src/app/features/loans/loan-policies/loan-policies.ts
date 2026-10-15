@@ -9,7 +9,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { ActionMenu, MenuAction } from '../../../shared/components/action-menu/action-menu';
 import { ConfirmDialog, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog';
 import { formatFcfa } from '../../../shared/utils/format';
-import { LoanPolicy } from '../loan.model';
+import { LoanPolicy, interestPeriodLabel } from '../loan.model';
 import { LoanService } from '../loan.service';
 import { PolicyFormDialog } from '../policy-form-dialog/policy-form-dialog';
 
@@ -79,12 +79,14 @@ export class LoanPolicies implements OnInit {
     if (p.maxActiveLoans !== null)
       terms.push({ icon: 'filter_1', label: 'Prêts actifs maximum', value: `${p.maxActiveLoans}` });
     if (p.guarantorRequired) terms.push({ icon: 'handshake', label: 'Avaliste', value: 'Obligatoire' });
+    if (p.maxGuaranteesPerMember !== null)
+      terms.push({ icon: 'group', label: 'Prêts garantis par membre', value: `${p.maxGuaranteesPerMember} maximum` });
     if (p.minSavingsRequired !== null)
       terms.push({ icon: 'savings', label: 'Épargne minimale', value: formatFcfa(p.minSavingsRequired) });
     if (p.minSeniorityMonths !== null)
       terms.push({ icon: 'badge', label: 'Ancienneté minimale', value: `${p.minSeniorityMonths} mois` });
     if (p.interestRate !== null)
-      terms.push({ icon: 'percent', label: "Taux d'intérêt", value: `${p.interestRate} % par mois` });
+      terms.push({ icon: 'percent', label: "Taux d'intérêt", value: `${p.interestRate} % ${interestPeriodLabel(p.interestPeriodMonths)}` });
     return terms;
   }
 

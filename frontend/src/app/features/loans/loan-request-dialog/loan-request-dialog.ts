@@ -12,7 +12,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { catchError, of } from 'rxjs';
 import { formatFcfa } from '../../../shared/utils/format';
 import { LoanCost } from '../loan-cost/loan-cost';
-import { GuarantorCandidate, Loan, LoanPolicy } from '../loan.model';
+import { GuarantorCandidate, Loan, LoanPolicy, interestPeriodLabel } from '../loan.model';
 import { LoanService } from '../loan.service';
 import { RuleChecklist } from '../rule-checklist/rule-checklist';
 
@@ -52,6 +52,7 @@ export class LoanRequestDialog {
   private readonly dialogRef = inject<MatDialogRef<LoanRequestDialog, Loan>>(MatDialogRef);
   readonly data = inject<LoanRequestData>(MAT_DIALOG_DATA);
   readonly formatFcfa = formatFcfa;
+  readonly periodLabel = interestPeriodLabel;
   readonly policy: LoanPolicy | null =
     this.data.activePolicies.length === 1 ? this.data.activePolicies[0] : null;
 

@@ -1817,3 +1817,42 @@ Validé par le propriétaire du projet le 2026-10-15.
 * Endpoints : `GET /api/loans/guarantor-candidates`, `GET /api/loans/guaranteed`,
   `PUT /api/loans/{id}/guarantee/accept|decline`, `PUT /api/loans/{id}/guarantor`.
 * L'avaliste peut consulter le prêt qu'il garantit.
+
+---
+
+# 53. Période du taux, limite d'aval et recouvrement des prêts
+
+## Question
+
+Comment exprimer un taux qui ne serait pas mensuel, limiter les avals d'un
+même membre, et récupérer l'argent d'un prêt non remboursé ?
+
+## Statut
+
+```text
+DÉCIDÉ
+```
+
+## Décision
+
+Validé par le propriétaire du projet le 2026-10-15.
+
+* **Période du taux** : la politique de prêt indique la période à laquelle
+  s'applique le taux (mensuel, bimestriel, trimestriel, semestriel, annuel).
+  Les intérêts sont calculés **au prorata** de la durée : 5 % tous les 2 mois
+  sur 2 mois donnent 5 %, sur 3 mois 7,5 %. Exemple du président : un prêt de
+  deux mois à 5 % bimestriel coûte 5 %. La période est figée sur le prêt à
+  l'approbation, comme le taux (n° 14).
+* **Limite d'aval** : la politique peut fixer le nombre maximum de prêts en
+  cours qu'un même membre garantit. Un dépassement est **signalé au trésorier**
+  dans la règle « Avaliste à jour » ; il ne bloque pas.
+* **Vérification à l'approbation** : la règle « Avaliste à jour » est
+  recalculée au moment où le trésorier approuve.
+* **Recouvrement d'un prêt non remboursé** :
+  * à la **remise de cagnotte** d'un membre qui a un prêt en cours, le reste
+    à rembourser est **déduit** de sa cagnotte ;
+  * à la remise de cagnotte de son **avaliste**, le reste est aussi déduit,
+    mais **l'emprunteur d'abord** : seulement si l'épargne de l'emprunteur
+    est épuisée ;
+  * le trésorier peut aussi **prélever sur l'épargne** de l'emprunteur, puis
+    sur celle de l'avaliste si l'épargne de l'emprunteur est épuisée.

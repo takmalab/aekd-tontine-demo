@@ -33,6 +33,8 @@ public class LoanPolicyService {
                 request.maxAmount(), request.maxDurationMonths(), request.interestRate(),
                 request.minSavingsRequired(), request.minSeniorityMonths(), request.maxActiveLoans());
         policy.setGuarantorRequired(Boolean.TRUE.equals(request.guarantorRequired()));
+        policy.setInterestPeriodMonths(request.interestPeriodMonths() == null ? 1 : request.interestPeriodMonths());
+        policy.setMaxGuaranteesPerMember(request.maxGuaranteesPerMember());
         policy = policyRepository.save(policy);
 
         auditLogService.record(AuditAction.LOAN_POLICY_CREATED, "LoanPolicy", policy.getId(),
@@ -66,6 +68,8 @@ public class LoanPolicyService {
                 request.maxDurationMonths(), request.interestRate(), request.minSavingsRequired(),
                 request.minSeniorityMonths(), request.maxActiveLoans());
         policy.setGuarantorRequired(Boolean.TRUE.equals(request.guarantorRequired()));
+        policy.setInterestPeriodMonths(request.interestPeriodMonths() == null ? 1 : request.interestPeriodMonths());
+        policy.setMaxGuaranteesPerMember(request.maxGuaranteesPerMember());
         policy = policyRepository.save(policy);
 
         auditLogService.record(AuditAction.LOAN_POLICY_UPDATED, "LoanPolicy", policy.getId(),
@@ -124,6 +128,13 @@ public class LoanPolicyService {
                 && request.minAmount().compareTo(request.maxAmount()) > 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Le montant minimum ne peut pas dépasser le montant maximum");
+        }
+        if (request.interestPeriodMonths() != null && request.interestPeriodMonths() < 1) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La période du taux doit être d'au moins 1 mois");
+        }
+        if (request.maxGuaranteesPerMember() != null && request.maxGuaranteesPerMember() < 1) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Le nombre maximum de prêts garantis doit être d'au moins 1");
         }
     }
 

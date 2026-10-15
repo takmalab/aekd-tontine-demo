@@ -61,6 +61,14 @@ public class LoanPolicy {
     @Column(name = "active", nullable = false)
     private boolean active = true;
 
+    /** Période du taux en mois : 1 mensuel, 2 bimestriel, 3 trimestriel… (decisions.md n° 53). */
+    @Column(name = "interest_period_months", nullable = false)
+    private int interestPeriodMonths = 1;
+
+    /** Prêts qu'un même membre peut garantir à la fois ; null = sans limite (n° 53). */
+    @Column(name = "max_guarantees_per_member")
+    private Integer maxGuaranteesPerMember;
+
     /** Un avaliste doit-il être désigné pour chaque demande ? (decisions.md n° 52) */
     @Column(name = "guarantor_required", nullable = false)
     private boolean guarantorRequired;
@@ -194,5 +202,21 @@ public class LoanPolicy {
 
     public void setGuarantorRequired(boolean guarantorRequired) {
         this.guarantorRequired = guarantorRequired;
+    }
+
+    public int getInterestPeriodMonths() {
+        return interestPeriodMonths;
+    }
+
+    public void setInterestPeriodMonths(int interestPeriodMonths) {
+        this.interestPeriodMonths = interestPeriodMonths;
+    }
+
+    public Integer getMaxGuaranteesPerMember() {
+        return maxGuaranteesPerMember;
+    }
+
+    public void setMaxGuaranteesPerMember(Integer maxGuaranteesPerMember) {
+        this.maxGuaranteesPerMember = maxGuaranteesPerMember;
     }
 }

@@ -75,6 +75,7 @@
       class="card__cost"
       [capital]="l.requestedAmount"
       [rate]="l.interestRate"
+      [period]="l.interestPeriodMonths"
       [months]="l.requestedDurationMonths"
       [interestAmount]="l.interestAmount"
     />
@@ -125,7 +126,7 @@
         @if (b.interestAmount > 0) {
           <p class="money__interest">
             Capital {{ formatFcfa(b.principalAmount) }} + intérêts {{ formatFcfa(b.interestAmount) }}
-            ({{ b.interestRate }} % par mois sur {{ l.approvedDurationMonths }} mois)
+            ({{ b.interestRate }} % {{ periodLabel(l.interestPeriodMonths) }} sur {{ l.approvedDurationMonths }} mois)
           </p>
         }
         @if (b.pendingAmount > 0) {

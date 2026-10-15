@@ -225,9 +225,23 @@ public class LoanService {
         return guarantor;
     }
 
-    /** Règle « Avaliste à jour » : signalée au trésorier, ne bloque pas (décision n° 52). */
+    /**
+     * Règle « Avaliste à jour » : signalée au trésorier, ne bloque pas (décisions n° 52
+     * et 53). Comprend la limite de prêts garantis fixée par la politique.
+     */
     private LoanRuleEvaluation guarantorEvaluation(Loan loan, Member guarantor) {
-        List<String> issues = guarantorStandingService.issuesOf(guarantor.getId());
+        List<String> issues = new ArrayList<>(guarantorStandingService.issuesOf(guarantor.getId()));
+        Integer limit = loan.getLoanPolicy().getMaxGuaranteesPerMember();
+        if (limit != null) {
+            long guaranteed = loanRepository.findByGuarantorIdOrderByCreatedAtDesc(guarantor.getId()).stream()
+                    .filter(other -> !other.getId().equals(loan.getId()))
+                    .filter(other -> ACTIVE_STATUSES.contains(other.getStatus()))
+                    .filter(other -> other.getGuarantorStatus() != GuarantorStatus.DECLINED)
+                    .count();
+            if (guaranteed >= limit) {
+                issues.add("déjà avaliste de " + guaranteed + " prêt(s) en cours (limite : " + limit + ")");
+            }
+        }
         return new LoanRuleEvaluation(loan, GUARANTOR_RULE, issues.isEmpty(), issues.isEmpty()
                 ? "Avaliste à jour (" + guarantor.getFullName() + ")"
                 : "Avaliste " + guarantor.getFullName() + " pas à jour : " + String.join(", ", issues));
@@ -273,7 +287,13 @@ public class LoanService {
         loan.setApprovedAmount(request.approvedAmount());
         loan.setApprovedDurationMonths(request.approvedDurationMonths());
         // Taux de la politique figé sur le prêt : la modifier ensuite ne change pas ce prêt.
-        loan.applyInterest(loan.getLoanPolicy().getInterestRate());
+        loan.applyInterest(loan.getLoanPolicy().getInterestRate(), loan.getLoanPolicy().getInterestPeriodMonths());
+
+        // L'avaliste est revérifié au moment de l'approbation (decisions.md n° 53).
+        if (loan.getGuarantor() != null) {
+            evaluationRepository.deleteByLoanIdAndRuleName(loan.getId(), GUARANTOR_RULE);
+            evaluationRepository.save(guarantorEvaluation(loan, loan.getGuarantor()));
+        }
         loan.setStatus(LoanStatus.APPROVED);
         loan.setDecisionDate(Instant.now());
         loan.setDecisionBy(decider);
@@ -438,8 +458,10 @@ public class LoanService {
         // de la politique ; une fois le prêt approuvé, ce sont ceux figés sur le prêt.
         boolean approved = loan.getApprovedAmount() != null;
         BigDecimal rate = approved ? loan.getInterestRate() : loan.getLoanPolicy().getInterestRate();
+        int period = approved && loan.getInterestPeriodMonths() != null ? loan.getInterestPeriodMonths()
+                : approved ? 1 : loan.getLoanPolicy().getInterestPeriodMonths();
         BigDecimal interest = approved ? loan.getInterestAmount()
-                : LoanInterest.interest(loan.getRequestedAmount(), rate, loan.getRequestedDurationMonths());
+                : LoanInterest.interest(loan.getRequestedAmount(), rate, loan.getRequestedDurationMonths(), period);
         BigDecimal totalDue = approved ? loan.getTotalDue() : loan.getRequestedAmount().add(interest);
 
         return new LoanResponse(
@@ -453,6 +475,7 @@ public class LoanService {
                 loan.getRequestedDurationMonths(),
                 loan.getApprovedDurationMonths(),
                 rate,
+                period,
                 interest,
                 totalDue,
                 !approved,

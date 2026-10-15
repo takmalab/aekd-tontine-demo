@@ -370,4 +370,40 @@ class LoanFlowTest {
         LoanResponse approved = loanService.approve(requested.id(), new LoanApprovalRequest(new BigDecimal(20000), 2));
         assertThat(approved.status()).isEqualTo(LoanStatus.APPROVED);
     }
+
+    @Test
+    void bimonthlyRateAndGuaranteeLimitAreAppliedAtApproval() {
+        // decisions.md n° 53 : taux par période de 2 mois, limite de prêts garantis,
+        // avaliste revérifié à l'approbation.
+        Member admin = createMember(RoleName.ADMIN, "periodadmin", LocalDate.now());
+        Member treasurer = createMember(RoleName.TRESORIER, "periodtreso", LocalDate.now());
+        Member borrower = createMember(RoleName.MEMBRE, "periodborrower", LocalDate.now());
+        Member other = createMember(RoleName.MEMBRE, "periodother", LocalDate.now());
+        Member guarantor = createMember(RoleName.MEMBRE, "periodguarantor", LocalDate.now());
+        TestSavings.seedValidated(depositRepository, borrower, new BigDecimal(1000000));
+
+        loginAsMember(admin, RoleName.ADMIN);
+        policyService.create(new LoanPolicyRequest("Bimestrielle", null, null, null, null, new BigDecimal(5),
+                null, null, null, false, 2, 1));
+
+        loginAsMember(other, RoleName.MEMBRE);
+        LoanResponse first = loanService.request(new LoanRequest(new BigDecimal(10000), 2, "Premier", guarantor.getId()));
+
+        loginAsMember(borrower, RoleName.MEMBRE);
+        LoanResponse requested = loanService.request(new LoanRequest(new BigDecimal(300000), 2, "Motif", guarantor.getId()));
+        assertThat(requested.interestPeriodMonths()).isEqualTo(2);
+        assertThat(requested.interestAmount()).isEqualByComparingTo("15000");
+        assertThat(requested.ruleEvaluations()).anyMatch(e -> e.ruleName().equals("AVALISTE_A_JOUR")
+                && !e.respected() && e.message().contains("limite : 1"));
+
+        loginAsMember(guarantor, RoleName.MEMBRE);
+        loanService.answerGuarantee(requested.id(), true);
+
+        // L'autre prêt garanti est rejeté : à l'approbation, l'avaliste redevient conforme.
+        loginAsMember(treasurer, RoleName.TRESORIER);
+        loanService.reject(first.id(), new LoanRejectionRequest("Test"));
+        LoanResponse approved = loanService.approve(requested.id(), new LoanApprovalRequest(new BigDecimal(300000), 3));
+        assertThat(approved.interestAmount()).isEqualByComparingTo("22500");
+        assertThat(approved.ruleEvaluations()).anyMatch(e -> e.ruleName().equals("AVALISTE_A_JOUR") && e.respected());
+    }
 }

@@ -8,7 +8,7 @@
       <span>
         Intérêts
         @if (rate()) {
-          <small>({{ rateLabel() }} % par mois × {{ months() }} mois)</small>
+          <small>({{ rateLabel() }} % {{ periodLabel() }}, sur {{ months() }} mois)</small>
         }
       </span>
       <span>{{ rate() ? formatFcfa(interest()) : 'Aucun' }}</span>
