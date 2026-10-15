@@ -1861,7 +1861,9 @@ Validé par le propriétaire du projet le 2026-10-15.
     réduire ou la retirer ;
   * le prélèvement sur l'**épargne** n'est possible que pour un prêt **en
     retard** (durée approuvée dépassée) ; la retenue sur la **cagnotte** est
-    possible dès que le prêt court.
+    possible dès que le prêt court ;
+  * « épargne de l'emprunteur épuisée » = ses versements d'épargne validés
+    sont à zéro ; ses intérêts d'épargne ne sont pas prélevés.
 
 ## Points à valider
 
@@ -1869,8 +1871,6 @@ Validé par le propriétaire du projet le 2026-10-15.
 À VALIDER
 ```
 
-* « Épargne de l'emprunteur épuisée » = son capital d'épargne validé est à zéro
-  (les intérêts d'épargne ne sont pas comptés).
 * Une retenue ou un prélèvement est définitif (comme un remboursement validé).
 
 ## Conséquence technique
