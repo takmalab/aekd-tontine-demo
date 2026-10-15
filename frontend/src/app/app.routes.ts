@@ -139,6 +139,10 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/notifications/notifications-page/notifications-page').then((m) => m.NotificationsPage),
       },
+      {
+        path: 'profile',
+        loadComponent: () => import('./features/profile/profile-page/profile-page').then((m) => m.ProfilePage),
+      },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],
   },

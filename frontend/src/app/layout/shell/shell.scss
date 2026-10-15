@@ -136,6 +136,12 @@
   &--brown {
     background: var(--aekd-brown);
   }
+
+  &--photo {
+    display: block;
+    object-fit: cover;
+    background: #fff;
+  }
 }
 
 .notif-menu {
@@ -315,13 +321,61 @@
   gap: 4px;
   padding: 20px 14px;
 
-  &__section {
+  // Titre d'un groupe (Mon espace, Tontine, Finances…) : cliquable pour replier.
+  &__group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    margin-top: 14px;
+    padding: 6px 12px;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    color: rgba(255, 255, 255, 0.5);
+    font: inherit;
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.45);
-    padding: 0 12px 8px;
+    text-align: left;
+    cursor: pointer;
+    transition: color 0.18s ease;
+
+    &:hover {
+      color: #fff;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--aekd-orange);
+      outline-offset: 2px;
+    }
+  }
+
+  &__group-title {
+    flex: 1;
+  }
+
+  &__group-chevron {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  &__items {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__footer-avatar {
+    display: inline-flex;
+    border-radius: 50%;
+
+    &:focus-visible {
+      outline: 2px solid var(--aekd-orange);
+      outline-offset: 2px;
+    }
   }
 
   &__item {
@@ -329,7 +383,7 @@
     display: flex;
     align-items: center;
     gap: 14px;
-    min-height: 46px;
+    min-height: 42px;
     padding: 0 14px;
     border-radius: 12px;
     color: rgba(255, 255, 255, 0.82);

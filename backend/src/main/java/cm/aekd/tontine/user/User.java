@@ -62,6 +62,13 @@ public class User {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    /** Photo de profil facultative : clé sur le stockage (FileStorageService). */
+    @Column(name = "photo_storage_key", length = 500)
+    private String photoStorageKey;
+
+    @Column(name = "photo_content_type", length = 100)
+    private String photoContentType;
+
     protected User() {
     }
 
@@ -136,6 +143,23 @@ public class User {
 
     public Instant getUpdatedAt() {
         return updatedAt;
+    }
+
+    public String getPhotoStorageKey() {
+        return photoStorageKey;
+    }
+
+    public String getPhotoContentType() {
+        return photoContentType;
+    }
+
+    public boolean hasPhoto() {
+        return photoStorageKey != null;
+    }
+
+    public void setPhoto(String storageKey, String contentType) {
+        this.photoStorageKey = storageKey;
+        this.photoContentType = storageKey == null ? null : contentType;
     }
 
     @Override

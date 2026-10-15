@@ -2,8 +2,8 @@ import { DatePipe } from '@angular/common';
 import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { BreakpointObserver } from '@angular/cdk/layout';
-import { catchError, fromEvent, map, merge, of, switchMap, timer } from 'rxjs';
-import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { catchError, filter, fromEvent, map, merge, of, startWith, switchMap, timer } from 'rxjs';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatSidenavModule } from '@angular/material/sidenav';
@@ -16,6 +16,7 @@ import { NotificationService } from '../../core/services/notification.service';
 import { RoleName } from '../../core/models/auth.model';
 import { AppNotification, NOTIFICATION_STYLE } from '../../core/models/notification.model';
 import { MemberService } from '../../features/members/member.service';
+import { ProfilePhotoService } from '../../core/services/profile-photo.service';
 
 interface NavItem {
   label: string;
@@ -29,25 +30,85 @@ interface NavItem {
   memberSpace?: true;
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { label: 'Tableau de bord', path: '/dashboard', icon: 'dashboard' },
-  { label: 'Séances', path: '/sessions', icon: 'event' },
-  { label: 'Tournois', path: '/tournaments', icon: 'event_repeat', roles: ['ADMIN', 'TRESORIER'] },
-  { label: 'Cotisations', path: '/contributions', icon: 'payments' },
-  { label: 'Mes cotisations', path: '/my-contributions', icon: 'receipt_long', memberSpace: true },
-  { label: 'Paiements', path: '/payments', icon: 'fact_check', roles: ['ADMIN', 'TRESORIER'] },
-  { label: 'Fonds', path: '/funds', icon: 'account_balance_wallet', roles: ['ADMIN', 'TRESORIER'] },
-  { label: 'Membres', path: '/members', icon: 'group', roles: ['ADMIN', 'TRESORIER'] },
-  { label: 'Sanctions', path: '/sanctions', icon: 'gavel' },
-  { label: 'Mon épargne', path: '/my-savings', icon: 'savings', memberSpace: true },
-  { label: 'Épargnes', path: '/savings', icon: 'savings', roles: ['ADMIN', 'TRESORIER'] },
-  { label: 'Mes prêts', path: '/my-loans', icon: 'account_balance', memberSpace: true },
-  { label: 'Prêts', path: '/loans', icon: 'account_balance', roles: ['ADMIN', 'TRESORIER'] },
-  { label: 'Politiques de prêt', path: '/loan-policies', icon: 'policy' },
-  { label: 'Utilisateurs', path: '/users', icon: 'manage_accounts', roles: ['ADMIN'] },
-  { label: "Journal d'audit", path: '/audit', icon: 'history', roles: ['ADMIN'] },
-  { label: 'Paramètres SMS', path: '/settings/sms', icon: 'sms', roles: ['ADMIN'] },
+/** Groupe du menu latéral ; sans titre, ses liens s'affichent tout en haut. */
+interface NavGroup {
+  id: string;
+  title?: string;
+  icon?: string;
+  items: NavItem[];
+}
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    id: 'home',
+    items: [{ label: 'Tableau de bord', path: '/dashboard', icon: 'dashboard' }],
+  },
+  {
+    id: 'me',
+    title: 'Mon espace',
+    icon: 'person',
+    items: [
+      { label: 'Mes cotisations', path: '/my-contributions', icon: 'receipt_long', memberSpace: true },
+      { label: 'Mon épargne', path: '/my-savings', icon: 'savings', memberSpace: true },
+      { label: 'Mes prêts', path: '/my-loans', icon: 'account_balance', memberSpace: true },
+      { label: 'Mon profil', path: '/profile', icon: 'account_circle' },
+    ],
+  },
+  {
+    id: 'tontine',
+    title: 'Tontine',
+    icon: 'diversity_3',
+    items: [
+      { label: 'Séances', path: '/sessions', icon: 'event' },
+      { label: 'Tournois', path: '/tournaments', icon: 'event_repeat', roles: ['ADMIN', 'TRESORIER'] },
+      { label: 'Cotisations', path: '/contributions', icon: 'payments' },
+      { label: 'Sanctions', path: '/sanctions', icon: 'gavel' },
+    ],
+  },
+  {
+    id: 'finances',
+    title: 'Finances',
+    icon: 'account_balance_wallet',
+    items: [
+      { label: 'Paiements', path: '/payments', icon: 'fact_check', roles: ['ADMIN', 'TRESORIER'] },
+      { label: 'Fonds', path: '/funds', icon: 'account_balance_wallet', roles: ['ADMIN', 'TRESORIER'] },
+      { label: 'Épargnes', path: '/savings', icon: 'savings', roles: ['ADMIN', 'TRESORIER'] },
+      { label: 'Prêts', path: '/loans', icon: 'account_balance', roles: ['ADMIN', 'TRESORIER'] },
+    ],
+  },
+  {
+    id: 'admin',
+    title: 'Administration',
+    icon: 'admin_panel_settings',
+    items: [
+      { label: 'Membres', path: '/members', icon: 'group', roles: ['ADMIN', 'TRESORIER'] },
+      { label: 'Utilisateurs', path: '/users', icon: 'manage_accounts', roles: ['ADMIN'] },
+      { label: "Journal d'audit", path: '/audit', icon: 'history', roles: ['ADMIN'] },
+    ],
+  },
+  {
+    id: 'settings',
+    title: 'Paramètres',
+    icon: 'settings',
+    items: [
+      { label: 'Politiques de prêt', path: '/loan-policies', icon: 'policy' },
+      { label: 'Paramètres SMS', path: '/settings/sms', icon: 'sms', roles: ['ADMIN'] },
+      { label: 'Notifications', path: '/notifications', icon: 'notifications' },
+    ],
+  },
 ];
+
+/** Groupes repliés par l'utilisateur, gardés d'une visite à l'autre sur cet appareil. */
+const COLLAPSED_KEY = 'aekd.nav.collapsed';
+
+function readCollapsed(): string[] {
+  try {
+    const value = JSON.parse(localStorage.getItem(COLLAPSED_KEY) ?? '[]');
+    return Array.isArray(value) ? value : [];
+  } catch {
+    return [];
+  }
+}
 
 const ROLE_LABELS: Record<RoleName, string> = {
   ADMIN: 'Administrateur',
@@ -83,6 +144,9 @@ export class Shell {
   private readonly memberService = inject(MemberService);
   private readonly notifications = inject(NotificationService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly photoService = inject(ProfilePhotoService);
+
+  readonly photoUrl = this.photoService.photoUrl;
 
   readonly currentUser = this.authService.currentUser;
 
@@ -100,13 +164,50 @@ export class Shell {
     { initialValue: this.authService.hasRole('MEMBRE') },
   );
 
-  readonly navItems = computed(() =>
-    NAV_ITEMS.filter((item) =>
-      item.memberSpace
-        ? this.hasMemberProfile() || this.authService.hasRole('MEMBRE')
-        : !item.roles || this.authService.hasAnyRole(item.roles),
-    ),
+  /** Groupes du menu, réduits aux liens permis ; un groupe vide n'est pas affiché. */
+  readonly navGroups = computed(() =>
+    NAV_GROUPS.map((group) => ({
+      ...group,
+      items: group.items.filter((item) =>
+        item.memberSpace
+          ? this.hasMemberProfile() || this.authService.hasRole('MEMBRE')
+          : !item.roles || this.authService.hasAnyRole(item.roles),
+      ),
+    })).filter((group) => group.items.length > 0),
   );
+
+  private readonly url = toSignal(
+    this.router.events.pipe(
+      filter((event) => event instanceof NavigationEnd),
+      map(() => this.router.url),
+      startWith(this.router.url),
+    ),
+    { initialValue: this.router.url },
+  );
+
+  readonly collapsed = signal<string[]>(readCollapsed());
+
+  /** Le groupe de la page affichée reste toujours ouvert. */
+  isOpen(group: NavGroup): boolean {
+    if (!group.title) {
+      return true;
+    }
+    const url = this.url().split('?')[0];
+    const active = group.items.some((item) => url === item.path || url.startsWith(item.path + '/'));
+    return active || !this.collapsed().includes(group.id);
+  }
+
+  toggleGroup(group: NavGroup): void {
+    const next = this.collapsed().includes(group.id)
+      ? this.collapsed().filter((id) => id !== group.id)
+      : [...this.collapsed(), group.id];
+    this.collapsed.set(next);
+    try {
+      localStorage.setItem(COLLAPSED_KEY, JSON.stringify(next));
+    } catch {
+      // Préférence d'affichage seulement : sans stockage, le menu reste utilisable.
+    }
+  }
 
   readonly roleLabel = computed(() =>
     (this.currentUser()?.roles ?? []).map((role) => ROLE_LABELS[role] ?? role).join(' · '),
@@ -134,6 +235,8 @@ export class Shell {
       this.isCompact();
       this.drawerOpen.set(false);
     });
+
+    this.photoService.load().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
 
     // Compteur de la cloche : toutes les 60 s, et dès que l'onglet redevient visible.
     merge(timer(0, 60_000), fromEvent(document, 'visibilitychange'))
@@ -193,6 +296,7 @@ export class Shell {
       .finally(() => {
         this.authService.logout();
         this.notifications.reset();
+        this.photoService.reset();
         this.router.navigate(['/login']);
       });
   }

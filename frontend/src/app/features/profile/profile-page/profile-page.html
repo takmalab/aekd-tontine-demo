@@ -1,0 +1,52 @@
+<section class="page">
+  <header class="page__header">
+    <h1 class="page__title">Mon profil</h1>
+    <p class="page__subtitle">Votre photo et les informations de votre compte.</p>
+  </header>
+
+  <div class="profile">
+    <section class="card identity">
+      <div class="photo">
+        @if (photoUrl(); as url) {
+          <img [src]="url" alt="Votre photo de profil" class="photo__img" />
+        } @else {
+          <span class="photo__initials" aria-hidden="true">{{ initials() }}</span>
+        }
+        @if (busy()) {
+          <span class="photo__busy"><mat-spinner diameter="36" /></span>
+        }
+      </div>
+
+      <div class="identity__text">
+        <h2 class="identity__name">{{ member()?.fullName ?? user()?.email }}</h2>
+        <p class="identity__roles">{{ roles() }}</p>
+      </div>
+
+      <div class="identity__actions">
+        <input #file type="file" accept="image/jpeg,image/png,image/webp" hidden (change)="pick($event)" />
+        <button mat-flat-button type="button" (click)="file.click()" [disabled]="busy()">
+          <mat-icon>photo_camera</mat-icon>
+          {{ photoUrl() ? 'Changer la photo' : 'Ajouter une photo' }}
+        </button>
+        @if (photoUrl()) {
+          <button mat-button type="button" (click)="remove()" [disabled]="busy()">
+            <mat-icon>delete_outline</mat-icon> Retirer
+          </button>
+        }
+      </div>
+      <p class="hint">JPG, PNG ou WEBP. L'image est recadrée en carré et réduite automatiquement.</p>
+    </section>
+
+    <section class="card">
+      <h2 class="card__title"><mat-icon>badge</mat-icon> Compte</h2>
+      <dl class="facts">
+        <div><dt>E-mail</dt><dd>{{ user()?.email }}</dd></div>
+        @if (member(); as m) {
+          <div><dt>Téléphone</dt><dd>{{ m.phone ?? '—' }}</dd></div>
+          <div><dt>Membre depuis</dt><dd>{{ m.joinDate | date: 'd MMMM yyyy' }}</dd></div>
+        }
+        <div><dt>Rôle</dt><dd>{{ roles() }}</dd></div>
+      </dl>
+    </section>
+  </div>
+</section>

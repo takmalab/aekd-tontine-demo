@@ -111,7 +111,10 @@ public class UserDeletionService {
         }
 
         DeletionImpact impact = impact(userId);
-        List<String> proofKeys = proofStorageKeys(memberIdOf(userId));
+        List<String> proofKeys = new ArrayList<>(proofStorageKeys(memberIdOf(userId)));
+        // Photo de profil : effacée avec le compte.
+        proofKeys.addAll(jdbc.queryForList("SELECT photo_storage_key FROM users WHERE id = ? AND photo_storage_key IS NOT NULL",
+                String.class, userId));
 
         // Suppression en base (cascades et SET NULL) ; contexte JPA vidé pour ne
         // garder aucune entité supprimée en mémoire.
