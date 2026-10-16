@@ -2,7 +2,11 @@ import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 
-export const authGuard: CanActivateFn = () => {
+/**
+ * Page réservée aux personnes connectées. Sinon, connexion puis retour à la page
+ * demandée (lien reçu par WhatsApp ou e-mail, decisions.md n° 59).
+ */
+export const authGuard: CanActivateFn = (_route, state) => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
@@ -10,6 +14,5 @@ export const authGuard: CanActivateFn = () => {
     return true;
   }
 
-  router.navigate(['/login']);
-  return false;
+  return router.createUrlTree(['/login'], { queryParams: { returnUrl: state.url } });
 };

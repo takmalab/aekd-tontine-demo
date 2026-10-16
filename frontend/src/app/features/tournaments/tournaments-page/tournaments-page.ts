@@ -4,6 +4,9 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
+import { environment } from '../../../../environments/environment';
+import { DocumentService } from '../../../core/services/document.service';
+import { WhatsappShareDialog } from '../../../shared/components/whatsapp-share-dialog/whatsapp-share-dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -16,7 +19,7 @@ import { TournamentFormDialog, TournamentFormDialogData } from '../tournament-fo
 import { TOURNAMENT_STATUS_LABELS, Tournament, TournamentSlot, ruleLabel } from '../tournament.model';
 import { TournamentService } from '../tournament.service';
 
-type TournamentAction = 'edit' | 'stop' | 'delete';
+type TournamentAction = 'edit' | 'stop' | 'delete' | 'share' | 'pdf';
 
 /** État d'un passage, pour l'affichage de l'ordre. */
 type SlotState = 'CREATED' | 'DELETED' | 'NEXT' | 'PLANNED' | 'CANCELLED';
@@ -51,6 +54,7 @@ const SLOT_STATE_LABELS: Record<SlotState, string> = {
 export class TournamentsPage implements OnInit {
   private readonly tournamentService = inject(TournamentService);
   private readonly dialog = inject(MatDialog);
+  private readonly documents = inject(DocumentService);
   private readonly snackBar = inject(MatSnackBar);
 
   readonly statusLabels = TOURNAMENT_STATUS_LABELS;
@@ -124,7 +128,10 @@ export class TournamentsPage implements OnInit {
   }
 
   actionsFor(t: Tournament): MenuAction<TournamentAction>[] {
-    const actions: MenuAction<TournamentAction>[] = [];
+    const actions: MenuAction<TournamentAction>[] = [
+      { label: 'Partager sur WhatsApp', icon: 'share', action: 'share' },
+      { label: 'Exporter en PDF', icon: 'picture_as_pdf', action: 'pdf' },
+    ];
     if (t.status === 'ACTIVE') {
       actions.push({ label: 'Modifier', icon: 'edit', action: 'edit' });
       actions.push({ label: 'Arrêter', icon: 'stop_circle', action: 'stop', danger: true });
@@ -145,6 +152,17 @@ export class TournamentsPage implements OnInit {
         break;
       case 'delete':
         this.remove(t);
+        break;
+      case 'share':
+        this.dialog.open(WhatsappShareDialog, {
+          data: { title: 'Ordre de passage – ' + t.name, url: `${environment.apiUrl}/tournaments/${t.id}/share` },
+          width: '560px',
+          maxWidth: 'calc(100vw - 24px)',
+          autoFocus: false,
+        });
+        break;
+      case 'pdf':
+        this.documents.tournamentOrder(t.id);
         break;
     }
   }

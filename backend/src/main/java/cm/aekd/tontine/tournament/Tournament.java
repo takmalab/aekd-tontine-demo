@@ -120,6 +120,17 @@ public class Tournament {
     }
 
     /** Date prévue de la séance d'un passage. */
+    /** « Le 1er samedi du mois », « Le dernier dimanche du mois ». */
+    public String ruleLabel() {
+        String rank = switch (weekOfMonth) {
+            case 1 -> "1er";
+            case -1 -> "dernier";
+            default -> weekOfMonth + "e";
+        };
+        return "Le " + rank + " " + dayOfWeek.getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.FRENCH)
+                + " du mois";
+    }
+
     public LocalDate plannedDate(TournamentSlot slot) {
         return TournamentCalendar.dateFor(getStartMonth(), slot.getPosition(), weekOfMonth, dayOfWeek);
     }

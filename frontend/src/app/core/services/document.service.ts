@@ -39,6 +39,11 @@ export class DocumentService {
     this.get(`sessions/${sessionId}/report`, 'rapport-seance.pdf');
   }
 
+  /** Ordre de passage d'un tournoi (decisions.md n° 59). */
+  tournamentOrder(tournamentId: string): void {
+    this.get(`tournaments/${tournamentId}/order`, 'ordre-de-passage.pdf');
+  }
+
   memberStatement(memberId: string): void {
     this.get(`members/${memberId}/statement`, 'releve.pdf');
   }

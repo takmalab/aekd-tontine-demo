@@ -681,3 +681,9 @@
     gap: 12px;
   }
 }
+
+/* Ancres des liens partagés : laisse la barre du haut au-dessus du titre. */
+.anchor,
+#cagnotte {
+  scroll-margin-top: 80px;
+}

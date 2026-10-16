@@ -2150,4 +2150,7 @@ Validé par le propriétaire du projet le 2026-10-16.
 
 * `GET /api/sessions/{id}/share/{ANNOUNCEMENT|STATUS|PAYOUT}` (ADMIN, TRESORIER)
   renvoie le texte ; l'interface ouvre `https://wa.me/?text=…`.
-* Lien vers la séance ajouté si `APP_PUBLIC_URL` est défini.
+* Liens vers la rubrique concernée si `APP_PUBLIC_URL` est défini : séance, `#cotisations` (+ « Payer ma
+  cotisation » vers /my-contributions), `#cagnotte`. Sans session, connexion puis retour à la page demandée.
+* **Tournoi** : l'ordre de passage se partage sur WhatsApp (`GET /api/tournaments/{id}/share`) et
+  s'exporte en PDF (`GET /api/documents/tournaments/{id}/order`).

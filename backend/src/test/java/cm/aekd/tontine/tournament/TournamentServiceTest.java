@@ -51,6 +51,12 @@ class TournamentServiceTest {
     private TournamentService tournamentService;
 
     @Autowired
+    private cm.aekd.tontine.share.WhatsappShareService shareService;
+
+    @Autowired
+    private cm.aekd.tontine.document.TournamentDocumentService documentService;
+
+    @Autowired
     private SessionService sessionService;
 
     @Autowired
@@ -96,6 +102,19 @@ class TournamentServiceTest {
         assertThat(created.slots()).noneMatch(TournamentResponse.Slot::generated);
         assertThat(created.contributions()).extracting(TournamentResponse.Contribution::id)
                 .containsExactly(cotisation.getId());
+    }
+
+    @Test
+    void orderOfPassageCanBeSharedOnWhatsappAndExportedAsPdf() {
+        // decisions.md n° 59.
+        UUID id = tournamentService.create(request(30, List.of(cotisation.getId())), TODAY).id();
+
+        String message = shareService.tournamentMessage(id);
+        assertThat(message).contains("*Ordre de passage – ", "Le 1er samedi du mois",
+                "1. Alice Tournoi – 07/11/2026", "3. Chantal Tournoi – 02/01/2027");
+
+        byte[] pdf = documentService.order(id).content();
+        assertThat(new String(pdf, 0, 4, java.nio.charset.StandardCharsets.ISO_8859_1)).isEqualTo("%PDF");
     }
 
     @Test

@@ -20,6 +20,12 @@ public class WhatsappShareController {
     public record ShareText(String text) {
     }
 
+    @GetMapping("/api/tournaments/{tournamentId}/share")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TRESORIER')")
+    public ShareText tournament(@PathVariable UUID tournamentId) {
+        return new ShareText(service.tournamentMessage(tournamentId));
+    }
+
     @GetMapping("/api/sessions/{sessionId}/share/{kind}")
     @PreAuthorize("hasAnyRole('ADMIN', 'TRESORIER')")
     public ShareText session(@PathVariable UUID sessionId, @PathVariable WhatsappShareService.Kind kind) {

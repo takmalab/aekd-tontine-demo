@@ -131,7 +131,7 @@
     <!-- Cagnotte remise aux bénéficiaires (docs/decisions.md n° 46) -->
     @if (isStaff) {
       @if (payout(); as p) {
-        <section class="payout">
+        <section class="payout" id="cagnotte">
           <h2 class="section-title">
             <mat-icon>redeem</mat-icon>
             Cagnotte du bénéficiaire
@@ -251,6 +251,7 @@
         }
       </div>
     } @else {
+      <span id="cotisations" class="anchor"></span>
       @for (group of groups(); track group.title) {
         @if (group.items.length > 0) {
           <h2 class="section-title">

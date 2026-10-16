@@ -39,6 +39,11 @@ export class Login {
   private readonly router = inject(Router);
 
   readonly loading = signal(false);
+  /** Page demandée avant la connexion (lien reçu) ; seulement une adresse interne. */
+  private readonly returnUrl = (() => {
+    const url = new URLSearchParams(location.search).get('returnUrl');
+    return url && url.startsWith('/') && !url.startsWith('//') && !url.startsWith('/login') ? url : '/dashboard';
+  })();
   /** Mode maintenance (decisions.md n° 57) : message affiché en haut du formulaire. */
   readonly maintenanceMessage = signal<string | null>(null);
   readonly errorMessage = signal<string | null>(null);
@@ -135,7 +140,7 @@ export class Login {
     this.authService.login({ email: email!, password: password! }).subscribe({
       next: () => {
         this.loading.set(false);
-        this.router.navigate(['/dashboard']);
+        this.router.navigateByUrl(this.returnUrl);
       },
       error: (error: HttpErrorResponse) => {
         this.loading.set(false);
@@ -213,7 +218,7 @@ export class Login {
       next: () => {
         this.loading.set(false);
         this.stopResendTimer();
-        this.router.navigate(['/dashboard']);
+        this.router.navigateByUrl(this.returnUrl);
       },
       error: (error: HttpErrorResponse) => {
         this.loading.set(false);

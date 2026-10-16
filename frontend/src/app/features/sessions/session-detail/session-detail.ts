@@ -147,6 +147,7 @@ export class SessionDetail implements OnInit {
         );
         this.loading.set(false);
         this.loadPayout();
+        this.scrollToFragment();
       },
       error: (err: HttpErrorResponse) => {
         this.notFound.set(err.status === 404 || err.status === 400);
@@ -156,13 +157,24 @@ export class SessionDetail implements OnInit {
     });
   }
 
+  /** Lien vers une rubrique (#cotisations, #cagnotte), par ex. depuis WhatsApp (decisions.md n° 59). */
+  private scrollToFragment(): void {
+    const fragment = this.router.parseUrl(this.router.url).fragment;
+    if (fragment) {
+      setTimeout(() => document.getElementById(fragment)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+    }
+  }
+
   loadPayout(): void {
     if (!this.isStaff) {
       return;
     }
     this.payoutError.set(false);
     this.sessionService.payoutOverview(this.id()).subscribe({
-      next: (overview) => this.payout.set(overview),
+      next: (overview) => {
+        this.payout.set(overview);
+        this.scrollToFragment();
+      },
       error: () => this.payoutError.set(true),
     });
   }

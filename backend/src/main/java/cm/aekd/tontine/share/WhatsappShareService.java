@@ -48,13 +48,16 @@ public class WhatsappShareService {
     private final ContributionParticipantRepository participantRepository;
     private final ContributionPeriodStatusService statusService;
     private final SessionPayoutService payoutService;
+    private final cm.aekd.tontine.tournament.TournamentRepository tournamentRepository;
     private final String publicUrl;
 
     public WhatsappShareService(SessionRepository sessionRepository, SessionBeneficiaryRepository beneficiaryRepository,
                                 ContributionPeriodRepository periodRepository,
                                 ContributionParticipantRepository participantRepository,
                                 ContributionPeriodStatusService statusService, SessionPayoutService payoutService,
+                                cm.aekd.tontine.tournament.TournamentRepository tournamentRepository,
                                 @Value("${app.public-url:}") String publicUrl) {
+        this.tournamentRepository = tournamentRepository;
         this.sessionRepository = sessionRepository;
         this.beneficiaryRepository = beneficiaryRepository;
         this.periodRepository = periodRepository;
@@ -72,8 +75,46 @@ public class WhatsappShareService {
             case STATUS -> status(session);
             case PAYOUT -> payout(session);
         };
-        String link = publicUrl.isEmpty() ? "" : "\n\n👉 Détails dans l'application : " + publicUrl + "/sessions/" + sessionId;
-        return body + link + "\n\n_" + AekdPdf.associationShortName() + " – Tontine_";
+        // Lien vers la rubrique concernée de la séance (decisions.md n° 59).
+        String sessionUrl = "/sessions/" + sessionId;
+        String links = switch (kind) {
+            case ANNOUNCEMENT -> link("Voir la séance", sessionUrl);
+            case STATUS -> link("Voir les cotisations", sessionUrl + "#cotisations")
+                    + link("Payer ma cotisation", "/my-contributions");
+            case PAYOUT -> link("Voir la cagnotte", sessionUrl + "#cagnotte");
+        };
+        return body + (links.isEmpty() ? "" : "\n" + links) + signature();
+    }
+
+    /** Ordre de passage d'un tournoi. */
+    public String tournamentMessage(UUID tournamentId) {
+        cm.aekd.tontine.tournament.Tournament tournament = tournamentRepository.findById(tournamentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tournoi introuvable"));
+        StringBuilder text = new StringBuilder("🔁 *Ordre de passage – ").append(tournament.getName()).append("*\n")
+                .append(tournament.ruleLabel()).append("\n\n");
+        java.time.LocalDate today = java.time.LocalDate.now(DocumentFormat.ZONE);
+        tournament.getSlots().stream()
+                .sorted(Comparator.comparingInt(cm.aekd.tontine.tournament.TournamentSlot::getPosition))
+                .forEach(slot -> {
+                    java.time.LocalDate date = tournament.plannedDate(slot);
+                    boolean past = slot.isGenerated() || (date != null && date.isBefore(today));
+                    text.append(slot.getPosition() + 1).append(". ").append(slot.getMember().getFullName());
+                    if (date != null) {
+                        text.append(" – ").append(DocumentFormat.date(date));
+                    }
+                    text.append(past ? " ✅" : "").append('\n');
+                });
+        String links = link("Voir les séances", "/sessions");
+        return text.toString().stripTrailing() + (links.isEmpty() ? "" : "\n" + links) + signature();
+    }
+
+    /** Ligne « 👉 libellé : adresse », vide si l'adresse publique n'est pas configurée. */
+    private String link(String label, String path) {
+        return publicUrl.isEmpty() ? "" : "\n👉 " + label + " : " + publicUrl + path;
+    }
+
+    private static String signature() {
+        return "\n\n_" + AekdPdf.associationShortName() + " – Tontine_";
     }
 
     private String announcement(Session session) {

@@ -28,11 +28,14 @@ public class DocumentController {
     private final SessionReportDocumentService sessionReportService;
     private final MemberStatementDocumentService statementService;
     private final ListExportDocumentService listExportService;
+    private final TournamentDocumentService tournamentDocumentService;
 
     public DocumentController(ReceiptDocumentService receiptService,
                               SessionReportDocumentService sessionReportService,
                               MemberStatementDocumentService statementService,
-                              ListExportDocumentService listExportService) {
+                              ListExportDocumentService listExportService,
+                              TournamentDocumentService tournamentDocumentService) {
+        this.tournamentDocumentService = tournamentDocumentService;
         this.receiptService = receiptService;
         this.sessionReportService = sessionReportService;
         this.statementService = statementService;
@@ -64,6 +67,13 @@ public class DocumentController {
     @PreAuthorize("hasAnyRole('ADMIN', 'TRESORIER')")
     public ResponseEntity<byte[]> memberStatement(@PathVariable UUID id) {
         return pdf(statementService.statement(id));
+    }
+
+    /** Ordre de passage d'un tournoi (decisions.md n° 59). */
+    @GetMapping("/tournaments/{id}/order")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TRESORIER')")
+    public ResponseEntity<byte[]> tournamentOrder(@PathVariable UUID id) {
+        return pdf(tournamentDocumentService.order(id));
     }
 
     @PostMapping("/exports")
