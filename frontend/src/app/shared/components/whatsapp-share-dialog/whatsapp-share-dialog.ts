@@ -12,7 +12,9 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 export interface WhatsappShareData {
   title: string;
   /** Adresse de l'API qui renvoie { text } : le message rédigé par le serveur. */
-  url: string;
+  url?: string;
+  /** Ou le message déjà rédigé par l'écran (ex. liste filtrée des sanctions, n° 62). */
+  text?: string;
 }
 
 /**
@@ -131,8 +133,13 @@ export class WhatsappShareDialog {
   readonly text = new FormControl('', { nonNullable: true });
 
   constructor() {
+    if (this.data.text !== undefined) {
+      this.text.setValue(this.data.text);
+      this.loading.set(false);
+      return;
+    }
     inject(HttpClient)
-      .get<{ text: string }>(this.data.url)
+      .get<{ text: string }>(this.data.url!)
       .subscribe({
         next: (response) => {
           this.text.setValue(response.text);

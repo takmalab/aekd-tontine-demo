@@ -1,7 +1,7 @@
 <div class="head">
   <span class="head__icon"><mat-icon>gavel</mat-icon></span>
   <div class="head__text">
-    <h2 mat-dialog-title class="head__title">Nouvelle règle de sanction</h2>
+    <h2 mat-dialog-title class="head__title">{{ editing ? 'Modifier la règle de sanction' : 'Nouvelle règle de sanction' }}</h2>
     <p class="head__subtitle">{{ data.contribution.name }}</p>
   </div>
 </div>
@@ -16,8 +16,20 @@
       </span>
     </p>
 
+    @if (editing) {
+      <p class="info">
+        <mat-icon>history</mat-icon>
+        <span>
+          Les sanctions déjà appliquées ne changent pas : elles gardent leur montant ou leur description.
+          @if (typeLocked) {
+            Des sanctions ont déjà été appliquées avec cette règle : son type ne peut plus être changé.
+          }
+        </span>
+      </p>
+    }
+
     <p class="label">Type de sanction</p>
-    <div class="choices">
+    <div class="choices" [class.choices--locked]="typeLocked">
       <label class="choice" [class.choice--selected]="isMonetary()">
         <input type="radio" formControlName="type" value="MONETARY" />
         <mat-icon>payments</mat-icon>
@@ -79,7 +91,7 @@
       @if (saving()) {
         <mat-spinner diameter="20" />
       } @else {
-        Créer la règle
+        {{ editing ? 'Enregistrer' : 'Créer la règle' }}
       }
     </button>
   </mat-dialog-actions>

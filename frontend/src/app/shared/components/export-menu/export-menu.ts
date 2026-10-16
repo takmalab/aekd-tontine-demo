@@ -2,13 +2,13 @@ import { Component, inject, input } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
-import { DocumentService } from '../../../core/services/document.service';
+import { DocumentService, ListExportRequest } from '../../../core/services/document.service';
 import { exportToCsv } from '../../utils/csv-export';
 
 type ExportValue = string | number | null;
 
 /**
- * Menu d'export CSV ou PDF. Reçoit les lignes déjà filtrées/affichées par
+ * Menu d'export PDF, Excel ou CSV. Reçoit les lignes déjà filtrées/affichées par
  * l'écran appelant (jamais un ré-appel API séparé) : l'export reflète toujours
  * exactement la recherche/les filtres actifs à l'écran (docs/decisions.md #29).
  * Le PDF est mis en page par le backend aux couleurs de l'AEKD (#37).
@@ -25,6 +25,10 @@ type ExportValue = string | number | null;
       <button mat-menu-item type="button" (click)="exportPdf()">
         <mat-icon>picture_as_pdf</mat-icon>
         <span>PDF (mis en page)</span>
+      </button>
+      <button mat-menu-item type="button" (click)="exportExcel()">
+        <mat-icon>grid_on</mat-icon>
+        <span>Excel (.xlsx)</span>
       </button>
       <button mat-menu-item type="button" (click)="exportCsv()">
         <mat-icon>table_view</mat-icon>
@@ -48,9 +52,24 @@ export class ExportMenu {
   }
 
   exportPdf(): void {
+    const request = this.request();
+    if (request) {
+      this.documentService.exportList(request);
+    }
+  }
+
+  /** Mêmes lignes que le PDF ; le serveur convertit les montants en nombres (decisions.md n° 62). */
+  exportExcel(): void {
+    const request = this.request();
+    if (request) {
+      this.documentService.exportListExcel(request);
+    }
+  }
+
+  private request(): ListExportRequest | null {
     const rows = this.rows();
     if (rows.length === 0) {
-      return;
+      return null;
     }
     const columns = Object.keys(rows[0]);
     const cells = rows.map((row) => columns.map((col) => toPdfText(row[col])));
@@ -62,13 +81,7 @@ export class ExportMenu {
       })
       .filter((c) => c.numeric)
       .map((c) => c.i);
-    this.documentService.exportList({
-      title: this.title(),
-      filters: this.filters(),
-      columns,
-      rows: cells,
-      rightAlign,
-    });
+    return { title: this.title(), filters: this.filters(), columns, rows: cells, rightAlign };
   }
 }
 

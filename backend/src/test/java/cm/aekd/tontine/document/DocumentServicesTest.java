@@ -66,6 +66,7 @@ class DocumentServicesTest {
     @Autowired private SessionReportDocumentService sessionReportService;
     @Autowired private MemberStatementDocumentService statementService;
     @Autowired private ListExportDocumentService listExportService;
+    @Autowired private ListExcelExportService listExcelExportService;
 
     @Autowired private RoleRepository roleRepository;
     @Autowired private UserRepository userRepository;
@@ -233,5 +234,26 @@ class DocumentServicesTest {
         PdfReader reader = new PdfReader(landscape.content());
         assertThat(reader.getPageSizeWithRotation(1).getWidth())
                 .isGreaterThan(reader.getPageSizeWithRotation(1).getHeight());
+    }
+
+    @Test
+    void excelExportTurnsAmountsIntoNumbers() throws IOException {
+        loginAs("doc-tresorier@test.aekd.cm", RoleName.TRESORIER);
+
+        GeneratedDocument xlsx = listExcelExportService.export(new ListExportRequest("Sanctions – Cotisation 50 000",
+                "Filtre : En cours", List.of("Membre", "Montant", "Statut"),
+                List.of(List.of("Alice Ndongo", "2\u202F000 FCFA", "Appliquée"),
+                        List.of("Paul Essomba", "Apporter les boissons", "Annulée")), null));
+
+        assertThat(xlsx.filename()).isEqualTo("sanctions-cotisation-50-000.xlsx");
+        try (org.apache.poi.xssf.usermodel.XSSFWorkbook workbook =
+                     new org.apache.poi.xssf.usermodel.XSSFWorkbook(new java.io.ByteArrayInputStream(xlsx.content()))) {
+            org.apache.poi.ss.usermodel.Sheet sheet = workbook.getSheetAt(0);
+            assertThat(sheet.getRow(0).getCell(0).getStringCellValue()).contains("Sanctions");
+            assertThat(sheet.getRow(1).getCell(0).getStringCellValue()).contains("2 éléments", "Filtre : En cours");
+            assertThat(sheet.getRow(3).getCell(1).getStringCellValue()).isEqualTo("Montant");
+            assertThat(sheet.getRow(4).getCell(1).getNumericCellValue()).isEqualTo(2000d);
+            assertThat(sheet.getRow(5).getCell(1).getStringCellValue()).isEqualTo("Apporter les boissons");
+        }
     }
 }

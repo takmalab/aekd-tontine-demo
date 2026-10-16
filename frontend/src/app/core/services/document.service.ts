@@ -60,6 +60,16 @@ export class DocumentService {
     );
   }
 
+  /** Même liste au format Excel (.xlsx), montants en nombres (decisions.md n° 62). */
+  exportListExcel(request: ListExportRequest): void {
+    this.save(
+      'exports-xlsx',
+      this.http.post(`${this.baseUrl}/exports/xlsx`, request, { observe: 'response', responseType: 'blob' }),
+      'export.xlsx',
+      'Génération du fichier Excel…',
+    );
+  }
+
   private get(path: string, fallbackName: string): void {
     this.save(
       path,
@@ -68,9 +78,14 @@ export class DocumentService {
     );
   }
 
-  private save(key: string, request: Observable<HttpResponse<Blob>>, fallbackName: string): void {
+  private save(
+    key: string,
+    request: Observable<HttpResponse<Blob>>,
+    fallbackName: string,
+    progressMessage = 'Génération du PDF…',
+  ): void {
     this.busy.set(key);
-    this.snackBar.open('Génération du PDF…', undefined, { duration: 2500 });
+    this.snackBar.open(progressMessage, undefined, { duration: 2500 });
     request.pipe(finalize(() => this.busy.set(null))).subscribe({
       next: (response) => {
         const blob = response.body;
@@ -102,7 +117,7 @@ export class DocumentService {
     const fallback =
       err.status === 403 || err.status === 404
         ? "Ce document n'est pas accessible."
-        : 'La génération du PDF a échoué. Vérifiez que le serveur est démarré.';
+        : 'La génération du document a échoué. Vérifiez que le serveur est démarré.';
     this.snackBar.open(message ?? fallback, 'OK', { duration: 6000 });
   }
 }

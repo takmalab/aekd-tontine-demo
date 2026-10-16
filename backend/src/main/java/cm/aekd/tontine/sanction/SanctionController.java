@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -44,6 +45,33 @@ public class SanctionController {
     @PreAuthorize("hasAnyRole('ADMIN', 'TRESORIER')")
     public List<SanctionRuleResponse> listRules(@RequestParam UUID contributionDefinitionId) {
         return ruleService.findByDefinition(contributionDefinitionId);
+    }
+
+    /** Décision n° 61 : type figé dès qu'une sanction a été appliquée avec la règle. */
+    @PutMapping("/{ruleId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TRESORIER')")
+    public SanctionRuleResponse updateRule(@PathVariable UUID ruleId, @Valid @RequestBody SanctionRuleRequest request) {
+        return ruleService.update(ruleId, request);
+    }
+
+    @PutMapping("/{ruleId}/activate")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TRESORIER')")
+    public SanctionRuleResponse activateRule(@PathVariable UUID ruleId) {
+        return ruleService.setActive(ruleId, true);
+    }
+
+    @PutMapping("/{ruleId}/deactivate")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TRESORIER')")
+    public SanctionRuleResponse deactivateRule(@PathVariable UUID ruleId) {
+        return ruleService.setActive(ruleId, false);
+    }
+
+    /** Refusé (409) si des sanctions ont été appliquées avec la règle : la désactiver à la place. */
+    @DeleteMapping("/{ruleId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TRESORIER')")
+    public ResponseEntity<Void> deleteRule(@PathVariable UUID ruleId) {
+        ruleService.delete(ruleId);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{ruleId}/candidates")

@@ -167,6 +167,33 @@
                   </div>
                   <p class="rule__what">{{ ruleSummary(rule) }}</p>
                   <p class="rule__when"><mat-icon>schedule</mat-icon> {{ thresholdLabel(rule.lateDaysThreshold) }}</p>
+                  <div class="rule__manage">
+                    <button mat-icon-button type="button" matTooltip="Modifier" aria-label="Modifier la règle" (click)="editRule(rule)">
+                      <mat-icon>edit</mat-icon>
+                    </button>
+                    <button
+                      mat-icon-button
+                      type="button"
+                      [matTooltip]="rule.active ? 'Désactiver' : 'Réactiver'"
+                      [attr.aria-label]="rule.active ? 'Désactiver la règle' : 'Réactiver la règle'"
+                      [disabled]="ruleBusy() === rule.id"
+                      (click)="toggleRule(rule)"
+                    >
+                      <mat-icon>{{ rule.active ? 'pause_circle' : 'play_circle' }}</mat-icon>
+                    </button>
+                    <span [matTooltip]="rule.used ? 'Des sanctions ont été appliquées avec cette règle : désactivez-la plutôt.' : 'Supprimer'">
+                      <button
+                        mat-icon-button
+                        type="button"
+                        class="rule__danger"
+                        aria-label="Supprimer la règle"
+                        [disabled]="rule.used || ruleBusy() === rule.id"
+                        (click)="deleteRule(rule)"
+                      >
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    </span>
+                  </div>
 
                   @if (isTreasurer && rule.active) {
                     <button type="button" class="toggle" (click)="toggleCandidates(rule)" [attr.aria-expanded]="!!cand">
@@ -217,12 +244,18 @@
         <section class="block">
           <div class="block__head block__head--tools">
             <h2 class="block__title"><mat-icon>gavel</mat-icon> Sanctions appliquées</h2>
-            <app-export-menu
-              filename="sanctions"
-              [title]="'Sanctions – ' + (selected()?.name ?? '')"
-              [rows]="exportRows()"
-              [filters]="exportFilters()"
-            />
+            <div class="block__actions">
+              <button mat-stroked-button type="button" [disabled]="visibleApplied().length === 0" (click)="shareApplied()">
+                <mat-icon>share</mat-icon>
+                WhatsApp
+              </button>
+              <app-export-menu
+                filename="sanctions"
+                [title]="'Sanctions – ' + (selected()?.name ?? '')"
+                [rows]="exportRows()"
+                [filters]="exportFilters()"
+              />
+            </div>
           </div>
           <div class="filters" role="tablist" aria-label="Filtrer les sanctions">
             @for (f of appliedFilters; track f.value) {

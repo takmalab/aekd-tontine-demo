@@ -73,6 +73,14 @@ public class SanctionRule {
         this.description = description;
     }
 
+    /** Modification (décision n° 61) : les sanctions déjà appliquées gardent leur propre montant/description. */
+    public void update(SanctionType type, int lateDaysThreshold, BigDecimal monetaryAmount, String description) {
+        this.type = type;
+        this.lateDaysThreshold = lateDaysThreshold;
+        this.monetaryAmount = monetaryAmount;
+        this.description = description;
+    }
+
     @PrePersist
     protected void onCreate() {
         Instant now = Instant.now();

@@ -29,13 +29,16 @@ public class DocumentController {
     private final MemberStatementDocumentService statementService;
     private final ListExportDocumentService listExportService;
     private final TournamentDocumentService tournamentDocumentService;
+    private final ListExcelExportService listExcelExportService;
 
     public DocumentController(ReceiptDocumentService receiptService,
                               SessionReportDocumentService sessionReportService,
                               MemberStatementDocumentService statementService,
                               ListExportDocumentService listExportService,
-                              TournamentDocumentService tournamentDocumentService) {
+                              TournamentDocumentService tournamentDocumentService,
+                              ListExcelExportService listExcelExportService) {
         this.tournamentDocumentService = tournamentDocumentService;
+        this.listExcelExportService = listExcelExportService;
         this.receiptService = receiptService;
         this.sessionReportService = sessionReportService;
         this.statementService = statementService;
@@ -80,6 +83,19 @@ public class DocumentController {
     @PreAuthorize("hasAnyRole('ADMIN', 'TRESORIER')")
     public ResponseEntity<byte[]> exportList(@Valid @RequestBody ListExportRequest request) {
         return pdf(listExportService.export(request));
+    }
+
+    /** Même liste que {@link #exportList}, au format Excel (decisions.md n° 62). */
+    @PostMapping("/exports/xlsx")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TRESORIER')")
+    public ResponseEntity<byte[]> exportListExcel(@Valid @RequestBody ListExportRequest request) {
+        GeneratedDocument document = listExcelExportService.export(request);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename(document.filename()).build().toString())
+                .body(document.content());
     }
 
     private static ResponseEntity<byte[]> pdf(GeneratedDocument document) {

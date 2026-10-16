@@ -30,6 +30,20 @@ export class SanctionService {
     return this.http.post<SanctionRule>(this.baseUrl, request);
   }
 
+  /** Changement de type refusé (409) si la règle a déjà servi (décision n° 61). */
+  updateRule(ruleId: string, request: SanctionRuleRequest): Observable<SanctionRule> {
+    return this.http.put<SanctionRule>(`${this.baseUrl}/${ruleId}`, request);
+  }
+
+  setRuleActive(ruleId: string, active: boolean): Observable<SanctionRule> {
+    return this.http.put<SanctionRule>(`${this.baseUrl}/${ruleId}/${active ? 'activate' : 'deactivate'}`, {});
+  }
+
+  /** Refusé (409) si des sanctions ont été appliquées avec la règle : la désactiver à la place. */
+  deleteRule(ruleId: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${ruleId}`);
+  }
+
   candidates(ruleId: string): Observable<SanctionCandidate[]> {
     return this.http.get<SanctionCandidate[]>(`${this.baseUrl}/${ruleId}/candidates`);
   }

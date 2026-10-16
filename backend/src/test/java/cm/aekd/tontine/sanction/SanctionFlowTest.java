@@ -137,6 +137,67 @@ class SanctionFlowTest {
     }
 
     @Test
+    void unusedRuleCanBeEditedDeactivatedAndDeleted() {
+        Member treasurer = createMember(RoleName.TRESORIER, "rulemgmt1");
+        Member lateMember = createMember(RoleName.MEMBRE, "rulemgmtlate1");
+        ContributionPeriodResponse period = setupMandatoryDefinition(treasurer, lateMember,
+                LocalDate.of(2026, 9, 5), new BigDecimal(10000));
+        loginAsMember(treasurer, RoleName.TRESORIER);
+        SanctionRuleResponse rule = ruleService.create(new SanctionRuleRequest(
+                period.contributionDefinitionId(), SanctionType.MONETARY, 3, new BigDecimal(2000), null));
+        assertThat(rule.used()).isFalse();
+
+        // Changement de type possible tant que la règle n'a pas servi.
+        SanctionRuleResponse edited = ruleService.update(rule.id(), new SanctionRuleRequest(
+                period.contributionDefinitionId(), SanctionType.IN_KIND, 5, null, "Apporter les boissons"));
+        assertThat(edited.type()).isEqualTo(SanctionType.IN_KIND);
+        assertThat(edited.lateDaysThreshold()).isEqualTo(5);
+        assertThat(edited.monetaryAmount()).isNull();
+
+        // Désactivée : plus de candidats, application refusée ; réactivable.
+        assertThat(ruleService.setActive(rule.id(), false).active()).isFalse();
+        assertThat(appliedService.findCandidates(rule.id())).isEmpty();
+        assertThatThrownBy(() -> appliedService.apply(rule.id(),
+                new ApplySanctionRequest(lateMember.getId(), period.id())))
+                .isInstanceOf(ResponseStatusException.class);
+        assertThat(ruleService.setActive(rule.id(), true).active()).isTrue();
+
+        ruleService.delete(rule.id());
+        assertThat(ruleService.findByDefinition(period.contributionDefinitionId())).isEmpty();
+    }
+
+    @Test
+    void usedRuleKeepsItsTypeAndCannotBeDeleted() {
+        Member treasurer = createMember(RoleName.TRESORIER, "rulemgmt2");
+        Member lateMember = createMember(RoleName.MEMBRE, "rulemgmtlate2");
+        ContributionPeriodResponse period = setupMandatoryDefinition(treasurer, lateMember,
+                LocalDate.of(2026, 9, 5), new BigDecimal(10000));
+        loginAsMember(treasurer, RoleName.TRESORIER);
+        SanctionRuleResponse rule = ruleService.create(new SanctionRuleRequest(
+                period.contributionDefinitionId(), SanctionType.MONETARY, 3, new BigDecimal(2000), null));
+        AppliedSanctionResponse applied = appliedService.apply(rule.id(),
+                new ApplySanctionRequest(lateMember.getId(), period.id()));
+
+        assertThatThrownBy(() -> ruleService.update(rule.id(), new SanctionRuleRequest(
+                period.contributionDefinitionId(), SanctionType.IN_KIND, 3, null, "Nettoyage")))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("type");
+        assertThatThrownBy(() -> ruleService.delete(rule.id()))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("désactivez");
+
+        // Le montant change pour l'avenir ; la sanction déjà appliquée garde le sien.
+        SanctionRuleResponse edited = ruleService.update(rule.id(), new SanctionRuleRequest(
+                period.contributionDefinitionId(), SanctionType.MONETARY, 3, new BigDecimal(3000), null));
+        assertThat(edited.used()).isTrue();
+        assertThat(edited.monetaryAmount()).isEqualByComparingTo("3000");
+        assertThat(appliedService.findByDefinition(period.contributionDefinitionId()))
+                .filteredOn(s -> s.id().equals(applied.id()))
+                .extracting(AppliedSanctionResponse::amount)
+                .containsExactly(new BigDecimal(2000));
+    }
+
+    @Test
     void memberPastDueWithoutValidatedPaymentIsEligibleAndCanBeSanctioned() {
         Member treasurer = createMember(RoleName.TRESORIER, "sanctreso2");
         Member lateMember = createMember(RoleName.MEMBRE, "sanclate2");

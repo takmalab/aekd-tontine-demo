@@ -9,10 +9,12 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { forkJoin } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { ConfirmDialog, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog';
 import { ExportMenu } from '../../../shared/components/export-menu/export-menu';
+import { WhatsappShareDialog, WhatsappShareData } from '../../../shared/components/whatsapp-share-dialog/whatsapp-share-dialog';
 import { formatFcfa } from '../../../shared/utils/format';
 import { ContributionDefinition } from '../../contributions/contribution.model';
 import { ContributionService } from '../../contributions/contribution.service';
@@ -53,6 +55,7 @@ interface CandidatesState {
     MatProgressSpinnerModule,
     MatFormFieldModule,
     MatSelectModule,
+    MatTooltipModule,
     ExportMenu,
   ],
   templateUrl: './staff-sanctions.html',
@@ -207,6 +210,148 @@ export class StaffSanctions implements OnInit {
           this.snackBar.open('Règle de sanction créée', 'OK', { duration: 4000 });
         }
       });
+  }
+
+  /** Règle en cours d'activation / désactivation / suppression. */
+  readonly ruleBusy = signal<string | null>(null);
+
+  editRule(rule: SanctionRule): void {
+    const contribution = this.selected();
+    if (!contribution) {
+      return;
+    }
+    const data: RuleFormData = { contribution, rule };
+    this.dialog
+      .open(RuleFormDialog, { data, width: '540px', maxWidth: 'calc(100vw - 24px)', autoFocus: false })
+      .afterClosed()
+      .subscribe((updated?: SanctionRule) => {
+        if (updated) {
+          this.replaceRule(updated);
+          this.snackBar.open('Règle de sanction modifiée', 'OK', { duration: 4000 });
+        }
+      });
+  }
+
+  /** Décision n° 61 : une règle désactivée ne propose plus de membres et ne peut plus être appliquée. */
+  toggleRule(rule: SanctionRule): void {
+    const activate = !rule.active;
+    const data: ConfirmDialogData = activate
+      ? {
+          title: 'Réactiver la règle ?',
+          message: `${this.ruleSummary(rule)} : les membres en retard seront de nouveau signalés.`,
+          confirmLabel: 'Réactiver',
+          icon: 'play_circle',
+        }
+      : {
+          title: 'Désactiver la règle ?',
+          message: `${this.ruleSummary(rule)} : elle ne signalera plus de membres et ne pourra plus être appliquée. Les sanctions déjà appliquées restent inchangées.`,
+          confirmLabel: 'Désactiver',
+          icon: 'pause_circle',
+        };
+    this.confirm(data, () => {
+      this.ruleBusy.set(rule.id);
+      this.sanctionService.setRuleActive(rule.id, activate).subscribe({
+        next: (updated) => {
+          this.ruleBusy.set(null);
+          this.replaceRule(updated);
+          if (!activate) {
+            const { [rule.id]: _, ...rest } = this.candidates();
+            this.candidates.set(rest);
+          }
+          this.snackBar.open(activate ? 'Règle réactivée' : 'Règle désactivée', 'OK', { duration: 4000 });
+        },
+        error: (err: HttpErrorResponse) => this.ruleError(err),
+      });
+    });
+  }
+
+  /** Refusée par le serveur si des sanctions ont été appliquées avec la règle (bouton alors désactivé). */
+  deleteRule(rule: SanctionRule): void {
+    const data: ConfirmDialogData = {
+      title: 'Supprimer la règle ?',
+      message: `${this.ruleSummary(rule)} — ${this.thresholdLabel(rule.lateDaysThreshold).toLowerCase()}. Cette action est définitive.`,
+      confirmLabel: 'Supprimer',
+      icon: 'delete',
+    };
+    this.confirm(data, () => {
+      this.ruleBusy.set(rule.id);
+      this.sanctionService.deleteRule(rule.id).subscribe({
+        next: () => {
+          this.ruleBusy.set(null);
+          this.rules.update((list) => list.filter((r) => r.id !== rule.id));
+          this.snackBar.open('Règle supprimée', 'OK', { duration: 4000 });
+        },
+        error: (err: HttpErrorResponse) => this.ruleError(err),
+      });
+    });
+  }
+
+  private confirm(data: ConfirmDialogData, action: () => void): void {
+    this.dialog
+      .open(ConfirmDialog, { data, width: '460px', maxWidth: 'calc(100vw - 32px)' })
+      .afterClosed()
+      .subscribe((confirmed) => {
+        if (confirmed) {
+          action();
+        }
+      });
+  }
+
+  private replaceRule(updated: SanctionRule): void {
+    this.rules.update((list) => list.map((r) => (r.id === updated.id ? updated : r)));
+  }
+
+  private ruleError(err: HttpErrorResponse): void {
+    this.ruleBusy.set(null);
+    this.snackBar.open(
+      err.status === 409 || err.status === 400
+        ? err.error?.message || 'Action refusée.'
+        : err.status === 403
+          ? 'Action réservée à l’administrateur et au trésorier.'
+          : 'Une erreur est survenue. Vérifiez que le serveur est démarré.',
+      'OK',
+      { duration: 6000 },
+    );
+  }
+
+  /**
+   * Partage WhatsApp (décision n° 62) de la liste affichée (filtre actif inclus), regroupée par séance.
+   * Message modifiable avant l'envoi ; aucun envoi automatique (n° 59).
+   */
+  shareApplied(): void {
+    const contribution = this.selected();
+    const list = this.visibleApplied();
+    if (!contribution || list.length === 0) {
+      return;
+    }
+    const bySession = new Map<string, AppliedSanction[]>();
+    for (const s of list) {
+      bySession.set(s.sessionLabel, [...(bySession.get(s.sessionLabel) ?? []), s]);
+    }
+    const lines = [`⚖️ *Sanctions – ${contribution.name}*`, `_${this.exportFilters()}_`];
+    let total = 0;
+    for (const [session, sanctions] of bySession) {
+      lines.push('', `*${session}*`);
+      for (const s of [...sanctions].sort((a, b) => a.memberFullName.localeCompare(b.memberFullName, 'fr'))) {
+        let what: string;
+        if (s.type === 'MONETARY') {
+          what = formatFcfa(s.amount);
+          if (s.status === 'APPLIED') {
+            total += s.amount ?? 0;
+            const left = (s.amount ?? 0) - s.paidAmount;
+            what += left <= 0 ? ' – réglée' : s.paidAmount > 0 ? ` – payé ${formatFcfa(s.paidAmount)}, reste ${formatFcfa(left)}` : '';
+          }
+        } else {
+          what = `en nature : « ${s.description ?? ''} »`;
+        }
+        lines.push(`• ${s.memberFullName} – ${what}${s.status === 'CANCELLED' ? ' (annulée)' : ''}`);
+      }
+    }
+    if (total > 0) {
+      lines.push('', `Total des sanctions monétaires : *${formatFcfa(total)}*`);
+    }
+    const data: WhatsappShareData = { title: `Sanctions – ${contribution.name}`, text: lines.join('\n') };
+    this.dialog.open(WhatsappShareDialog, { data, width: '560px', maxWidth: 'calc(100vw - 24px)', autoFocus: false });
   }
 
   ruleSummary(rule: SanctionRule): string {

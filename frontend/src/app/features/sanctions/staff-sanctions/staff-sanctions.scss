@@ -132,6 +132,17 @@
     gap: 8px;
   }
 
+  &__manage {
+    display: flex;
+    gap: 2px;
+    margin: -4px 0 -4px -8px;
+    color: var(--aekd-gray-muted);
+  }
+
+  &__danger:not([disabled]) {
+    color: var(--aekd-brown-dark);
+  }
+
   &__what {
     margin: 0;
     font-family: 'Poppins', sans-serif;

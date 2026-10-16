@@ -9,17 +9,20 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ContributionDefinition } from '../../contributions/contribution.model';
-import { SanctionRule, SanctionType } from '../sanction.model';
+import { SanctionRule, SanctionRuleRequest, SanctionType } from '../sanction.model';
 import { SanctionService } from '../sanction.service';
 
 export interface RuleFormData {
   contribution: ContributionDefinition;
+  /** Règle à modifier ; absente pour une création. */
+  rule?: SanctionRule;
 }
 
 /**
- * Création d'une règle de sanction (CLAUDE.md §18) pour une cotisation obligatoire
- * — ADMIN et TRESORIER. Les seuils et montants ne sont pas prédéfinis : ce sont des
- * décisions à valider (§38), saisies par l'utilisateur.
+ * Création ou modification d'une règle de sanction (CLAUDE.md §18) pour une cotisation
+ * obligatoire — ADMIN et TRESORIER. Les seuils et montants ne sont pas prédéfinis : ce sont
+ * des décisions à valider (§38), saisies par l'utilisateur. En modification, le type est figé
+ * si la règle a déjà servi (décision n° 61).
  */
 @Component({
   selector: 'app-rule-form-dialog',
@@ -41,6 +44,9 @@ export class RuleFormDialog {
   private readonly dialogRef = inject<MatDialogRef<RuleFormDialog, SanctionRule>>(MatDialogRef);
   readonly data = inject<RuleFormData>(MAT_DIALOG_DATA);
 
+  readonly editing = !!this.data.rule;
+  /** Des sanctions ont été appliquées avec la règle : son type ne peut plus changer. */
+  readonly typeLocked = !!this.data.rule?.used;
   readonly saving = signal(false);
   readonly errorMessage = signal<string | null>(null);
 
@@ -68,6 +74,19 @@ export class RuleFormDialog {
         monetaryAmount.disable();
       }
     });
+
+    const rule = this.data.rule;
+    if (rule) {
+      this.form.controls.type.setValue(rule.type);
+      this.form.patchValue({
+        lateDaysThreshold: rule.lateDaysThreshold,
+        monetaryAmount: rule.monetaryAmount,
+        description: rule.description ?? '',
+      });
+      if (this.typeLocked) {
+        this.form.controls.type.disable();
+      }
+    }
   }
 
   submit(): void {
@@ -77,28 +96,32 @@ export class RuleFormDialog {
     }
     const v = this.form.getRawValue();
     const monetary = v.type === 'MONETARY';
+    const request: SanctionRuleRequest = {
+      contributionDefinitionId: this.data.contribution.id,
+      type: v.type!,
+      lateDaysThreshold: Number(v.lateDaysThreshold),
+      monetaryAmount: monetary ? Number(v.monetaryAmount) : null,
+      description: monetary ? null : v.description!.trim(),
+    };
     this.saving.set(true);
     this.errorMessage.set(null);
-    this.sanctionService
-      .createRule({
-        contributionDefinitionId: this.data.contribution.id,
-        type: v.type!,
-        lateDaysThreshold: Number(v.lateDaysThreshold),
-        monetaryAmount: monetary ? Number(v.monetaryAmount) : null,
-        description: monetary ? null : v.description!.trim(),
-      })
-      .subscribe({
-        next: (rule) => this.dialogRef.close(rule),
-        error: (error: HttpErrorResponse) => {
-          this.saving.set(false);
-          this.errorMessage.set(
-            error.status === 400
+    const save$ = this.data.rule
+      ? this.sanctionService.updateRule(this.data.rule.id, request)
+      : this.sanctionService.createRule(request);
+    save$.subscribe({
+      next: (rule) => this.dialogRef.close(rule),
+      error: (error: HttpErrorResponse) => {
+        this.saving.set(false);
+        this.errorMessage.set(
+          error.status === 409
+            ? error.error?.message || 'Modification refusée : des sanctions ont déjà été appliquées avec cette règle.'
+            : error.status === 400
               ? 'Règle refusée : la cotisation doit être obligatoire, avec un montant positif (monétaire) ou une description (en nature).'
               : error.status === 403
                 ? 'Action réservée à l’administrateur et au trésorier.'
                 : 'Une erreur est survenue. Vérifiez que le serveur est démarré.',
-          );
-        },
-      });
+        );
+      },
+    });
   }
 }

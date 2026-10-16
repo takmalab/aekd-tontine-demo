@@ -11,6 +11,8 @@ public interface AppliedSanctionRepository extends JpaRepository<AppliedSanction
 
     List<AppliedSanction> findByContributionPeriod_ContributionDefinition_Id(UUID contributionDefinitionId);
 
+    boolean existsBySanctionRuleId(UUID sanctionRuleId);
+
     boolean existsBySanctionRuleIdAndMemberIdAndContributionPeriodIdAndStatus(
             UUID sanctionRuleId, UUID memberId, UUID contributionPeriodId, AppliedSanctionStatus status);
 

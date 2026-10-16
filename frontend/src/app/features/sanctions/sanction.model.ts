@@ -26,6 +26,8 @@ export interface SanctionRule {
   monetaryAmount: number | null;
   description: string | null;
   active: boolean;
+  /** Des sanctions ont été appliquées avec la règle : type figé, suppression refusée (décision n° 61). */
+  used: boolean;
 }
 
 /** Miroir de SanctionRuleRequest (backend) — ADMIN et TRESORIER. */
