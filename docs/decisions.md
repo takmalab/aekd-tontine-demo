@@ -2029,3 +2029,40 @@ en ajouter). Propositions, non implémentées :
 * Table `email_settings` (V31) ; `GET/PUT /api/settings/email`,
   `POST /api/settings/email/test`. La clé Brevo reste dans les variables du
   serveur et n'est jamais renvoyée.
+
+---
+
+# 57. Paramètres système
+
+## Question
+
+Quels réglages le super administrateur peut-il modifier sans toucher au serveur ?
+
+## Statut
+
+```text
+DÉCIDÉ
+```
+
+## Décision
+
+Validé par le propriétaire du projet le 2026-10-16. Écran « Paramètres système »
+(super administrateur) :
+
+* **Association** : nom, sigle, adresse, téléphone, e-mail et logo, affichés sur
+  les documents PDF (en-tête et pied de page).
+* **Durée de session** sur l'appareil (n° 54) et **règles des codes** SMS et
+  e-mail (n° 47 et 55) : validité, essais, délai avant un nouveau code, codes par
+  heure. Une case vide reprend la valeur par défaut du serveur.
+* **Mode maintenance** : seul le **super administrateur** peut se connecter et
+  utiliser l'application ; les autres voient le message choisi (aussi sur la page
+  de connexion).
+
+## Conséquence technique
+
+* Table `system_settings` (V32), gardée en mémoire et relue à chaque modification.
+* `GET/PUT /api/settings/system`, `POST/DELETE /api/settings/system/logo`
+  (SUPER_ADMIN) ; `GET /api/public/info` (public : nom, maintenance).
+* Maintenance : refus à l'émission de tout jeton (mot de passe, codes,
+  renouvellement) et réponse 503 `maintenance: true` sur l'API pour toute
+  session autre que celle du super administrateur.

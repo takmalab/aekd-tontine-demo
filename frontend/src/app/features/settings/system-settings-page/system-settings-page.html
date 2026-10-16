@@ -1,0 +1,147 @@
+<section class="page">
+  <header class="page__header">
+    <h1 class="page__title">Paramètres système</h1>
+    <p class="page__subtitle">
+      Identité de l'association sur les documents, sécurité des connexions et maintenance. Une règle laissée vide
+      reprend la valeur par défaut du serveur.
+    </p>
+  </header>
+
+  @if (loading()) {
+    <div class="state"><mat-spinner diameter="40" /></div>
+  } @else if (loadError()) {
+    <div class="state state--card">
+      <mat-icon class="state__icon state__icon--brown">cloud_off</mat-icon>
+      <p class="state__title">Impossible de charger les paramètres système</p>
+      <button mat-stroked-button (click)="load()"><mat-icon>refresh</mat-icon> Réessayer</button>
+    </div>
+  } @else if (data(); as d) {
+    <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+      @if (form.controls.maintenanceEnabled.value) {
+        <p class="maintenance-banner" role="status">
+          <mat-icon>construction</mat-icon>
+          Maintenance active : seul le super administrateur peut se connecter.
+        </p>
+      }
+
+      <div class="layout">
+        <!-- Association -->
+        <section class="card">
+          <h2 class="card__title"><mat-icon>apartment</mat-icon> Association</h2>
+          <p class="card__text">Nom, sigle et coordonnées affichés sur les documents PDF (reçus, relevés, rapports).</p>
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>Nom de l'association</mat-label>
+            <input matInput formControlName="associationName" />
+            @if (form.controls.associationName.hasError('required')) {
+              <mat-error>Le nom est requis</mat-error>
+            }
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>Sigle</mat-label>
+            <input matInput formControlName="associationShortName" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>Adresse (facultatif)</mat-label>
+            <input matInput formControlName="associationAddress" />
+          </mat-form-field>
+          <div class="grid-2">
+            <mat-form-field appearance="outline">
+              <mat-label>Téléphone (facultatif)</mat-label>
+              <input matInput formControlName="associationPhone" />
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>E-mail (facultatif)</mat-label>
+              <input matInput type="email" formControlName="associationEmail" />
+              @if (form.controls.associationEmail.invalid) {
+                <mat-error>Adresse invalide</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <div class="logo">
+            <span class="logo__label">
+              <mat-icon>image</mat-icon>
+              Logo des documents : <strong>{{ d.settings.customLogo ? 'personnalisé' : 'logo AEKD par défaut' }}</strong>
+            </span>
+            <input #logoFile type="file" accept="image/png,image/jpeg" hidden (change)="uploadLogo($event)" />
+            <span class="logo__actions">
+              <button mat-stroked-button type="button" (click)="logoFile.click()" [disabled]="logoBusy()">
+                <mat-icon>upload</mat-icon> Changer
+              </button>
+              @if (d.settings.customLogo) {
+                <button mat-button type="button" (click)="removeLogo()" [disabled]="logoBusy()">Par défaut</button>
+              }
+            </span>
+          </div>
+          <p class="card__hint">PNG ou JPEG, 1 Mo au plus, de préférence carré.</p>
+        </section>
+
+        <!-- Sécurité -->
+        <section class="card">
+          <h2 class="card__title"><mat-icon>shield</mat-icon> Sécurité des connexions</h2>
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>Durée de session sans activité</mat-label>
+            <input matInput type="number" min="1" max="365" formControlName="sessionDays" [placeholder]="'' + d.effectiveSessionDays" />
+            <span matTextSuffix>jours</span>
+            <mat-hint>Actuellement {{ d.effectiveSessionDays }} jours. Un membre reste connecté sur son téléphone ce temps-là.</mat-hint>
+          </mat-form-field>
+
+          <p class="group-label">Codes de connexion (SMS et e-mail)</p>
+          <div class="grid-2">
+            <mat-form-field appearance="outline">
+              <mat-label>Validité du code</mat-label>
+              <input matInput type="number" min="1" max="60" formControlName="otpTtlMinutes" [placeholder]="'' + d.effectiveOtpTtlMinutes" />
+              <span matTextSuffix>min</span>
+              <mat-hint>Actuellement {{ d.effectiveOtpTtlMinutes }} min</mat-hint>
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Essais par code</mat-label>
+              <input matInput type="number" min="1" max="20" formControlName="otpMaxAttempts" [placeholder]="'' + d.effectiveOtpMaxAttempts" />
+              <mat-hint>Actuellement {{ d.effectiveOtpMaxAttempts }}</mat-hint>
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Délai avant un nouveau code</mat-label>
+              <input matInput type="number" min="0" max="3600" formControlName="otpResendSeconds" [placeholder]="'' + d.effectiveOtpResendSeconds" />
+              <span matTextSuffix>s</span>
+              <mat-hint>Actuellement {{ d.effectiveOtpResendSeconds }} s</mat-hint>
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Codes par heure (maximum)</mat-label>
+              <input matInput type="number" min="1" max="100" formControlName="otpMaxPerHour" [placeholder]="'' + d.effectiveOtpMaxPerHour" />
+              <mat-hint>Actuellement {{ d.effectiveOtpMaxPerHour }}</mat-hint>
+            </mat-form-field>
+          </div>
+          <p class="card__hint">Laissez une case vide pour garder la valeur par défaut du serveur.</p>
+        </section>
+
+        <!-- Maintenance -->
+        <section class="card">
+          <h2 class="card__title"><mat-icon>construction</mat-icon> Mode maintenance</h2>
+          <mat-slide-toggle formControlName="maintenanceEnabled">Activer la maintenance</mat-slide-toggle>
+          <p class="card__hint">
+            Pendant la maintenance, seul le super administrateur peut se connecter et utiliser l'application. Les
+            autres voient le message ci-dessous.
+          </p>
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>Message affiché (facultatif)</mat-label>
+            <textarea matInput rows="3" formControlName="maintenanceMessage"
+                      placeholder="L'application est en maintenance. Merci de revenir un peu plus tard."></textarea>
+          </mat-form-field>
+        </section>
+      </div>
+
+      <div class="save-bar">
+        @if (d.updatedByEmail) {
+          <span class="card__hint">Modifié le {{ d.updatedAt | date: 'dd/MM/yyyy à HH:mm' }} par {{ d.updatedByEmail }}</span>
+        }
+        <button mat-flat-button type="submit" [disabled]="saving() || form.pristine">
+          @if (saving()) {
+            <mat-spinner diameter="20" />
+          } @else {
+            Enregistrer
+          }
+        </button>
+      </div>
+    </form>
+  }
+</section>

@@ -1,6 +1,5 @@
 package cm.aekd.tontine.auth;
 
-import cm.aekd.tontine.security.JwtProperties;
 import cm.aekd.tontine.user.User;
 import cm.aekd.tontine.user.UserStatus;
 import org.springframework.http.HttpStatus;
@@ -19,7 +18,8 @@ import java.util.HexFormat;
 
 /**
  * Session longue sur l'appareil (decisions.md n° 54) : un jeton de
- * renouvellement aléatoire, valable 30 jours (réglable), remplacé à chaque
+ * renouvellement aléatoire, valable 30 jours (réglable par le super
+ * administrateur, n° 57), remplacé à chaque
  * utilisation. Un compte qui n'est plus actif ne peut plus renouveler.
  */
 @Service
@@ -29,11 +29,11 @@ public class RefreshTokenService {
     private static final SecureRandom RANDOM = new SecureRandom();
 
     private final RefreshTokenRepository repository;
-    private final JwtProperties properties;
+    private final cm.aekd.tontine.settings.SystemSettingsService settings;
 
-    public RefreshTokenService(RefreshTokenRepository repository, JwtProperties properties) {
+    public RefreshTokenService(RefreshTokenRepository repository, cm.aekd.tontine.settings.SystemSettingsService settings) {
         this.repository = repository;
-        this.properties = properties;
+        this.settings = settings;
     }
 
     /** Nouveau jeton pour l'utilisateur ; renvoie la valeur à remettre à l'appareil. */
@@ -44,7 +44,7 @@ public class RefreshTokenService {
         RANDOM.nextBytes(bytes);
         String raw = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
         repository.save(new RefreshToken(user, hash(raw),
-                now.plus(Duration.ofDays(properties.getRefreshTokenDays()))));
+                now.plus(Duration.ofDays(settings.sessionDays()))));
         return raw;
     }
 

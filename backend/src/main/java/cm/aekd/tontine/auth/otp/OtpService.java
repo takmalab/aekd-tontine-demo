@@ -50,11 +50,15 @@ public class OtpService {
     private final AuthService authService;
     private final AuditLogService auditLogService;
     private final OtpProperties properties;
+    /** Règles réglables par le super administrateur (decisions.md n° 57), sinon OtpProperties. */
+    private final cm.aekd.tontine.settings.SystemSettingsService settings;
     private final SecureRandom random = new SecureRandom();
 
     public OtpService(OtpChallengeRepository challengeRepository, UserRepository userRepository,
                       PasswordEncoder passwordEncoder, SmsSender smsSender, AuthService authService,
-                      AuditLogService auditLogService, OtpProperties properties) {
+                      AuditLogService auditLogService, OtpProperties properties,
+                      cm.aekd.tontine.settings.SystemSettingsService settings) {
+        this.settings = settings;
         this.challengeRepository = challengeRepository;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
@@ -71,14 +75,14 @@ public class OtpService {
 
         challengeRepository.findFirstByPhoneOrderByCreatedAtDesc(phone).ifPresent(last -> {
             Duration elapsed = Duration.between(last.getCreatedAt(), now);
-            if (elapsed.compareTo(properties.getResendCooldown()) < 0) {
-                long wait = properties.getResendCooldown().minus(elapsed).toSeconds() + 1;
+            if (elapsed.compareTo(settings.otpResendCooldown()) < 0) {
+                long wait = settings.otpResendCooldown().minus(elapsed).toSeconds() + 1;
                 throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,
                         "Patientez " + wait + " seconde(s) avant de demander un nouveau code");
             }
         });
         if (challengeRepository.countByPhoneAndCreatedAtAfter(phone, now.minus(Duration.ofHours(1)))
-                >= properties.getMaxRequestsPerHour()) {
+                >= settings.otpMaxRequestsPerHour()) {
             throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,
                     "Trop de demandes de code pour ce numéro. Réessayez plus tard ou connectez-vous avec votre email");
         }
@@ -93,11 +97,11 @@ public class OtpService {
 
         challengeRepository.consumeAllActive(phone, now);
         OtpChallenge challenge = challengeRepository.save(new OtpChallenge(phone, user,
-                passwordEncoder.encode(code), now.plus(properties.getTtl())));
+                passwordEncoder.encode(code), now.plus(settings.otpTtl())));
 
         if (user != null) {
             try {
-                smsSender.sendLoginCode(phone, code, properties.getTtl(), challenge.getId().toString());
+                smsSender.sendLoginCode(phone, code, settings.otpTtl(), challenge.getId().toString());
             } catch (SmsSendException e) {
                 log.error("Envoi du code OTP impossible vers {} : {}", phone, e.getMessage());
                 // Exception => rollback : le code non reçu n'est pas conservé (il ne bloque pas une
@@ -109,7 +113,7 @@ public class OtpService {
 
         return new OtpRequestResponse(phone,
                 "Si ce numéro est associé à un compte actif, un code de connexion vient de lui être envoyé par SMS.",
-                properties.getTtl().toSeconds(), properties.getResendCooldown().toSeconds());
+                settings.otpTtl().toSeconds(), settings.otpResendCooldown().toSeconds());
     }
 
     public LoginResponse verifyCode(OtpVerifyRequest request) {
@@ -122,7 +126,7 @@ public class OtpService {
 
         if (!passwordEncoder.matches(request.code(), challenge.getCodeHash())) {
             challenge.registerFailedAttempt();
-            int remaining = properties.getMaxAttempts() - challenge.getAttempts();
+            int remaining = settings.otpMaxAttempts() - challenge.getAttempts();
             if (remaining <= 0) {
                 challenge.consume();
                 throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,

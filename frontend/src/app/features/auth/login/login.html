@@ -35,6 +35,13 @@
       <h2 class="panel__title">Bienvenue</h2>
       <p class="panel__subtitle">Connectez-vous à votre espace tontine.</p>
 
+      @if (maintenanceMessage(); as message) {
+        <p class="form__error" role="status">
+          <mat-icon>construction</mat-icon>
+          <span>{{ message }}</span>
+        </p>
+      }
+
       <div class="method" role="tablist" aria-label="Méthode de connexion">
         <button
           type="button"

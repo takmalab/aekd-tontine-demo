@@ -89,7 +89,7 @@ public class ReceiptDocumentService {
 
         pdf.signatures("Le trésorier", "Le membre");
         pdf.note("Ce reçu atteste qu'un paiement déclaré par le membre a été vérifié et validé par la trésorerie de l'"
-                + AekdPdf.ASSOCIATION_SHORT + ". Il est généré électroniquement et peut être reproduit à l'identique.");
+                + AekdPdf.associationShortName() + ". Il est généré électroniquement et peut être reproduit à l'identique.");
 
         return new GeneratedDocument("recu-paiement-" + number.toLowerCase() + ".pdf", pdf.finish());
     }

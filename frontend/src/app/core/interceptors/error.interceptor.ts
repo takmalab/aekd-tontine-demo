@@ -18,6 +18,12 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
+      // Maintenance (decisions.md n° 57) : retour à la connexion, qui affiche le message.
+      if (error.status === 503 && error.error?.maintenance) {
+        authService.clearSession();
+        router.navigate(['/login']);
+        return throwError(() => error);
+      }
       // Les appels d'authentification gèrent eux-mêmes leurs erreurs (pas de boucle).
       if (error.status !== 401 || req.url.includes('/auth/')) {
         return throwError(() => error);

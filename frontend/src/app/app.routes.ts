@@ -139,6 +139,13 @@ export const routes: Routes = [
           import('./features/settings/sms-settings-page/sms-settings-page').then((m) => m.SmsSettingsPage),
       },
       {
+        path: 'settings/system',
+        canActivate: [roleGuard],
+        data: { roles: ['SUPER_ADMIN'] },
+        loadComponent: () =>
+          import('./features/settings/system-settings-page/system-settings-page').then((m) => m.SystemSettingsPage),
+      },
+      {
         path: 'settings/email',
         canActivate: [roleGuard],
         data: { roles: ['SUPER_ADMIN'] },

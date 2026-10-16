@@ -53,12 +53,15 @@ public class EmailCodeService {
     private final AuditLogService auditLogService;
     private final CurrentUserProvider currentUserProvider;
     private final OtpProperties properties;
+    /** Règles réglables par le super administrateur (decisions.md n° 57), sinon OtpProperties. */
+    private final cm.aekd.tontine.settings.SystemSettingsService settings;
     private final SecureRandom random = new SecureRandom();
 
     public EmailCodeService(EmailCodeRepository repository, UserRepository userRepository,
                             PasswordEncoder passwordEncoder, EmailSender emailSender, AuthService authService,
                             AuditLogService auditLogService, CurrentUserProvider currentUserProvider,
-                            OtpProperties properties) {
+                            OtpProperties properties, cm.aekd.tontine.settings.SystemSettingsService settings) {
+        this.settings = settings;
         this.repository = repository;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
@@ -146,8 +149,8 @@ public class EmailCodeService {
         Instant now = Instant.now();
         repository.consumeAllActive(email, purpose, now);
         repository.save(new EmailCode(user, email, purpose, passwordEncoder.encode(code),
-                now.plus(properties.getTtl())));
-        long minutes = properties.getTtl().toMinutes();
+                now.plus(settings.otpTtl())));
+        long minutes = settings.otpTtl().toMinutes();
         String subject = purpose == Purpose.VERIFY
                 ? "AEKD Tontine – confirmez votre adresse : " + code
                 : "AEKD Tontine – votre code de connexion : " + code;
@@ -179,7 +182,7 @@ public class EmailCodeService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, INVALID_CODE));
         if (code == null || !passwordEncoder.matches(code, challenge.getCodeHash())) {
             challenge.registerFailedAttempt();
-            int remaining = properties.getMaxAttempts() - challenge.getAttempts();
+            int remaining = settings.otpMaxAttempts() - challenge.getAttempts();
             if (remaining <= 0) {
                 challenge.consume();
                 throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
@@ -209,7 +212,7 @@ public class EmailCodeService {
                 .map(EmailCode::getCreatedAt)
                 .ifPresent(last -> cooldown(last, now));
         if (repository.countByEmailAndCreatedAtAfter(email, now.minus(Duration.ofHours(1)))
-                >= properties.getMaxRequestsPerHour()) {
+                >= settings.otpMaxRequestsPerHour()) {
             throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,
                     "Trop de demandes de code pour cette adresse. Réessayez plus tard");
         }
@@ -217,15 +220,15 @@ public class EmailCodeService {
 
     private void cooldown(Instant last, Instant now) {
         Duration elapsed = Duration.between(last, now);
-        if (elapsed.compareTo(properties.getResendCooldown()) < 0) {
-            long wait = properties.getResendCooldown().minus(elapsed).toSeconds() + 1;
+        if (elapsed.compareTo(settings.otpResendCooldown()) < 0) {
+            long wait = settings.otpResendCooldown().minus(elapsed).toSeconds() + 1;
             throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,
                     "Patientez " + wait + " seconde(s) avant de demander un nouveau code");
         }
     }
 
     private CodeSent sent(String email, String message) {
-        return new CodeSent(email, message, properties.getTtl().toSeconds(), properties.getResendCooldown().toSeconds());
+        return new CodeSent(email, message, settings.otpTtl().toSeconds(), settings.otpResendCooldown().toSeconds());
     }
 
     private Optional<User> findUser(String email) {

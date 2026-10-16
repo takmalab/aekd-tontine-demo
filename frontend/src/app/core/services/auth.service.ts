@@ -100,6 +100,13 @@ export class AuthService {
     return this.http.post<void>(`${environment.apiUrl}/profile/email/verify`, { code });
   }
 
+  /** Information publique : nom de l'association et maintenance (decisions.md n° 57). */
+  publicInfo(): Observable<{ associationName: string; maintenance: boolean; maintenanceMessage: string | null }> {
+    return this.http.get<{ associationName: string; maintenance: boolean; maintenanceMessage: string | null }>(
+      `${environment.apiUrl}/public/info`,
+    );
+  }
+
   register(request: RegisterRequest): Observable<RegisterResponse> {
     return this.http.post<RegisterResponse>(`${environment.apiUrl}/auth/register`, request);
   }

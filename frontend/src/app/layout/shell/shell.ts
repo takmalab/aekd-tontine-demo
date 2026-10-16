@@ -92,6 +92,7 @@ const NAV_GROUPS: NavGroup[] = [
     icon: 'settings',
     items: [
       { label: 'Politiques de prêt', path: '/loan-policies', icon: 'policy' },
+      { label: 'Paramètres système', path: '/settings/system', icon: 'tune', roles: ['SUPER_ADMIN'] },
       { label: 'Paramètres SMS', path: '/settings/sms', icon: 'sms', roles: ['SUPER_ADMIN'] },
       { label: 'Paramètres e-mail', path: '/settings/email', icon: 'mail', roles: ['SUPER_ADMIN'] },
       { label: 'Notifications', path: '/notifications', icon: 'notifications' },

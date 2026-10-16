@@ -39,6 +39,8 @@ export class Login {
   private readonly router = inject(Router);
 
   readonly loading = signal(false);
+  /** Mode maintenance (decisions.md n° 57) : message affiché en haut du formulaire. */
+  readonly maintenanceMessage = signal<string | null>(null);
   readonly errorMessage = signal<string | null>(null);
   readonly showPassword = signal(false);
 
@@ -74,6 +76,10 @@ export class Login {
 
   constructor() {
     inject(DestroyRef).onDestroy(() => this.stopResendTimer());
+    this.authService.publicInfo().subscribe({
+      next: (info) => this.maintenanceMessage.set(info.maintenance ? info.maintenanceMessage : null),
+      error: () => this.maintenanceMessage.set(null),
+    });
   }
 
   selectMethod(method: LoginMethod): void {

@@ -20,9 +20,11 @@ public class AuthService {
     private final JwtService jwtService;
 
     private final RefreshTokenService refreshTokenService;
+    private final cm.aekd.tontine.settings.SystemSettingsService settings;
 
     public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService,
-                       RefreshTokenService refreshTokenService) {
+                       RefreshTokenService refreshTokenService, cm.aekd.tontine.settings.SystemSettingsService settings) {
+        this.settings = settings;
         this.refreshTokenService = refreshTokenService;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
@@ -65,6 +67,11 @@ public class AuthService {
         List<String> roles = user.getRoles().stream()
                 .map(role -> role.getName().name())
                 .toList();
+        // Maintenance (decisions.md n° 57) : seul le super administrateur entre, quelle que soit
+        // la méthode (mot de passe, code SMS ou e-mail, renouvellement de session).
+        if (settings.maintenanceEnabled() && !roles.contains("SUPER_ADMIN")) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, settings.maintenanceMessage());
+        }
 
         String token = jwtService.generateToken(user.getEmail(), roles);
 

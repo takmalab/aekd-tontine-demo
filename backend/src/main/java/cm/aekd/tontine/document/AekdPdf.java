@@ -34,8 +34,31 @@ import java.util.List;
  */
 public final class AekdPdf {
 
-    public static final String ASSOCIATION_NAME = "Amicale des Enfants Kamkop de Douala";
-    public static final String ASSOCIATION_SHORT = "AEKD";
+    public static final String DEFAULT_ASSOCIATION_NAME = "Amicale des Enfants Kamkop de Douala";
+    public static final String DEFAULT_ASSOCIATION_SHORT = "AEKD";
+
+    /**
+     * Identité de l'association sur les PDF, réglée par le super administrateur
+     * (decisions.md n° 57). {@code logo} null = logo par défaut ; {@code contactLine}
+     * (adresse · téléphone · e-mail) affichée en pied de page si présente.
+     */
+    public record Branding(String name, String shortName, String contactLine, byte[] logo) {
+    }
+
+    private static volatile Branding branding =
+            new Branding(DEFAULT_ASSOCIATION_NAME, DEFAULT_ASSOCIATION_SHORT, null, null);
+
+    public static void applyBranding(Branding value) {
+        branding = value;
+    }
+
+    public static String associationName() {
+        return branding.name();
+    }
+
+    public static String associationShortName() {
+        return branding.shortName();
+    }
 
     public static final Color ORANGE = new Color(0xE8, 0x6E, 0x09);
     public static final Color BROWN = new Color(0xAB, 0x58, 0x3A);
@@ -68,7 +91,7 @@ public final class AekdPdf {
         frame = new Frame(title, generatedBy);
         writer.setPageEvent(frame);
         document.addTitle(title);
-        document.addAuthor(ASSOCIATION_NAME);
+        document.addAuthor(associationName());
         document.addCreator("AEKD-Tontine");
         document.open();
     }
@@ -438,7 +461,7 @@ public final class AekdPdf {
 
             // Logo
             try {
-                Image logo = Image.getInstance(LOGO);
+                Image logo = Image.getInstance(branding.logo() != null ? branding.logo() : LOGO);
                 logo.scaleToFit(62, 54);
                 logo.setAbsolutePosition(left, top - 54);
                 cb.addImage(logo);
@@ -452,11 +475,11 @@ public final class AekdPdf {
             cb.setFontAndSize(BOLD, 12.5f);
             cb.setColorFill(BROWN);
             cb.setTextMatrix(textX, top - 20);
-            cb.showText(ASSOCIATION_NAME.toUpperCase(java.util.Locale.FRANCE));
+            cb.showText(associationName().toUpperCase(java.util.Locale.FRANCE));
             cb.setFontAndSize(REGULAR, 9);
             cb.setColorFill(MUTED);
             cb.setTextMatrix(textX, top - 34);
-            cb.showText(ASSOCIATION_SHORT + " – Gestion de la tontine");
+            cb.showText(associationShortName() + " – Gestion de la tontine");
             cb.endText();
 
             // Titre du document, à droite
@@ -483,7 +506,8 @@ public final class AekdPdf {
             cb.stroke();
 
             String generated = "Généré le " + DocumentFormat.dateTime(java.time.Instant.now())
-                    + (generatedBy != null ? " par " + generatedBy : "") + " – AEKD-Tontine";
+                    + (generatedBy != null ? " par " + generatedBy : "") + " – AEKD-Tontine"
+                    + (branding.contactLine() != null ? "   |   " + branding.contactLine() : "");
             cb.beginText();
             cb.setFontAndSize(REGULAR, 7.5f);
             cb.setColorFill(MUTED);
