@@ -35,4 +35,17 @@ public interface SmsProvider {
      *                          l'envoi ou n'est pas joignable
      */
     void sendLoginCode(String to, String code, Duration validity, String idempotencyKey);
+
+    /** Vrai si le fournisseur sait envoyer un texte libre (notifications, decisions.md n° 58). */
+    default boolean supportsText() {
+        return false;
+    }
+
+    /**
+     * Envoie un texte libre (notification). SCMC Host n'envoie que des modèles
+     * approuvés : il faut un modèle « notification » avec une variable de message.
+     */
+    default void sendText(String to, String text, String idempotencyKey) {
+        throw new SmsSendException(label() + " ne permet pas d'envoyer un texte libre");
+    }
 }

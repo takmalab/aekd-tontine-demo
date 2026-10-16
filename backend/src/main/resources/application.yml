@@ -47,6 +47,10 @@ server:
     min-response-size: 2KB
 
 app:
+  # Adresse publique de l'application, pour les liens des e-mails de notification
+  # (decisions.md n° 58). Vide = pas de lien.
+  public-url: ${APP_PUBLIC_URL:}
+
   jwt:
     secret: ${APP_JWT_SECRET:dev-only-secret-please-change-me-aekd-tontine-mvp}
     expiration-minutes: ${APP_JWT_EXPIRATION_MINUTES:60}
@@ -92,6 +96,10 @@ app:
       validity-variable: ${SCMCHOST_OTP_VALIDITY_VARIABLE:TEMPS}
       app-name-variable: ${SCMCHOST_OTP_APP_NAME_VARIABLE:NOM_APP}
       app-name: ${SCMCHOST_OTP_APP_NAME:AEKD Tontine}
+      # Modele approuve pour les notifications SMS (decisions.md n° 58) et sa variable de texte.
+      # Vide = pas de notification SMS par SCMC Host.
+      notify-template-id: ${SCMCHOST_NOTIFY_TEMPLATE_ID:}
+      notify-message-variable: ${SCMCHOST_NOTIFY_MESSAGE_VARIABLE:MESSAGE}
 
   # E-mails (decisions.md n° 55) : "log" = simulation (e-mail ecrit dans les journaux),
   # "brevo" = envoi reel par l'API Brevo. Secret : uniquement par variable d'environnement.

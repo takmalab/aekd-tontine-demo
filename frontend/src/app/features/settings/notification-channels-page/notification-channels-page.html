@@ -1,0 +1,86 @@
+<section class="page">
+  <header class="page__header">
+    <h1 class="page__title">Notifications e-mail et SMS</h1>
+    <p class="page__subtitle">
+      Choisissez, pour chaque action, si les personnes concernées sont aussi prévenues par e-mail et/ou par SMS. La
+      notification dans l'application est toujours envoyée.
+    </p>
+  </header>
+
+  @if (loading()) {
+    <div class="state"><mat-spinner diameter="40" /></div>
+  } @else if (loadError()) {
+    <div class="state state--card">
+      <mat-icon class="state__icon state__icon--brown">cloud_off</mat-icon>
+      <p class="state__title">Impossible de charger les notifications</p>
+      <button mat-stroked-button (click)="load()"><mat-icon>refresh</mat-icon> Réessayer</button>
+    </div>
+  } @else if (status(); as s) {
+    <div class="status-cards">
+      <p class="status-card" [class.status-card--ok]="s.emailLive">
+        <mat-icon>mail</mat-icon>
+        <span>
+          {{ s.emailLive ? 'Les e-mails partent réellement (Brevo).' : 'E-mails en simulation : rien ne part (Paramètres e-mail).' }}
+          Seules les adresses <strong>vérifiées</strong> reçoivent un e-mail.
+        </span>
+      </p>
+      <p class="status-card" [class.status-card--ok]="s.smsLive">
+        <mat-icon>sms</mat-icon>
+        <span>{{ s.smsStatus }} Chaque SMS est facturé.</span>
+      </p>
+    </div>
+
+    <section class="card">
+      <div class="table-head">
+        <span>Action</span>
+        <span class="col">
+          E-mail
+          <span class="col__all">
+            <button type="button" (click)="setAll('emailEnabled', true)">tout</button> ·
+            <button type="button" (click)="setAll('emailEnabled', false)">aucun</button>
+          </span>
+        </span>
+        <span class="col">
+          SMS
+          <span class="col__all">
+            <button type="button" (click)="setAll('smsEnabled', true)">tout</button> ·
+            <button type="button" (click)="setAll('smsEnabled', false)">aucun</button>
+          </span>
+        </span>
+      </div>
+
+      @for (group of groups(); track group.title) {
+        <h2 class="group">{{ group.title }}</h2>
+        @for (row of group.rows; track row.type) {
+          <div class="row">
+            <span class="row__label">
+              <mat-icon>{{ styles[row.type]?.icon ?? 'notifications' }}</mat-icon>
+              {{ info(row.type).label }}
+            </span>
+            <span class="col">
+              <mat-slide-toggle [checked]="row.emailEnabled" (change)="toggle(row.type, 'emailEnabled', $event.checked)"
+                                [attr.aria-label]="'E-mail : ' + info(row.type).label" />
+            </span>
+            <span class="col">
+              <mat-slide-toggle [checked]="row.smsEnabled" (change)="toggle(row.type, 'smsEnabled', $event.checked)"
+                                [attr.aria-label]="'SMS : ' + info(row.type).label" />
+            </span>
+          </div>
+        }
+      }
+    </section>
+
+    <div class="save-bar">
+      @if (smsCount() > 0) {
+        <span class="card__hint">{{ smsCount() }} type(s) envoyé(s) par SMS.</span>
+      }
+      <button mat-flat-button type="button" (click)="save()" [disabled]="saving() || !dirty()">
+        @if (saving()) {
+          <mat-spinner diameter="20" />
+        } @else {
+          Enregistrer
+        }
+      </button>
+    </div>
+  }
+</section>

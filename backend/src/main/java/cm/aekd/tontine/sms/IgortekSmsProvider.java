@@ -53,6 +53,20 @@ public class IgortekSmsProvider implements SmsProvider {
 
     @Override
     public void sendLoginCode(String to, String code, Duration validity, String idempotencyKey) {
+        send(to, SmsTexts.loginCode(code, validity), idempotencyKey);
+    }
+
+    @Override
+    public boolean supportsText() {
+        return isConfigured();
+    }
+
+    @Override
+    public void sendText(String to, String text, String idempotencyKey) {
+        send(to, text, idempotencyKey);
+    }
+
+    private void send(String to, String message, String idempotencyKey) {
         if (!isConfigured()) {
             throw new SmsSendException("Igor SMS n'est pas configuré (clé API absente)");
         }
@@ -62,7 +76,7 @@ public class IgortekSmsProvider implements SmsProvider {
                     .header("Authorization", "Bearer " + apiKey)
                     .contentType(MediaType.APPLICATION_JSON)
                     .header("X-Idempotency-Key", idempotencyKey)
-                    .body(Map.of("to", to, "message", SmsTexts.loginCode(code, validity)))
+                    .body(Map.of("to", to, "message", message))
                     .retrieve()
                     .toBodilessEntity();
         } catch (RestClientResponseException e) {

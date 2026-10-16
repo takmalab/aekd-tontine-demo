@@ -61,6 +61,7 @@ export type AuditAction =
   | 'EMAIL_SETTINGS_UPDATED'
   | 'EMAIL_TEST_SENT'
   | 'SYSTEM_SETTINGS_UPDATED'
+  | 'NOTIFICATION_CHANNELS_UPDATED'
   | 'USER_DELETED';
 
 /** Miroir de AuditLogResponse (backend). */
@@ -136,5 +137,6 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   EMAIL_SETTINGS_UPDATED: 'Paramètres e-mail modifiés',
   EMAIL_TEST_SENT: 'E-mail de test',
   SYSTEM_SETTINGS_UPDATED: 'Paramètres système modifiés',
+  NOTIFICATION_CHANNELS_UPDATED: 'Notifications e-mail et SMS modifiées',
   USER_DELETED: 'Compte supprimé',
 };

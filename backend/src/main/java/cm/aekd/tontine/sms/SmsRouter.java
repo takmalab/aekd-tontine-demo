@@ -74,6 +74,26 @@ public class SmsRouter implements SmsSender {
         throw lastFailure;
     }
 
+    /** Notification en texte libre : seuls les fournisseurs qui le permettent sont essayés (n° 58). */
+    @Override
+    public void sendText(String to, String text, String idempotencyKey) {
+        List<SmsProvider> chain = chain().stream().filter(SmsProvider::supportsText).toList();
+        if (chain.isEmpty()) {
+            throw new SmsSendException("Aucun fournisseur SMS actif ne permet d'envoyer une notification");
+        }
+        SmsSendException lastFailure = null;
+        for (SmsProvider provider : chain) {
+            try {
+                provider.sendText(to, text, idempotencyKey);
+                return;
+            } catch (SmsSendException e) {
+                log.error("Échec d'envoi de notification SMS par {} vers {} : {}", provider.id(), to, e.getMessage());
+                lastFailure = e;
+            }
+        }
+        throw lastFailure;
+    }
+
     private List<SmsProvider> chain() {
         SmsProvider active = activeProvider();
         List<SmsProvider> chain = new ArrayList<>(List.of(active));

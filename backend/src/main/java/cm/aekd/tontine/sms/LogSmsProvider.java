@@ -42,4 +42,14 @@ public class LogSmsProvider implements SmsProvider {
     public void sendLoginCode(String to, String code, Duration validity, String idempotencyKey) {
         log.warn("SMS SIMULE (fournisseur log) vers {} : {}", to, SmsTexts.loginCode(code, validity));
     }
+
+    @Override
+    public boolean supportsText() {
+        return true;
+    }
+
+    @Override
+    public void sendText(String to, String text, String idempotencyKey) {
+        log.warn("SMS SIMULE (fournisseur log) vers {} : {}", to, text);
+    }
 }

@@ -64,6 +64,26 @@ public class SmsProperties {
         /** Variable qui reçoit le nom de l'application (ex. {NOM_APP}) ; vide si le modèle n'en a pas. */
         private String appNameVariable = "NOM_APP";
         private String appName = "AEKD Tontine";
+        /** Modèle approuvé pour les notifications (decisions.md n° 58) ; vide = pas de notification par SCMC. */
+        private String notifyTemplateId;
+        /** Variable du modèle de notification qui reçoit le texte. */
+        private String notifyMessageVariable = "MESSAGE";
+
+        public String getNotifyTemplateId() {
+            return notifyTemplateId;
+        }
+
+        public void setNotifyTemplateId(String notifyTemplateId) {
+            this.notifyTemplateId = notifyTemplateId;
+        }
+
+        public String getNotifyMessageVariable() {
+            return notifyMessageVariable;
+        }
+
+        public void setNotifyMessageVariable(String notifyMessageVariable) {
+            this.notifyMessageVariable = notifyMessageVariable;
+        }
 
         public String getBaseUrl() {
             return baseUrl;

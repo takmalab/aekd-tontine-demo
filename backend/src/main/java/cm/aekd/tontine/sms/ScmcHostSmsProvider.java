@@ -83,6 +83,44 @@ public class ScmcHostSmsProvider implements SmsProvider {
         checkAccepted(response);
     }
 
+    @Override
+    public boolean supportsText() {
+        return notBlank(config.getApiKey()) && notBlank(config.getNotifyTemplateId());
+    }
+
+    /** Notification : modèle approuvé « notification », le texte dans sa variable (n° 58). */
+    @Override
+    public void sendText(String to, String text, String idempotencyKey) {
+        if (!supportsText()) {
+            throw new SmsSendException("SCMC Host : aucun modèle de notification configuré (SCMCHOST_NOTIFY_TEMPLATE_ID)");
+        }
+        Map<String, String> variables = new LinkedHashMap<>();
+        variables.put(config.getNotifyMessageVariable(), text);
+        if (notBlank(config.getAppNameVariable())) {
+            variables.put(config.getAppNameVariable(), config.getAppName());
+        }
+        JsonNode response;
+        try {
+            response = restClient.post()
+                    .uri("/messages/send")
+                    .header("X-API-Key", config.getApiKey())
+                    .header("Idempotency-Key", idempotencyKey)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of(
+                            "template_id", config.getNotifyTemplateId(),
+                            "recipients", List.of(to),
+                            "variables", variables))
+                    .retrieve()
+                    .body(JsonNode.class);
+        } catch (RestClientResponseException e) {
+            throw new SmsSendException(describe(e.getStatusCode(), errorOf(e.getResponseBodyAsString()))
+                    + " (HTTP " + e.getStatusCode().value() + ")", e);
+        } catch (RestClientException e) {
+            throw new SmsSendException("SCMC Host injoignable", e);
+        }
+        checkAccepted(response);
+    }
+
     /**
      * Variables du modèle : le code, et selon le modèle la durée de validité et le
      * nom de l'application (ex. « OTP Universel » : {NOM_APP}, {CODE}, {TEMPS}).

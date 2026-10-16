@@ -2066,3 +2066,50 @@ Validé par le propriétaire du projet le 2026-10-16. Écran « Paramètres syst
 * Maintenance : refus à l'émission de tout jeton (mot de passe, codes,
   renouvellement) et réponse 503 `maintenance: true` sur l'API pour toute
   session autre que celle du super administrateur.
+
+---
+
+# 58. Notifications par e-mail et SMS
+
+## Question
+
+Faut-il prévenir les membres par e-mail et SMS, en plus de la notification dans
+l'application, et pour quelles actions ?
+
+## Statut
+
+```text
+DÉCIDÉ
+```
+
+## Décision
+
+Validé par le propriétaire du projet le 2026-10-16.
+
+* Écran « Notifications e-mail et SMS » (super administrateur) : pour chaque type
+  de notification (paiement validé, prêt approuvé, sanction appliquée, demande
+  de prêt…), l'**e-mail** et le **SMS** s'activent **séparément**. Tout est
+  désactivé au départ. La notification dans l'application est toujours envoyée.
+* Réglage **global** : les membres ne peuvent pas refuser ces envois.
+* E-mail : seulement vers une adresse **vérifiée**. SMS : vers le numéro du compte.
+* Les envois partent en arrière-plan après l'action ; un échec n'annule jamais
+  l'action.
+
+## Points à valider
+
+```text
+À VALIDER
+```
+
+* SCMC Host n'envoie que des **modèles approuvés** : il faut lui faire valider
+  un modèle « notification » avec une variable de texte (ex. {MESSAGE}), puis
+  renseigner `SCMCHOST_NOTIFY_TEMPLATE_ID`. Igor SMS envoie du texte libre.
+* Un SMS est limité à 300 caractères (texte tronqué au-delà).
+
+## Conséquence technique
+
+* Table `notification_channel` (V33) ; `GET/PUT /api/settings/notifications`.
+* `ChannelDispatcher` écoute la création des notifications (après validation de
+  la transaction, en tâche de fond) ; `SmsSender.sendText` pour le texte libre.
+* `APP_PUBLIC_URL` : adresse de l'application, pour le lien « Ouvrir dans
+  l'application » des e-mails.
