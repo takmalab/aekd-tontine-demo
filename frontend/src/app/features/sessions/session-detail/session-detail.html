@@ -17,6 +17,15 @@
             <mat-icon>picture_as_pdf</mat-icon>
             Rapport PDF
           </button>
+          <button mat-stroked-button type="button" [matMenuTriggerFor]="shareMenu">
+            <mat-icon>share</mat-icon>
+            WhatsApp
+          </button>
+          <mat-menu #shareMenu="matMenu">
+            <button mat-menu-item (click)="share(s.id, s.label, 'ANNOUNCEMENT')"><mat-icon>campaign</mat-icon> Annonce de la séance</button>
+            <button mat-menu-item (click)="share(s.id, s.label, 'STATUS')"><mat-icon>fact_check</mat-icon> État des cotisations</button>
+            <button mat-menu-item (click)="share(s.id, s.label, 'PAYOUT')"><mat-icon>redeem</mat-icon> Cagnotte remise</button>
+          </mat-menu>
           <button mat-stroked-button type="button" (click)="edit(s)">
             <mat-icon>edit</mat-icon>
             Modifier

@@ -55,6 +55,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class SessionPayoutServiceTest {
 
     @Autowired private SessionPayoutService payoutService;
+    @Autowired private cm.aekd.tontine.share.WhatsappShareService shareService;
     @Autowired private SessionService sessionService;
     @Autowired private ContributionDefinitionService definitionService;
     @Autowired private PaymentService paymentService;
@@ -190,6 +191,22 @@ class SessionPayoutServiceTest {
                 .hasMessageContaining("remise de la cagnotte");
         assertThatThrownBy(() -> sessionService.delete(session.id()))
                 .isInstanceOf(ResponseStatusException.class);
+    }
+
+    @Test
+    void whatsappMessagesSummariseTheSession() {
+        // decisions.md n° 59 : messages à partager par le bureau dans le groupe de la tontine.
+        String announcement = shareService.sessionMessage(session.id(), cm.aekd.tontine.share.WhatsappShareService.Kind.ANNOUNCEMENT);
+        assertThat(announcement).contains("*Séance cagnotte*", "Lieu : Douala", "Cotisation 10 000 : " + cm.aekd.tontine.document.DocumentFormat.fcfa(new BigDecimal(10000)),
+                "Banque / Épargne : montant libre (facultative)");
+
+        String status = shareService.sessionMessage(session.id(), cm.aekd.tontine.share.WhatsappShareService.Kind.STATUS);
+        assertThat(status).contains("*Cotisation 10 000*", "✅ Payé (2) : Test payout-a, Test payout-b");
+
+        payoutService.record(session.id(), request(memberB, 6666));
+        String payout = shareService.sessionMessage(session.id(), cm.aekd.tontine.share.WhatsappShareService.Kind.PAYOUT);
+        assertThat(payout).contains("Collecté : " + cm.aekd.tontine.document.DocumentFormat.fcfa(new BigDecimal(20000)),
+                "Test payout-b : " + cm.aekd.tontine.document.DocumentFormat.fcfa(new BigDecimal(6666)) + " reçus sur " + cm.aekd.tontine.document.DocumentFormat.fcfa(new BigDecimal(6666)) + " ✅");
     }
 
     private PayoutRequest request(Member beneficiary, long amount) {

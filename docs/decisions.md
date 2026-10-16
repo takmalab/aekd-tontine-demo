@@ -2113,3 +2113,41 @@ Validé par le propriétaire du projet le 2026-10-16.
   la transaction, en tâche de fond) ; `SmsSender.sendText` pour le texte libre.
 * `APP_PUBLIC_URL` : adresse de l'application, pour le lien « Ouvrir dans
   l'application » des e-mails.
+
+---
+
+# 59. Partage sur WhatsApp
+
+## Question
+
+Comment informer le groupe WhatsApp de la tontine ?
+
+## Statut
+
+```text
+DÉCIDÉ
+```
+
+## Décision
+
+Validé par le propriétaire du projet le 2026-10-16.
+
+* Pas d'envoi automatique dans le groupe : l'API officielle WhatsApp ne publie
+  pas dans les groupes, et les outils non officiels exposent le numéro à un
+  bannissement.
+* Sur la page d'une séance, le **bureau** (trésorier, administrateurs) a un
+  bouton **WhatsApp** : le message est rédigé, modifiable, puis WhatsApp s'ouvre
+  et on choisit le groupe (ou on copie le texte). Trois messages :
+  * **annonce de la séance** (date, lieu, récepteur, bénéficiaires,
+    cotisations attendues avec montants et échéances) ;
+  * **état des cotisations** (payé, en attente, en partie, en retard, pas encore
+    payé, par cotisation) ;
+  * **cagnotte remise** (collecté, remis, part de chaque bénéficiaire).
+* Écart avec CLAUDE.md : les « notifications WhatsApp » y étaient hors MVP ; un
+  simple partage manuel a été jugé utile et léger.
+
+## Conséquence technique
+
+* `GET /api/sessions/{id}/share/{ANNOUNCEMENT|STATUS|PAYOUT}` (ADMIN, TRESORIER)
+  renvoie le texte ; l'interface ouvre `https://wa.me/?text=…`.
+* Lien vers la séance ajouté si `APP_PUBLIC_URL` est défini.

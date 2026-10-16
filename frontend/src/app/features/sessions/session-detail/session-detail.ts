@@ -6,6 +6,9 @@ import { Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
+import { environment } from '../../../../environments/environment';
+import { WhatsappShareDialog, WhatsappShareData } from '../../../shared/components/whatsapp-share-dialog/whatsapp-share-dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { filter, forkJoin, switchMap } from 'rxjs';
@@ -36,7 +39,7 @@ import { SessionService } from '../session.service';
 
 @Component({
   selector: 'app-session-detail',
-  imports: [RouterLink, DatePipe, MatButtonModule, MatIconModule, MatTooltipModule, PageState],
+  imports: [RouterLink, DatePipe, MatButtonModule, MatIconModule, MatMenuModule, MatTooltipModule, PageState],
   templateUrl: './session-detail.html',
   styleUrl: './session-detail.scss',
 })
@@ -236,5 +239,15 @@ export class SessionDetail implements OnInit {
             { duration: 7000 },
           ),
       });
+  }
+
+  /** Partage sur WhatsApp, par le bureau (decisions.md n° 59). */
+  share(sessionId: string, label: string, kind: 'ANNOUNCEMENT' | 'STATUS' | 'PAYOUT'): void {
+    const titles = { ANNOUNCEMENT: 'Annonce', STATUS: 'État des cotisations', PAYOUT: 'Cagnotte' };
+    const data: WhatsappShareData = {
+      title: titles[kind] + ' – ' + label,
+      url: `${environment.apiUrl}/sessions/${sessionId}/share/${kind}`,
+    };
+    this.dialog.open(WhatsappShareDialog, { data, width: '560px', maxWidth: 'calc(100vw - 24px)', autoFocus: false });
   }
 }
