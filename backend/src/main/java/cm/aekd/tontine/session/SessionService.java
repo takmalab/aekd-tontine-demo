@@ -167,7 +167,7 @@ public class SessionService {
         if (request.contributions() != null) {
             for (ContributionPeriod added : syncContributions(session, request.contributions())) {
                 ContributionDefinition definition = added.getContributionDefinition();
-                notificationService.notifyMembers(participantsOf(definition), NotificationType.SESSION_CONTRIBUTION_ADDED,
+                notificationService.notifyMembers(participantsOf(added),NotificationType.SESSION_CONTRIBUTION_ADDED,
                         "Nouvelle cotisation : " + definition.getName(),
                         "Ajoutée à la séance \"" + session.getLabel() + "\" du "
                                 + session.getSessionDate().format(AUDIT_DATE) + dueDateSuffix(added) + ".",
@@ -228,7 +228,7 @@ public class SessionService {
         Map<UUID, Member> members = new LinkedHashMap<>();
         Map<UUID, Integer> counts = new LinkedHashMap<>();
         for (ContributionPeriod period : periods) {
-            for (Member member : participantsOf(period.getContributionDefinition())) {
+            for (Member member : participantsOf(period)) {
                 members.putIfAbsent(member.getId(), member);
                 counts.merge(member.getId(), 1, Integer::sum);
             }
@@ -243,8 +243,8 @@ public class SessionService {
         });
     }
 
-    private List<Member> participantsOf(ContributionDefinition definition) {
-        return participantRepository.findByContributionDefinitionId(definition.getId()).stream()
+    private List<Member> participantsOf(ContributionPeriod period) {
+        return participantRepository.findForPeriod(period).stream()
                 .map(ContributionParticipant::getMember)
                 .toList();
     }

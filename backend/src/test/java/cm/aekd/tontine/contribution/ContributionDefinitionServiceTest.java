@@ -1,5 +1,8 @@
 package cm.aekd.tontine.contribution;
 
+import cm.aekd.tontine.audit.AuditAction;
+import cm.aekd.tontine.audit.AuditLog;
+import cm.aekd.tontine.audit.AuditLogRepository;
 import cm.aekd.tontine.member.Member;
 import cm.aekd.tontine.member.MemberRepository;
 import cm.aekd.tontine.security.RoleName;
@@ -9,6 +12,7 @@ import cm.aekd.tontine.user.Role;
 import cm.aekd.tontine.user.RoleRepository;
 import cm.aekd.tontine.user.User;
 import cm.aekd.tontine.user.UserRepository;
+import cm.aekd.tontine.user.UserStatus;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,6 +65,9 @@ class ContributionDefinitionServiceTest {
     @Autowired
     private ContributionTransactionRepository transactionRepository;
 
+    @Autowired
+    private AuditLogRepository auditLogRepository;
+
     private Member createMember(RoleName roleName, String emailPrefix) {
         Role role = roleRepository.findByName(roleName).orElseThrow();
         User user = new User(emailPrefix + "@test.aekd.cm", passwordEncoder.encode("x"));
@@ -106,6 +113,85 @@ class ContributionDefinitionServiceTest {
 
         assertThatThrownBy(() -> service.activate(def.id()))
                 .isInstanceOf(ResponseStatusException.class);
+    }
+
+    @Test
+    void participantCanBeAddedToActiveContributionAndIsAudited() {
+        loginAs(RoleName.TRESORIER);
+        Member founder = createMember(RoleName.MEMBRE, "late0");
+        ContributionDefinitionResponse def = service.create(fixedRequest("Cotisation 50 000", 50000));
+        service.addParticipant(def.id(), new MemberRefRequest(founder.getId()));
+        service.activate(def.id());
+
+        // Membre inscrit après la publication de la cotisation.
+        Member newcomer = createMember(RoleName.MEMBRE, "late1");
+        service.addParticipant(def.id(), new MemberRefRequest(newcomer.getId()));
+
+        assertThat(service.listParticipants(def.id()))
+                .extracting(ParticipantResponse::memberId)
+                .containsExactlyInAnyOrder(founder.getId(), newcomer.getId());
+        List<AuditAction> actions = auditLogRepository
+                .findByEntityTypeAndEntityIdOrderByOccurredAtDesc("ContributionDefinition", def.id()).stream()
+                .map(AuditLog::getAction)
+                .toList();
+        // Seul l'ajout fait après activation est tracé, pas celui du brouillon.
+        assertThat(actions).filteredOn(a -> a == AuditAction.CONTRIBUTION_PARTICIPANT_ADDED).hasSize(1);
+
+        loginAsMember(newcomer);
+        assertThat(service.findById(def.id()).id()).isEqualTo(def.id());
+    }
+
+    @Test
+    void lateParticipantCountsFromCurrentSessionOnly() {
+        loginAs(RoleName.TRESORIER);
+        Member founder = createMember(RoleName.MEMBRE, "eff0");
+        ContributionDefinitionResponse def = service.create(fixedRequest("Cotisation 10 000", 10000));
+        service.addParticipant(def.id(), new MemberRefRequest(founder.getId()));
+        service.activate(def.id());
+        LocalDate today = LocalDate.now();
+        Session past = sessionRepository.save(new Session("Passée", today.minusMonths(1), null, null));
+        // Séance en cours : la plus récente déjà tenue, quelques jours avant l'ajout.
+        Session current = sessionRepository.save(new Session("En cours", today.minusDays(3), null, null));
+        Session next = sessionRepository.save(new Session("Prochaine", today.plusMonths(1), null, null));
+        ContributionPeriodResponse pastPeriod = service.addPeriod(def.id(),
+                new ContributionPeriodRequest(past.getId(), today.minusDays(20)));
+        ContributionPeriodResponse currentPeriod = service.addPeriod(def.id(),
+                new ContributionPeriodRequest(current.getId(), today.minusDays(1)));
+        ContributionPeriodResponse nextPeriod = service.addPeriod(def.id(),
+                new ContributionPeriodRequest(next.getId(), null));
+
+        Member newcomer = createMember(RoleName.MEMBRE, "eff1");
+        ParticipantResponse added = service.addParticipant(def.id(), new MemberRefRequest(newcomer.getId()));
+        assertThat(added.effectiveFrom()).isEqualTo(current.getSessionDate());
+        assertThat(service.listParticipantStatuses(def.id(), currentPeriod.id()))
+                .extracting(ParticipantPaymentStatusResponse::memberId)
+                .containsExactlyInAnyOrder(founder.getId(), newcomer.getId());
+        // Participant d'origine : toutes les séances.
+        assertThat(service.listParticipants(def.id()))
+                .filteredOn(p -> p.memberId().equals(founder.getId()))
+                .extracting(ParticipantResponse::effectiveFrom)
+                .containsOnlyNulls();
+
+        // Séance passée : le nouveau venu n'apparaît pas (donc pas « en retard »), le fondateur si.
+        assertThat(service.listParticipantStatuses(def.id(), pastPeriod.id()))
+                .extracting(ParticipantPaymentStatusResponse::memberId)
+                .containsExactly(founder.getId());
+        assertThat(service.listParticipantStatuses(def.id(), nextPeriod.id()))
+                .extracting(ParticipantPaymentStatusResponse::memberId)
+                .containsExactlyInAnyOrder(founder.getId(), newcomer.getId());
+    }
+
+    @Test
+    void pendingAccountCannotBecomeParticipant() {
+        loginAs(RoleName.TRESORIER);
+        Member pending = createMember(RoleName.MEMBRE, "pend1");
+        pending.getUser().setStatus(UserStatus.PENDING_VALIDATION);
+        userRepository.save(pending.getUser());
+        ContributionDefinitionResponse def = service.create(fixedRequest("Ration", 2000));
+
+        assertThatThrownBy(() -> service.addParticipant(def.id(), new MemberRefRequest(pending.getId())))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("pas encore validé");
     }
 
     @Test

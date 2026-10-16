@@ -71,7 +71,8 @@ public class GuarantorStandingService {
                 continue;
             }
             for (ContributionPeriod period : periodRepository.findByContributionDefinitionId(definition.getId())) {
-                if (period.getDueDate() == null || !today.isAfter(period.getDueDate())) {
+                if (period.getDueDate() == null || !today.isAfter(period.getDueDate())
+                        || !participant.appliesTo(period)) {
                     continue;
                 }
                 ContributionPeriodStatus status = periodStatusService.resolve(period, memberId);

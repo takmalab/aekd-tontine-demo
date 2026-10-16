@@ -184,7 +184,8 @@ export class ContributionWizard implements OnInit {
     Promise.all([firstValueFrom(this.memberService.list()), firstValueFrom(this.sessionService.list())])
       .then(([members, sessions]) => {
         this.members.set(
-          members.filter((m) => m.active).sort((a, b) => a.fullName.localeCompare(b.fullName, 'fr')),
+          // Décision n° 60 : pas de compte en attente de validation.
+          members.filter((m) => m.active && m.accountStatus !== 'PENDING_VALIDATION').sort((a, b) => a.fullName.localeCompare(b.fullName, 'fr')),
         );
         this.sessions.set(sessions);
         this.referenceLoading.set(false);

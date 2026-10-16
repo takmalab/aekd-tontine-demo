@@ -104,8 +104,7 @@ public class DashboardService {
             }
 
             if (period.getContributionDefinition().isMandatory()) {
-                List<ContributionParticipant> participants =
-                        participantRepository.findByContributionDefinitionId(period.getContributionDefinition().getId());
+                List<ContributionParticipant> participants = participantRepository.findForPeriod(period);
                 mandatoryExpected += participants.size();
                 for (ContributionParticipant participant : participants) {
                     ContributionPeriodStatus status = periodStatusService.resolve(period, participant.getMember().getId());
@@ -208,8 +207,7 @@ public class DashboardService {
         long optionalCount = 0;
 
         for (ContributionPeriod period : periods) {
-            if (!participantRepository.existsByContributionDefinitionIdAndMemberId(
-                    period.getContributionDefinition().getId(), memberId)) {
+            if (!participantRepository.participatesIn(period, memberId)) {
                 continue;
             }
             if (period.getContributionDefinition().isMandatory()) {

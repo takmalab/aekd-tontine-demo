@@ -79,9 +79,14 @@ public class ManualPaymentService implements PaymentService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN,
                         "Aucun profil membre associé à ce compte"));
 
-        if (!participantRepository.existsByContributionDefinitionIdAndMemberId(contributionDefinitionId, memberId)) {
+        ContributionParticipant participant = participantRepository
+                .findByContributionDefinitionIdAndMemberId(contributionDefinitionId, memberId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "Vous n'êtes pas participant à cette cotisation"));
+        if (!participant.appliesTo(period)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Vous n'êtes pas participant à cette cotisation");
+                    "Vous participez à cette cotisation à partir des séances suivant votre ajout : "
+                            + "cette séance ne vous concerne pas");
         }
 
         BigDecimal amount = resolveAmount(definition, period, memberId, request.amount());

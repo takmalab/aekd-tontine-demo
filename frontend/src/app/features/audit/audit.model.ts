@@ -18,10 +18,15 @@ export type AuditAction =
   | 'CONTRIBUTION_UPDATED'
   | 'CONTRIBUTION_DEACTIVATED'
   | 'CONTRIBUTION_DELETED'
+  | 'CONTRIBUTION_PARTICIPANT_ADDED'
   | 'PAYMENT_DECLARED'
   | 'PAYMENT_VALIDATED'
   | 'PAYMENT_REJECTED'
   | 'SANCTION_RULE_CREATED'
+  | 'SANCTION_RULE_UPDATED'
+  | 'SANCTION_RULE_ACTIVATED'
+  | 'SANCTION_RULE_DEACTIVATED'
+  | 'SANCTION_RULE_DELETED'
   | 'SANCTION_APPLIED'
   | 'SANCTION_CANCELLED'
   | 'LOAN_REQUESTED'
@@ -94,10 +99,15 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   CONTRIBUTION_UPDATED: 'Cotisation modifiée',
   CONTRIBUTION_DEACTIVATED: 'Cotisation désactivée',
   CONTRIBUTION_DELETED: 'Cotisation supprimée',
+  CONTRIBUTION_PARTICIPANT_ADDED: 'Participant ajouté',
   PAYMENT_DECLARED: 'Paiement déclaré',
   PAYMENT_VALIDATED: 'Paiement validé',
   PAYMENT_REJECTED: 'Paiement rejeté',
   SANCTION_RULE_CREATED: 'Règle de sanction créée',
+  SANCTION_RULE_UPDATED: 'Règle de sanction modifiée',
+  SANCTION_RULE_ACTIVATED: 'Règle de sanction réactivée',
+  SANCTION_RULE_DEACTIVATED: 'Règle de sanction désactivée',
+  SANCTION_RULE_DELETED: 'Règle de sanction supprimée',
   SANCTION_APPLIED: 'Sanction appliquée',
   SANCTION_CANCELLED: 'Sanction annulée',
   LOAN_REQUESTED: 'Prêt demandé',

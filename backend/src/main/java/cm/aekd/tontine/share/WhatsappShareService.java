@@ -159,7 +159,7 @@ public class WhatsappShareService {
         for (ContributionPeriod period : periods) {
             ContributionDefinition d = period.getContributionDefinition();
             Map<ContributionPeriodStatus, List<String>> byStatus = new EnumMap<>(ContributionPeriodStatus.class);
-            for (ContributionParticipant participant : participantRepository.findByContributionDefinitionId(d.getId())) {
+            for (ContributionParticipant participant : participantRepository.findForPeriod(period)) {
                 Member member = participant.getMember();
                 byStatus.computeIfAbsent(statusService.resolve(period, member.getId()), s -> new ArrayList<>())
                         .add(member.getFullName());

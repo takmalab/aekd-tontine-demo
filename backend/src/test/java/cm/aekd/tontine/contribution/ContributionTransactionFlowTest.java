@@ -84,12 +84,16 @@ class ContributionTransactionFlowTest {
                 new UsernamePasswordAuthenticationToken(member.getUser().getEmail(), null, authorities));
     }
 
-    private ContributionPeriodResponse setupActiveDefinitionWithParticipant(Member participant) {
+    /** Participants ajoutés avant activation : ils comptent pour toutes les séances (décision n° 60). */
+    private ContributionPeriodResponse setupActiveDefinitionWithParticipant(Member participant, Member... others) {
         loginAsMember(participant, RoleName.TRESORIER);
         ContributionDefinitionResponse def = definitionService.create(new ContributionDefinitionRequest(
                 "Cotisation 50 000", null, new BigDecimal(50000), AmountMode.FIXED,
                 ContributionFrequency.MONTHLY, true, Visibility.PUBLIC, FundDestination.TONTINE_FUND));
         definitionService.addParticipant(def.id(), new MemberRefRequest(participant.getId()));
+        for (Member other : others) {
+            definitionService.addParticipant(def.id(), new MemberRefRequest(other.getId()));
+        }
         definitionService.activate(def.id());
         Session session = sessionRepository.save(
                 new Session("Octobre 2026", LocalDate.of(2026, 10, 1), null, null));
@@ -270,9 +274,7 @@ class ContributionTransactionFlowTest {
         Member full = createMember(RoleName.MEMBRE, "statusfull");
         Member partial = createMember(RoleName.MEMBRE, "statuspartial");
         Member none = createMember(RoleName.MEMBRE, "statusnone");
-        ContributionPeriodResponse period = setupActiveDefinitionWithParticipant(full);
-        definitionService.addParticipant(period.contributionDefinitionId(), new MemberRefRequest(partial.getId()));
-        definitionService.addParticipant(period.contributionDefinitionId(), new MemberRefRequest(none.getId()));
+        ContributionPeriodResponse period = setupActiveDefinitionWithParticipant(full, partial, none);
         Member treasurer = createMember(RoleName.TRESORIER, "tresostatus");
 
         loginAsMember(full, RoleName.MEMBRE);

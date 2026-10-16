@@ -65,8 +65,7 @@ public class ContributionReminderService {
             if (!definition.isMandatory() || definition.getStatus() != ContributionStatus.ACTIVE) {
                 continue;
             }
-            for (ContributionParticipant participant : participantRepository
-                    .findByContributionDefinitionId(definition.getId())) {
+            for (ContributionParticipant participant : participantRepository.findForPeriod(period)) {
                 if (!TO_REMIND.contains(periodStatusService.resolve(period, participant.getMember().getId()))
                         || !markSent(period, participant)) {
                     continue;

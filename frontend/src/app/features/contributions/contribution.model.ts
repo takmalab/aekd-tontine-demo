@@ -43,6 +43,12 @@ export interface ContributionMemberLink {
   id: string;
   memberId: string;
   memberFullName: string;
+  /**
+   * Participants uniquement (décision n° 60) : pour un membre ajouté après la publication,
+   * date de la séance en cours lors de l'ajout ; il compte pour cette séance et les suivantes.
+   * Null : toutes les séances.
+   */
+  effectiveFrom?: string | null;
 }
 
 /** Miroir de ContributionPeriodRequest (backend). */

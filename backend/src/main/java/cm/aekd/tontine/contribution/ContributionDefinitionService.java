@@ -8,12 +8,14 @@ import cm.aekd.tontine.member.MemberRepository;
 import cm.aekd.tontine.sanction.AppliedSanctionRepository;
 import cm.aekd.tontine.session.Session;
 import cm.aekd.tontine.session.SessionRepository;
+import cm.aekd.tontine.user.UserStatus;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -200,8 +202,36 @@ public class ContributionDefinitionService {
         if (participantRepository.existsByContributionDefinitionIdAndMemberId(definitionId, member.getId())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Ce membre est déjà participant à cette cotisation");
         }
-        ContributionParticipant participant = new ContributionParticipant(definition, member);
-        return ParticipantResponse.from(participantRepository.save(participant));
+        // Décision n° 60 : un compte inscrit mais pas encore validé ne peut pas être participant.
+        if (member.getUser().getStatus() == UserStatus.PENDING_VALIDATION) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Le compte de ce membre n'est pas encore validé par l'administrateur");
+        }
+
+        // Décision n° 60 : ajouté après la publication (ex. membre nouvellement inscrit), le membre
+        // compte à partir de la séance en cours ; les séances passées ne le concernent pas. L'ajout
+        // est tracé. Les participants choisis dans l'assistant (brouillon) comptent pour toutes les séances.
+        boolean lateAddition = definition.getStatus() != ContributionStatus.DRAFT;
+        ContributionParticipant participant = participantRepository.save(
+                new ContributionParticipant(definition, member, lateAddition ? currentSessionDate() : null));
+
+        if (lateAddition) {
+            auditLogService.record(AuditAction.CONTRIBUTION_PARTICIPANT_ADDED, "ContributionDefinition",
+                    definition.getId(), "Ajout de " + member.getFullName()
+                            + " aux participants de la cotisation \"" + definition.getName() + "\"");
+        }
+        return ParticipantResponse.from(participant);
+    }
+
+    /**
+     * Date de la séance en cours (même définition que le tableau de bord : la plus récente
+     * tenue au plus tard aujourd'hui) ; aujourd'hui si aucune séance n'a encore eu lieu.
+     */
+    private LocalDate currentSessionDate() {
+        LocalDate today = LocalDate.now();
+        return sessionRepository.findFirstBySessionDateLessThanEqualOrderBySessionDateDesc(today)
+                .map(Session::getSessionDate)
+                .orElse(today);
     }
 
     public List<ParticipantResponse> listParticipants(UUID definitionId) {
@@ -262,7 +292,7 @@ public class ContributionDefinitionService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Période introuvable"));
         BigDecimal due = definition.getAmountMode() == AmountMode.FIXED ? definition.getAmount() : null;
 
-        return participantRepository.findByContributionDefinitionId(definitionId).stream()
+        return participantRepository.findForPeriod(period).stream()
                 .map(participant -> {
                     UUID memberId = participant.getMember().getId();
                     return new ParticipantPaymentStatusResponse(

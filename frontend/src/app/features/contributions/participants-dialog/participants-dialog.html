@@ -1,0 +1,69 @@
+<div class="dialog-head">
+  <span class="dialog-head__icon"><mat-icon>group_add</mat-icon></span>
+  <div>
+    <h2 mat-dialog-title class="dialog-head__title">Ajouter des participants</h2>
+    <p class="dialog-head__subtitle">{{ data.definition.name }} · {{ participantCount() }} participant(s) actuel(s)</p>
+  </div>
+</div>
+
+<mat-dialog-content class="dialog-body">
+  @if (loading()) {
+    <div class="state"><mat-spinner diameter="32" /></div>
+  } @else if (loadError()) {
+    <div class="state">
+      <p>Impossible de charger les membres.</p>
+      <button mat-stroked-button type="button" (click)="load()"><mat-icon>refresh</mat-icon> Réessayer</button>
+    </div>
+  } @else if (candidates().length === 0) {
+    <div class="state">
+      <mat-icon class="state__icon">how_to_reg</mat-icon>
+      <p>Tous les membres actifs participent déjà à cette cotisation.</p>
+      <p>Un compte en attente de validation doit d'abord être validé dans « Utilisateurs ».</p>
+    </div>
+  } @else {
+    <p class="hint">
+      @if (data.definition.status === 'DRAFT') {
+        Les membres ajoutés compteront pour toutes les séances de la cotisation.
+      } @else {
+        Les membres ajoutés comptent dès la séance en cours ; les séances passées ne les concernent pas
+        (ni retard, ni sanction).
+      }
+      Les comptes en attente de validation ne sont pas proposés.
+    </p>
+    <div class="picker">
+      <div class="picker__bar">
+        <span class="picker__count">{{ selectedCount() }} / {{ candidates().length }} sélectionné(s)</span>
+        <span>
+          <button mat-button type="button" (click)="selectAll()">Tous</button>
+          <button mat-button type="button" (click)="clearAll()">Aucun</button>
+        </span>
+      </div>
+      <mat-selection-list [formControl]="selected" class="picker__list">
+        @for (member of candidates(); track member.id) {
+          <mat-list-option [value]="member.id" togglePosition="before">
+            <span matListItemTitle>{{ member.fullName }}</span>
+            <span matListItemLine class="muted">{{ member.email }}</span>
+          </mat-list-option>
+        }
+      </mat-selection-list>
+    </div>
+  }
+
+  @if (errorMessage(); as message) {
+    <p class="notice notice--error" role="alert">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ message }}</span>
+    </p>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end" class="dialog-actions">
+  <button mat-button type="button" [disabled]="saving()" (click)="cancel()">Annuler</button>
+  <button mat-flat-button type="button" [disabled]="saving() || selectedCount() === 0" (click)="submit()">
+    @if (saving()) {
+      <mat-spinner diameter="20" />
+    } @else {
+      Ajouter
+    }
+  </button>
+</mat-dialog-actions>

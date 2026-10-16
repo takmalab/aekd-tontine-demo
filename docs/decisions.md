@@ -647,8 +647,8 @@ initial pour ajouter un export **CSV** côté frontend sur les écrans Membres,
 Utilisateurs et Journal d'audit.
 
 Un export Excel (`.xlsx`) reste **hors périmètre** tant qu'il n'est pas
-explicitement redemandé. L'export **PDF** a été demandé le 2026-10-03 : voir la
-décision n° 37.
+explicitement redemandé (redemandé le 2026-10-16 : voir la décision n° 62).
+L'export **PDF** a été demandé le 2026-10-03 : voir la décision n° 37.
 
 ## Conséquence technique
 
@@ -2154,3 +2154,221 @@ Validé par le propriétaire du projet le 2026-10-16.
   cotisation » vers /my-contributions), `#cagnotte`. Sans session, connexion puis retour à la page demandée.
 * **Tournoi** : l'ordre de passage se partage sur WhatsApp (`GET /api/tournaments/{id}/share`) et
   s'exporte en PDF (`GET /api/documents/tournaments/{id}/order`).
+
+---
+
+# 60. Ajouter un participant à une cotisation existante
+
+## Question
+
+Comment inscrire à une cotisation déjà créée un membre arrivé après sa création
+(par exemple un membre qui vient de s'inscrire) ? Pour quelles séances compte-t-il ?
+
+## Statut
+
+```text
+DÉCIDÉ
+```
+
+## Décision
+
+Demandé et validé par le propriétaire du projet le 2026-10-16.
+
+* Sur la page d'une cotisation, le **bureau** (trésorier, administrateurs) a un
+  bouton **« Ajouter des participants »**, quel que soit le statut de la
+  cotisation (brouillon, active, désactivée).
+* La fenêtre ne propose que les membres **actifs**, au **compte validé**, qui ne
+  sont **pas encore** participants ; on peut en cocher plusieurs.
+* Un compte **inscrit mais pas encore validé** par l'administrateur ne peut pas
+  être participant (ni dans cette fenêtre, ni dans l'assistant de création).
+* Un membre ajouté **après la publication** de la cotisation compte
+  **directement pour la séance en cours** et les suivantes ; les séances
+  passées ne le concernent pas. La séance en cours est celle du tableau de
+  bord : la plus récente déjà tenue (date ≤ jour de l'ajout) ; s'il n'y en a
+  aucune, le jour de l'ajout. Pour les séances antérieures, il n'apparaît pas
+  parmi les participants : ni montant attendu, ni retard, ni sanction, ni
+  rappel, et il ne peut pas y déclarer de paiement.
+* Les participants choisis pendant la création (cotisation en brouillon)
+  comptent pour toutes les séances, comme avant.
+* Un ajout fait après la publication est inscrit au journal d'audit
+  (« Participant ajouté »).
+* Le retrait d'un participant n'est pas prévu.
+
+## Points à valider
+
+```text
+À VALIDER
+```
+
+* Les participants ajoutés tardivement **avant** cette décision n'ont pas de
+  date d'ajout enregistrée : ils restent comptés pour toutes les séances.
+
+## Conséquence technique (réalisée le 2026-10-16)
+
+* Migration V34 : `contribution_participant.effective_from` = date de la séance
+  en cours lors de l'ajout (nulle pour un participant d'origine) ;
+  `ContributionParticipant.appliesTo(period)`.
+* `ContributionParticipantRepository.findForPeriod` / `participatesIn`, utilisés
+  pour la situation des participants, la déclaration de paiement, les tableaux
+  de bord, les sanctions (candidats et application), les rappels, la
+  notification de nouvelle séance, l'état WhatsApp et la règle « à jour » de
+  l'avaliste.
+* `POST /api/contributions/{id}/participants` refuse (409) un compte
+  `PENDING_VALIDATION` ; `MemberResponse.accountStatus` et
+  `ParticipantResponse.effectiveFrom` exposés à l'interface.
+* `AuditAction.CONTRIBUTION_PARTICIPANT_ADDED` (cotisation non brouillon).
+* Interface : `ParticipantsDialog` depuis la page d'une cotisation ; « Mes
+  cotisations » masque les séances antérieures à la séance en cours lors de l'ajout.
+
+---
+
+# 61. Modifier, désactiver ou supprimer une règle de sanction
+
+## Question
+
+Comment corriger une règle de sanction, l'arrêter ou la retirer ?
+
+## Statut
+
+```text
+DÉCIDÉ
+```
+
+## Décision
+
+Demandé par le propriétaire du projet le 2026-10-16. Mêmes principes que pour
+les cotisations (décisions n° 35 et 36) : rien de ce qui a déjà été appliqué ne
+change.
+
+* Sur la page « Sanctions », chaque règle a trois boutons pour le **bureau**
+  (trésorier, administrateurs) : **Modifier**, **Désactiver / Réactiver**,
+  **Supprimer** (avec confirmation).
+* **Modifier** : seuil de retard, montant (sanction monétaire) ou description
+  (sanction en nature). La cotisation de la règle ne change pas. Les sanctions
+  **déjà appliquées gardent** leur montant ou leur description ; seules les
+  prochaines suivent la règle modifiée.
+* Le **type** (monétaire / en nature) peut changer tant qu'aucune sanction n'a
+  été appliquée avec la règle ; ensuite il est figé.
+* **Désactiver** : la règle ne signale plus de membres et ne peut plus être
+  appliquée ; les sanctions déjà appliquées restent dues. Elle peut être
+  réactivée.
+* **Supprimer** : seulement si aucune sanction n'a jamais été appliquée avec la
+  règle (même annulée). Sinon, la désactiver : la suppression effacerait les
+  sanctions et leurs paiements.
+
+## Conséquence technique (réalisée le 2026-10-16)
+
+* `PUT /api/sanctions/{ruleId}`, `PUT /api/sanctions/{ruleId}/activate`,
+  `PUT /api/sanctions/{ruleId}/deactivate`, `DELETE /api/sanctions/{ruleId}`
+  (ADMIN, TRESORIER) ; `409` pour un changement de type ou une suppression
+  d'une règle déjà utilisée.
+* `SanctionRuleResponse.used` ; les candidats d'une règle désactivée sont vides.
+* Audit : `SANCTION_RULE_UPDATED`, `SANCTION_RULE_ACTIVATED`,
+  `SANCTION_RULE_DEACTIVATED`, `SANCTION_RULE_DELETED`.
+
+---
+
+# 62. Export Excel et partage WhatsApp de la liste des sanctions
+
+## Question
+
+Comment sortir la liste des sanctions : PDF, Excel, WhatsApp ?
+
+## Statut
+
+```text
+DÉCIDÉ
+```
+
+## Décision
+
+Demandé par le propriétaire du projet le 2026-10-16.
+
+* Sur la page « Sanctions », la liste des **sanctions appliquées** d'une
+  cotisation (avec le filtre actif : en cours, annulées, toutes) s'exporte en
+  **PDF**, en **Excel** ou en **CSV** (menu « Exporter »), et se partage sur
+  **WhatsApp** (bouton « WhatsApp »).
+* L'export **Excel (.xlsx)** sort du « hors périmètre » de la décision n° 29 :
+  il est ajouté au menu « Exporter » commun, donc disponible sur **tous** les
+  écrans qui ont ce menu (membres, utilisateurs, audit, paiements, prêts…). Les
+  montants y sont de vrais nombres, utilisables dans des calculs.
+* Le message **WhatsApp** suit les règles de la décision n° 59 : rédigé par
+  l'application, modifiable, puis on choisit le groupe ; aucun envoi
+  automatique. Il regroupe les sanctions par séance (membre, montant ou
+  description, ce qui a été payé et ce qui reste), avec le total des sanctions
+  monétaires en cours.
+
+## Points à valider
+
+```text
+À VALIDER
+```
+
+* Le partage WhatsApp rend les sanctions de chaque membre visibles de tout le
+  groupe (lien avec la décision n° 45 sur la visibilité des sanctions). C'est
+  une action manuelle du bureau, qui peut modifier le message avant l'envoi.
+
+## Conséquence technique (réalisée le 2026-10-16)
+
+* Dépendance `org.apache.poi:poi-ooxml` ; `ListExcelExportService` ;
+  `POST /api/documents/exports/xlsx` (ADMIN, TRESORIER), même corps que
+  l'export PDF (`ListExportRequest`).
+* `ExportMenu` : entrée « Excel (.xlsx) » ; `DocumentService.exportListExcel`.
+* `WhatsappShareDialog` accepte un texte déjà rédigé (`text`) en plus d'une
+  adresse d'API (`url`).
+
+---
+
+# 63. Réinitialisation des données par le super administrateur
+
+## Question
+
+Comment repartir d'une base propre, sans les cotisations « 50 000 FCFA »,
+« 10 000 FCFA » et « Ration » de la démonstration, pour que le bureau crée
+lui-même ses cotisations ?
+
+## Statut
+
+```text
+DÉCIDÉ
+```
+
+## Décision
+
+Demandé et validé par le propriétaire du projet le 2026-10-16.
+
+* Constat : ces cotisations ne sont pas codées « par défaut » ; elles viennent
+  des **données de démonstration** (profil `demo`, CLAUDE.md §32). Aucun membre
+  n'est rattaché automatiquement à une cotisation. Elles ne pouvaient pas être
+  supprimées depuis l'écran car elles ont des paiements (décision n° 35).
+* Nouvel écran **Paramètres → Réinitialisation des données**, réservé au
+  **super administrateur**. Choix **par catégories** (cases à cocher), avec le
+  nombre d'éléments de chacune :
+  notifications, tournois, remises de cagnotte, dépenses et virements des
+  comptes, sanctions, prêts, politiques de prêt, épargne, cotisations, séances,
+  **comptes et membres**.
+* Les catégories dont une autre dépend sont **incluses d'office** et affichées :
+  cotisations → sanctions, remises, opérations des comptes ; séances →
+  remises, opérations des comptes ; sanctions → opérations des comptes ;
+  politiques de prêt → prêts.
+* « Comptes et membres » efface tous les comptes **sauf les super
+  administrateurs** (et le compte qui réinitialise), avec tout leur historique
+  (comme la décision n° 41).
+* **Jamais effacés** : super administrateurs, rôles, paramètres du système
+  (association, logo, SMS, e-mail, notifications) et **journal d'audit**, où la
+  réinitialisation est inscrite avec le détail de ce qui a été effacé.
+* Garde-fous : taper **REINITIALISER** et saisir son **mot de passe** ; tout
+  se fait en une seule opération (rien n'est effacé en cas d'erreur).
+* Après une réinitialisation, les **données de démonstration ne reviennent
+  plus jamais**, même au redémarrage du serveur avec le profil `demo`.
+
+## Conséquence technique (réalisée le 2026-10-16)
+
+* Module `reset/` : `DataResetCategory` (catégories, ordre de suppression et
+  dépendances), `DataResetService`, `GET` / `POST /api/settings/data-reset`
+  (SUPER_ADMIN).
+* Migration V35 : `system_settings.data_reset_at` ; `DemoDataSeeder` ne fait
+  plus rien si elle est renseignée.
+* Fichiers justificatifs et photos devenus orphelins supprimés après
+  validation ; audit `DATA_RESET`.
+* Interface : `features/settings/data-reset-page`, menu Paramètres.

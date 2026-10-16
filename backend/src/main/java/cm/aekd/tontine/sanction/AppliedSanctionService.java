@@ -90,10 +90,9 @@ public class AppliedSanctionService {
         Member member = memberRepository.findById(request.memberId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Membre introuvable"));
         checkNotSelf(member);
-        if (!participantRepository.existsByContributionDefinitionIdAndMemberId(
-                rule.getContributionDefinition().getId(), member.getId())) {
+        if (!participantRepository.participatesIn(period, member.getId())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Ce membre n'est pas participant à cette cotisation");
+                    "Ce membre n'est pas participant à cette cotisation pour cette séance");
         }
 
         if (!isEligible(rule, period, member.getId())) {
@@ -212,6 +211,9 @@ public class AppliedSanctionService {
     public List<SanctionCandidateResponse> findCandidates(UUID sanctionRuleId) {
         SanctionRule rule = ruleRepository.findById(sanctionRuleId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Règle de sanction introuvable"));
+        if (!rule.isActive()) {
+            return List.of(); // Règle désactivée (décision n° 61) : plus de candidats.
+        }
         UUID definitionId = rule.getContributionDefinition().getId();
 
         List<ContributionParticipant> participants = participantRepository.findByContributionDefinitionId(definitionId);
@@ -220,6 +222,9 @@ public class AppliedSanctionService {
         List<SanctionCandidateResponse> candidates = new ArrayList<>();
         for (ContributionPeriod period : periods) {
             for (ContributionParticipant participant : participants) {
+                if (!participant.appliesTo(period)) {
+                    continue;
+                }
                 UUID memberId = participant.getMember().getId();
                 boolean alreadySanctioned = appliedRepository.existsBySanctionRuleIdAndMemberIdAndContributionPeriodIdAndStatus(
                         rule.getId(), memberId, period.getId(), AppliedSanctionStatus.APPLIED);

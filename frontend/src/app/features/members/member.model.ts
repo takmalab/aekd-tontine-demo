@@ -1,4 +1,5 @@
 import { SessionSummary } from '../dashboard/dashboard.model';
+import { UserStatus } from '../users/user.model';
 
 /** Miroir de MemberResponse (backend). */
 export interface Member {
@@ -10,6 +11,8 @@ export interface Member {
   joinDate: string;
   active: boolean;
   createdAt: string;
+  /** Un compte PENDING_VALIDATION ne peut pas être participant (décision n° 60). */
+  accountStatus: UserStatus;
 }
 
 /** Miroir de MemberUpdateRequest (backend) : seuls les champs fournis sont appliqués. */

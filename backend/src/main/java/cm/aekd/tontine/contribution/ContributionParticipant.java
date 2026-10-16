@@ -13,6 +13,7 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -39,12 +40,26 @@ public class ContributionParticipant {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    /**
+     * Décision n° 60 : pour un membre ajouté après la publication de la cotisation,
+     * date de la séance en cours lors de son ajout ; il ne compte que pour cette séance et les suivantes.
+     * Null pour un participant d'origine (toutes les séances).
+     */
+    @Column(name = "effective_from")
+    private LocalDate effectiveFrom;
+
     protected ContributionParticipant() {
     }
 
     public ContributionParticipant(ContributionDefinition contributionDefinition, Member member) {
         this.contributionDefinition = contributionDefinition;
         this.member = member;
+    }
+
+    public ContributionParticipant(ContributionDefinition contributionDefinition, Member member,
+                                   LocalDate effectiveFrom) {
+        this(contributionDefinition, member);
+        this.effectiveFrom = effectiveFrom;
     }
 
     @PrePersist
@@ -66,6 +81,15 @@ public class ContributionParticipant {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public LocalDate getEffectiveFrom() {
+        return effectiveFrom;
+    }
+
+    /** Le participant est-il concerné par cette séance ? */
+    public boolean appliesTo(ContributionPeriod period) {
+        return effectiveFrom == null || !period.getSession().getSessionDate().isBefore(effectiveFrom);
     }
 
     @Override

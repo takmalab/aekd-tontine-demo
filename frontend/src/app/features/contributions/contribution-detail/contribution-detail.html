@@ -8,6 +8,10 @@
     @if (isStaff && !loading()) {
       @if (definition(); as d) {
         <div class="manage">
+          <button mat-stroked-button type="button" (click)="addParticipants(d)">
+            <mat-icon>group_add</mat-icon>
+            Ajouter des participants
+          </button>
           <button mat-stroked-button type="button" (click)="edit(d)">
             <mat-icon>edit</mat-icon>
             Modifier

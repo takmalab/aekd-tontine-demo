@@ -165,12 +165,19 @@ export class MyContributions implements OnInit {
       .subscribe({
         next: ({ me, items, transactions, sessions }) => {
           const rows: PeriodRow[] = [];
+          const sessionDates = new Map(sessions.map((s) => [s.id, s.date]));
           for (const item of items) {
             // Seuls les participants peuvent cotiser (CLAUDE.md §10).
-            if (!item.participants.some((p) => p.memberId === me.id)) {
+            const mine = item.participants.find((p) => p.memberId === me.id);
+            if (!mine) {
               continue;
             }
             for (const period of item.periods) {
+              // Décision n° 60 : un membre ajouté après coup ne compte qu'à partir des séances suivant son ajout.
+              const sessionDate = sessionDates.get(period.sessionId);
+              if (mine.effectiveFrom && sessionDate && sessionDate < mine.effectiveFrom) {
+                continue;
+              }
               const raw = resolvePeriodStatus(period.id, period.dueDate, transactions, item.definition);
               rows.push({
                 definition: item.definition,

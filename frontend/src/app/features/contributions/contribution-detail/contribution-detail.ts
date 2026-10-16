@@ -41,6 +41,7 @@ import {
 } from '../contribution.model';
 import { ContributionActions } from '../contribution-actions';
 import { ContributionService } from '../contribution.service';
+import { ParticipantsDialog, ParticipantsDialogData } from '../participants-dialog/participants-dialog';
 
 /** Filtres demandés : Tous / Payé / Non payé / Partiel (« en retard » est compté dans « Non payé »). */
 type ParticipantFilter = 'ALL' | 'PAID' | 'UNPAID' | 'PARTIAL';
@@ -256,6 +257,25 @@ export class ContributionDetail implements OnInit {
 
   edit(definition: ContributionDefinition): void {
     this.actions.edit(definition).subscribe((updated) => this.definition.set(updated));
+  }
+
+  /** Ex. membre inscrit après la création de la cotisation (CLAUDE.md §10). */
+  addParticipants(definition: ContributionDefinition): void {
+    const data: ParticipantsDialogData = { definition };
+    this.dialog
+      .open(ParticipantsDialog, { data, width: '520px', maxWidth: 'calc(100vw - 24px)', autoFocus: false })
+      .afterClosed()
+      .subscribe((added?: number) => {
+        if (!added) {
+          return;
+        }
+        this.loadStatuses();
+        this.snackBar.open(
+          added > 1 ? `${added} participants ajoutés` : 'Participant ajouté',
+          'OK',
+          { duration: 4000 },
+        );
+      });
   }
 
   toggleActive(definition: ContributionDefinition): void {
