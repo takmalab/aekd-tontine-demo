@@ -96,6 +96,7 @@ const NAV_GROUPS: NavGroup[] = [
       { label: 'Paramètres SMS', path: '/settings/sms', icon: 'sms', roles: ['SUPER_ADMIN'] },
       { label: 'Paramètres e-mail', path: '/settings/email', icon: 'mail', roles: ['SUPER_ADMIN'] },
       { label: 'Notifications e-mail et SMS', path: '/settings/notifications', icon: 'campaign', roles: ['SUPER_ADMIN'] },
+      { label: 'Réinitialisation des données', path: '/settings/data-reset', icon: 'restart_alt', roles: ['SUPER_ADMIN'] },
       { label: 'Notifications', path: '/notifications', icon: 'notifications' },
     ],
   },

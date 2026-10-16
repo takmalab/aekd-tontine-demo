@@ -39,6 +39,7 @@ import cm.aekd.tontine.user.UserRepository;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
@@ -94,6 +95,7 @@ public class DemoDataSeeder implements ApplicationRunner {
     private final LoanPolicyService loanPolicyService;
     private final LoanService loanService;
     private final LoanRepaymentService loanRepaymentService;
+    private final JdbcTemplate jdbc;
 
     public DemoDataSeeder(UserRepository userRepository, RoleRepository roleRepository,
                            MemberRepository memberRepository, PasswordEncoder passwordEncoder,
@@ -101,6 +103,7 @@ public class DemoDataSeeder implements ApplicationRunner {
                            PaymentService paymentService, ContributionTransactionService transactionService,
                            SanctionRuleService sanctionRuleService, LoanPolicyService loanPolicyService,
                            LoanService loanService, LoanRepaymentService loanRepaymentService,
+                           JdbcTemplate jdbc,
                            @Value("${app.demo.admin-password:Admin@123}") String passwordAdmin,
                            @Value("${app.demo.tresorier-password:Tresorier@123}") String passwordTresorier,
                            @Value("${app.demo.membre-password:Membre@123}") String passwordMembre) {
@@ -119,12 +122,19 @@ public class DemoDataSeeder implements ApplicationRunner {
         this.loanPolicyService = loanPolicyService;
         this.loanService = loanService;
         this.loanRepaymentService = loanRepaymentService;
+        this.jdbc = jdbc;
     }
 
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
         if (userRepository.existsByEmail("admin@aekd.cm")) {
+            return;
+        }
+        // Décision n° 63 : après une réinitialisation par le super administrateur, la démonstration
+        // ne revient jamais, même si ses comptes ont été effacés.
+        if (Boolean.TRUE.equals(jdbc.queryForObject(
+                "SELECT data_reset_at IS NOT NULL FROM system_settings WHERE id = 1", Boolean.class))) {
             return;
         }
 

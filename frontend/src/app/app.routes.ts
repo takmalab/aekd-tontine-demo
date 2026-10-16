@@ -155,6 +155,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'settings/data-reset',
+        canActivate: [roleGuard],
+        data: { roles: ['SUPER_ADMIN'] },
+        loadComponent: () =>
+          import('./features/settings/data-reset-page/data-reset-page').then((m) => m.DataResetPage),
+      },
+      {
         path: 'settings/email',
         canActivate: [roleGuard],
         data: { roles: ['SUPER_ADMIN'] },
