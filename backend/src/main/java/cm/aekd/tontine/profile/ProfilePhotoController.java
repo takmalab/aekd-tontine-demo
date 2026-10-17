@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -31,6 +32,12 @@ public class ProfilePhotoController {
     @GetMapping("/api/profile/photo")
     public ResponseEntity<InputStreamResource> download() {
         return image(service.download());
+    }
+
+    /** Identifiants des membres qui ont une photo (T2) : évite une requête en 404 par membre sans photo. */
+    @GetMapping("/api/members/photos")
+    public List<UUID> membersWithPhoto() {
+        return service.memberIdsWithPhoto();
     }
 
     @GetMapping("/api/members/{memberId}/photo")

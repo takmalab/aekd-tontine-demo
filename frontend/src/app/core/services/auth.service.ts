@@ -162,6 +162,15 @@ export class AuthService {
     return current ? effectiveRoles(current.roles).has(role) : false;
   }
 
+  /** Le compte connecté a-t-il un profil membre ? Connu dès la connexion (T1). */
+  hasMemberProfile(): boolean {
+    const current = this.currentUserSignal();
+    if (!current) {
+      return false;
+    }
+    return current.hasMemberProfile ?? effectiveRoles(current.roles).has('MEMBRE');
+  }
+
   hasAnyRole(roles: RoleName[]): boolean {
     const current = this.currentUserSignal();
     if (!current) {
@@ -174,7 +183,11 @@ export class AuthService {
   private setSession(response: LoginResponse): void {
     localStorage.setItem(TOKEN_KEY, response.token);
     localStorage.setItem(REFRESH_KEY, response.refreshToken);
-    const user: CurrentUser = { email: response.email, roles: response.roles };
+    const user: CurrentUser = {
+      email: response.email,
+      roles: response.roles,
+      hasMemberProfile: response.hasMemberProfile,
+    };
     localStorage.setItem(USER_KEY, JSON.stringify(user));
     this.currentUserSignal.set(user);
   }

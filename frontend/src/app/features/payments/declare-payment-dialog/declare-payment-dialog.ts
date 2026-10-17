@@ -27,6 +27,11 @@ export interface DeclarePaymentData {
    * pour un montant libre. Par défaut : le montant complet de la cotisation.
    */
   remaining?: number | null;
+  /**
+   * Décision n° 65 : présent quand le trésorier enregistre le paiement d'un membre (ex. espèces
+   * remises à la séance). Le paiement est alors validé d'emblée ; la référence devient facultative.
+   */
+  member?: { id: string; fullName: string };
 }
 
 @Component({
@@ -82,8 +87,9 @@ export class DeclarePaymentDialog {
         ...(this.remaining !== null ? [Validators.max(this.remaining)] : []),
       ],
     ],
-    operator: [null as PaymentOperator | null, Validators.required],
-    transactionReference: ['', [Validators.required, Validators.maxLength(100)]],
+    // Enregistrement par le trésorier : espèces par défaut, référence facultative.
+    operator: [(this.data.member ? 'CASH' : null) as PaymentOperator | null, Validators.required],
+    transactionReference: ['', this.data.member ? [Validators.maxLength(100)] : [Validators.required, Validators.maxLength(100)]],
     paymentDate: [new Date() as Date | null, Validators.required],
     observation: ['', [Validators.maxLength(500)]],
   });
@@ -96,19 +102,34 @@ export class DeclarePaymentDialog {
     const v = this.form.getRawValue();
     this.saving.set(true);
     this.errorMessage.set(null);
-    this.paymentService
-      .declare(this.data.definition.id, {
-        contributionPeriodId: this.data.period.id,
-        amount: Number(v.amount),
-        operator: v.operator!,
-        transactionReference: v.transactionReference!.trim(),
-        paymentDate: toIsoDate(v.paymentDate!),
-        observation: v.observation?.trim() || null,
-      })
-      .subscribe({
+    const member = this.data.member;
+    const save$ = member
+      ? this.paymentService.record(this.data.definition.id, {
+          memberId: member.id,
+          contributionPeriodId: this.data.period.id,
+          amount: Number(v.amount),
+          operator: v.operator!,
+          transactionReference: v.transactionReference?.trim() || null,
+          paymentDate: toIsoDate(v.paymentDate!),
+          observation: v.observation?.trim() || null,
+        })
+      : this.paymentService.declare(this.data.definition.id, {
+          contributionPeriodId: this.data.period.id,
+          amount: Number(v.amount),
+          operator: v.operator!,
+          transactionReference: v.transactionReference!.trim(),
+          paymentDate: toIsoDate(v.paymentDate!),
+          observation: v.observation?.trim() || null,
+        });
+    save$.subscribe({
         next: (transaction) => this.dialogRef.close(transaction),
         error: (error: HttpErrorResponse) => {
           this.saving.set(false);
+          if (member && error.error?.message && error.status >= 400 && error.status < 500) {
+            // Messages métier du serveur : non participant, propre paiement, reste dû…
+            this.errorMessage.set(error.error.message);
+            return;
+          }
           this.errorMessage.set(
             error.status === 409
               ? 'Un paiement est déjà en attente ou la cotisation est déjà réglée pour cette période.'

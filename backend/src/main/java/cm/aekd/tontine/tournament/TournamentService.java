@@ -251,11 +251,14 @@ public class TournamentService {
         Member host = slot.getMember();
         List<SessionContributionRequest> contributions = tournament.getContributions().stream()
                 .filter(c -> c.getStatus() == ContributionStatus.ACTIVE)
-                .map(c -> new SessionContributionRequest(c.getId(), null))
+                // Décision n° 67 : échéance par défaut = date de la séance (modifiable ensuite sur la séance).
+                .map(c -> new SessionContributionRequest(c.getId(), date))
                 .toList();
+        // La séance du passage est toujours créée, même si le mois en compte déjà une (décision n° 68) :
+        // sinon le membre perdrait son tour.
         SessionResponse session = sessionService.create(new SessionRequest(
                 TournamentCalendar.sessionLabel(date), date, "Chez " + host.getFullName(), host.getId(),
-                List.of(host.getId()), contributions));
+                List.of(host.getId()), contributions, true));
 
         // Entité gérée : la modification est enregistrée à la fin de la transaction.
         slot.markGenerated(sessionRepository.getReferenceById(session.id()));

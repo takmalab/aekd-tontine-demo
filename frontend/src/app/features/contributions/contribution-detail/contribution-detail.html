@@ -240,6 +240,47 @@
                     </span>
                   }
                 </div>
+                @if (isStaff && d.status === 'ACTIVE' && !row.isMe && canDeclare(row.shown)) {
+                  <button
+                    mat-stroked-button
+                    type="button"
+                    class="person__action"
+                    matTooltip="Paiement reçu en main propre : validé immédiatement"
+                    (click)="recordPayment(row)"
+                  >
+                    <mat-icon>point_of_sale</mat-icon>
+                    Enregistrer un paiement
+                  </button>
+                }
+                @if (isStaff && !row.isMe) {
+                  <button
+                    mat-icon-button
+                    type="button"
+                    class="person__more"
+                    [matMenuTriggerFor]="rowMenu"
+                    [attr.aria-label]="'Autres actions pour ' + row.memberFullName"
+                  >
+                    <mat-icon>more_vert</mat-icon>
+                  </button>
+                  <mat-menu #rowMenu="matMenu" xPosition="before">
+                    @if (d.status === 'ACTIVE' && canDeclare(row.shown)) {
+                      <button mat-menu-item type="button" (click)="remind(row)">
+                        <mat-icon>notifications_active</mat-icon>
+                        <span>Relancer</span>
+                      </button>
+                    }
+                    @if (d.mandatory && (row.shown === 'LATE' || row.shown === 'PARTIAL')) {
+                      <a mat-menu-item [routerLink]="['/sanctions']" [queryParams]="{ contribution: d.id }">
+                        <mat-icon>gavel</mat-icon>
+                        <span>Appliquer une sanction</span>
+                      </a>
+                    }
+                    <a mat-menu-item [routerLink]="['/members']" [queryParams]="{ member: row.memberId }">
+                      <mat-icon>badge</mat-icon>
+                      <span>Voir la fiche du membre</span>
+                    </a>
+                  </mat-menu>
+                }
               </li>
             }
           </ul>

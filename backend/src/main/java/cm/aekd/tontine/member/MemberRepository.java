@@ -11,6 +11,10 @@ import java.util.UUID;
 
 public interface MemberRepository extends JpaRepository<Member, UUID> {
 
+    /** Membres qui ont une photo de profil (T2 : l'interface ne demande que celles-là). */
+    @Query("select m.id from Member m where m.user.photoStorageKey is not null")
+    List<UUID> findIdsWithPhoto();
+
     Optional<Member> findByUserId(UUID userId);
 
     boolean existsByUserId(UUID userId);

@@ -11,14 +11,23 @@ import { environment } from '../../../../environments/environment';
 import { WhatsappShareDialog, WhatsappShareData } from '../../../shared/components/whatsapp-share-dialog/whatsapp-share-dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { filter, forkJoin, switchMap } from 'rxjs';
+import { catchError, filter, forkJoin, map, of, switchMap } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { DocumentService } from '../../../core/services/document.service';
 import { ConfirmDialog, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog';
 import { PageState } from '../../../shared/components/page-state/page-state';
 import { formatFcfa, fromIsoDate } from '../../../shared/utils/format';
+import { ContributionService } from '../../contributions/contribution.service';
+import { MemberService } from '../../members/member.service';
+import { DeclarePaymentDialog, DeclarePaymentData } from '../../payments/declare-payment-dialog/declare-payment-dialog';
+import { canDeclare, displayedPeriodStatus } from '../../payments/period-status';
+import { ProofUploadDialog, ProofUploadData } from '../../payments/proof-upload-dialog/proof-upload-dialog';
 import {
   CONTRIBUTION_STATUS_LABELS,
+  ContributionPeriodStatus,
+  ContributionTransaction,
+  PERIOD_STATUS_LABELS,
+  ParticipantPaymentStatus,
   FREQUENCY_LABELS,
   FUND_DESTINATION_ICONS,
   FUND_DESTINATION_LABELS,
@@ -47,6 +56,8 @@ export class SessionDetail implements OnInit {
   /** Photos de profil des membres (visibles par tous). */
   readonly photos = inject(MemberPhotoService);
   private readonly sessionService = inject(SessionService);
+  private readonly contributionService = inject(ContributionService);
+  private readonly memberService = inject(MemberService);
   private readonly authService = inject(AuthService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
@@ -82,6 +93,77 @@ export class SessionDetail implements OnInit {
 
   readonly mandatory = computed(() => this.contributions().filter((c) => c.definition.mandatory));
   readonly optional = computed(() => this.contributions().filter((c) => !c.definition.mandatory));
+
+  /**
+   * U3 : situation du membre connecté pour chaque cotisation de la séance (clé : période).
+   * null = il ne participe pas à cette cotisation pour cette séance.
+   */
+  readonly mySituation = signal<Record<string, ParticipantPaymentStatus | null>>({});
+  readonly periodStatusLabels = PERIOD_STATUS_LABELS;
+
+  /** Statut affiché (une cotisation facultative n'est jamais « en retard »). */
+  myStatus(item: SessionContribution): ContributionPeriodStatus | null {
+    const mine = this.mySituation()[item.period.id];
+    return mine ? displayedPeriodStatus(mine.status, item.definition.mandatory) : null;
+  }
+
+  canContribute(item: SessionContribution): boolean {
+    const status = this.myStatus(item);
+    return item.definition.status === 'ACTIVE' && status !== null && canDeclare(status);
+  }
+
+  private loadMySituation(): void {
+    if (!this.authService.hasMemberProfile()) {
+      return;
+    }
+    const active = this.contributions().filter((c) => c.definition.status === 'ACTIVE');
+    if (active.length === 0) {
+      return;
+    }
+    this.memberService
+      .mine()
+      .pipe(
+        switchMap((me) =>
+          forkJoin(
+            active.map((c) =>
+              this.contributionService.listParticipantStatuses(c.definition.id, c.period.id).pipe(
+                map((rows) => [c.period.id, rows.find((r) => r.memberId === me.id) ?? null] as const),
+                catchError(() => of([c.period.id, null] as const)),
+              ),
+            ),
+          ),
+        ),
+        catchError(() => of([] as (readonly [string, ParticipantPaymentStatus | null])[])),
+      )
+      .subscribe((entries) => this.mySituation.set(Object.fromEntries(entries)));
+  }
+
+  /** U3 : cotiser directement depuis la page de la séance. */
+  contribute(item: SessionContribution): void {
+    const mine = this.mySituation()[item.period.id];
+    if (!mine) {
+      return;
+    }
+    const data: DeclarePaymentData = { definition: item.definition, period: item.period, remaining: mine.remainingAmount };
+    this.dialog
+      .open(DeclarePaymentDialog, { data, width: '600px', maxWidth: 'calc(100vw - 24px)', autoFocus: false })
+      .afterClosed()
+      .subscribe((transaction?: ContributionTransaction) => {
+        if (!transaction) {
+          return;
+        }
+        this.loadMySituation();
+        const upload: ProofUploadData = { transaction, justDeclared: true };
+        this.dialog
+          .open(ProofUploadDialog, { data: upload, width: '520px', maxWidth: 'calc(100vw - 24px)', autoFocus: false })
+          .afterClosed()
+          .subscribe((proof) =>
+            this.snackBar.open(proof ? 'Justificatif envoyé' : 'Paiement déclaré, en attente de validation', 'OK', {
+              duration: 4000,
+            }),
+          );
+      });
+  }
 
   /** Obligatoires puis facultatives, chaque cotisation restant une carte distincte. */
   readonly groups = computed(() => [
@@ -147,6 +229,7 @@ export class SessionDetail implements OnInit {
         );
         this.loading.set(false);
         this.loadPayout();
+        this.loadMySituation();
         this.scrollToFragment();
       },
       error: (err: HttpErrorResponse) => {

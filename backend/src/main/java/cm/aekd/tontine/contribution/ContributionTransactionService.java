@@ -62,14 +62,18 @@ public class ContributionTransactionService {
     }
 
     public ContributionTransactionResponse validate(UUID id) {
-        return decide(id, ContributionTransactionStatus.VALIDATED);
+        return decide(id, ContributionTransactionStatus.VALIDATED, null);
     }
 
-    public ContributionTransactionResponse reject(UUID id) {
-        return decide(id, ContributionTransactionStatus.REJECTED);
+    /** Décision n° 66 : le motif est obligatoire et communiqué au membre. */
+    public ContributionTransactionResponse reject(UUID id, String reason) {
+        if (reason == null || reason.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Indiquez le motif du rejet");
+        }
+        return decide(id, ContributionTransactionStatus.REJECTED, reason.trim());
     }
 
-    private ContributionTransactionResponse decide(UUID id, ContributionTransactionStatus newStatus) {
+    private ContributionTransactionResponse decide(UUID id, ContributionTransactionStatus newStatus, String reason) {
         ContributionTransaction transaction = transactionRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Paiement introuvable"));
 
@@ -90,6 +94,7 @@ public class ContributionTransactionService {
         transaction.setStatus(newStatus);
         transaction.setValidatedBy(validator);
         transaction.setValidatedAt(Instant.now());
+        transaction.setRejectionReason(reason);
         transaction = transactionRepository.save(transaction);
 
         AuditAction action = newStatus == ContributionTransactionStatus.VALIDATED
@@ -97,7 +102,8 @@ public class ContributionTransactionService {
         auditLogService.record(action, "ContributionTransaction", transaction.getId(),
                 (newStatus == ContributionTransactionStatus.VALIDATED ? "Validation" : "Rejet")
                         + " du paiement de " + transaction.getAmount() + " de "
-                        + transaction.getMember().getFullName());
+                        + transaction.getMember().getFullName()
+                        + (reason != null ? " — motif : " + reason : ""));
 
         boolean validated = newStatus == ContributionTransactionStatus.VALIDATED;
         ContributionPeriod period = transaction.getContributionPeriod();
@@ -106,7 +112,7 @@ public class ContributionTransactionService {
                 validated ? "Paiement validé" : "Paiement rejeté",
                 "Votre paiement de " + DocumentFormat.fcfa(transaction.getAmount()) + " pour \""
                         + period.getContributionDefinition().getName() + "\" (" + period.getSession().getLabel()
-                        + ") a été " + (validated ? "validé." : "rejeté. Contactez le trésorier pour en savoir plus."),
+                        + ") a été " + (validated ? "validé." : "rejeté. Motif : " + reason),
                 "/my-contributions");
         if (validated) {
             notificationService.notifyOtherMembers(transaction.getMember(), period.getContributionDefinition(),

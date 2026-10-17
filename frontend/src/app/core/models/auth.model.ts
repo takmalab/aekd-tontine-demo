@@ -12,6 +12,8 @@ export interface LoginResponse {
   roles: RoleName[];
   /** Jeton de renouvellement : garde la session 30 jours sans activité (decisions.md n° 54). */
   refreshToken: string;
+  /** Le compte a un profil membre (T1) : évite d'appeler /members/mine pour rien. */
+  hasMemberProfile?: boolean;
 }
 
 /** Connexion par code SMS (docs/decisions.md n° 47). */
@@ -54,4 +56,6 @@ export interface RegisterResponse {
 export interface CurrentUser {
   email: string;
   roles: RoleName[];
+  /** Absent pour une session ouverte avant cette version : déduit du rôle MEMBRE. */
+  hasMemberProfile?: boolean;
 }

@@ -238,3 +238,21 @@
     align-items: stretch;
   }
 }
+
+/* U6 : raison du bouton « Nouveau tournoi » grisé. */
+.active-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -4px 0 16px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--aekd-orange-soft);
+  color: var(--aekd-gray);
+  font-size: 13.5px;
+
+  mat-icon {
+    flex: none;
+    color: var(--aekd-orange);
+  }
+}

@@ -42,6 +42,8 @@ export interface SessionRequest {
   hostMemberId: string;
   beneficiaryMemberIds: string[];
   contributions?: SessionContributionRequest[];
+  /** Décision n° 68 : confirme une 2e séance dans le même mois (sinon réponse 428). */
+  confirmSameMonth?: boolean;
 }
 
 /** Situation calendaire d'une séance, déduite uniquement de sa date (affichage). */

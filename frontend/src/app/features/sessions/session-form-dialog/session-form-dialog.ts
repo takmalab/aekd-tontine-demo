@@ -4,13 +4,14 @@ import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } 
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { forkJoin, of } from 'rxjs';
+import { ConfirmDialog, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog';
 import { formatFcfa, fromIsoDate, toIsoDate } from '../../../shared/utils/format';
 import {
   CONTRIBUTION_STATUS_LABELS,
@@ -59,6 +60,7 @@ export interface SessionFormDialogData {
 })
 export class SessionFormDialog implements OnInit {
   private readonly fb = inject(FormBuilder);
+  private readonly dialog = inject(MatDialog);
   private readonly sessionService = inject(SessionService);
   private readonly memberService = inject(MemberService);
   private readonly contributionService = inject(ContributionService);
@@ -210,7 +212,8 @@ export class SessionFormDialog implements OnInit {
     return this.members().find((m) => m.id === id)?.fullName ?? '';
   }
 
-  submit(): void {
+  /** {@code confirmSameMonth} : 2e séance du mois confirmée par l'utilisateur (décision n° 68). */
+  submit(confirmSameMonth = false): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
@@ -229,6 +232,7 @@ export class SessionFormDialog implements OnInit {
       // Liste envoyée seulement si elle a pu être chargée : sinon, en modification,
       // une liste vide retirerait toutes les cotisations de la séance.
       contributions: this.contributionsError() ? undefined : this.selectedContributions(),
+      confirmSameMonth,
     };
     const save$ = this.editing
       ? this.sessionService.update(this.editing.id, request)
@@ -238,6 +242,10 @@ export class SessionFormDialog implements OnInit {
       next: (session) => this.dialogRef.close(session),
       error: (error: HttpErrorResponse) => {
         this.saving.set(false);
+        if (error.status === 428) {
+          this.confirmSecondSessionOfMonth(error.error?.message);
+          return;
+        }
         this.errorMessage.set(
           error.status === 400 || error.status === 409
             ? (error.error?.message ?? 'Les informations saisies sont invalides.')
@@ -247,6 +255,26 @@ export class SessionFormDialog implements OnInit {
         );
       },
     });
+  }
+
+  /** Décision n° 68 : une 2e séance dans le même mois reste possible, après confirmation. */
+  private confirmSecondSessionOfMonth(serverMessage?: string): void {
+    const data: ConfirmDialogData = {
+      title: 'Deuxième séance ce mois-ci ?',
+      message:
+        (serverMessage ?? 'Une séance existe déjà ce mois-ci.') +
+        ' Une seconde séance dans le même mois est exceptionnelle : continuer quand même ?',
+      confirmLabel: 'Créer quand même',
+      icon: 'event_repeat',
+    };
+    this.dialog
+      .open(ConfirmDialog, { data, width: '460px', maxWidth: 'calc(100vw - 32px)' })
+      .afterClosed()
+      .subscribe((confirmed) => {
+        if (confirmed) {
+          this.submit(true);
+        }
+      });
   }
 
   private selectedContributions(): SessionContributionRequest[] {

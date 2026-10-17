@@ -21,7 +21,11 @@ public record ContributionTransactionResponse(
         String observation,
         ContributionTransactionStatus status,
         String validatedByEmail,
-        Instant validatedAt
+        Instant validatedAt,
+        // Décision n° 65 : non nul quand le trésorier a enregistré le paiement pour le membre.
+        String recordedByEmail,
+        // Décision n° 66 : motif du rejet, affiché au membre.
+        String rejectionReason
 ) {
     public static ContributionTransactionResponse from(ContributionTransaction transaction) {
         ContributionPeriod period = transaction.getContributionPeriod();
@@ -42,7 +46,9 @@ public record ContributionTransactionResponse(
                 transaction.getObservation(),
                 transaction.getStatus(),
                 transaction.getValidatedBy() != null ? transaction.getValidatedBy().getEmail() : null,
-                transaction.getValidatedAt()
+                transaction.getValidatedAt(),
+                transaction.getRecordedBy() != null ? transaction.getRecordedBy().getEmail() : null,
+                transaction.getRejectionReason()
         );
     }
 }

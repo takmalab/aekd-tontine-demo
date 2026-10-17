@@ -45,4 +45,17 @@ export interface StatTile {
   value: string;
   label: string;
   tone?: 'default' | 'warn' | 'ok';
+  /** Page ouverte au clic sur la tuile (U1), avec ses paramètres de filtre éventuels. */
+  link: string[];
+  query?: Record<string, string>;
+}
+
+/** Raccourci d'action du tableau de bord (U1) ; `badge` : nombre d'éléments à traiter. */
+export interface DashboardShortcut {
+  icon: string;
+  label: string;
+  link: string[];
+  query?: Record<string, string>;
+  badge?: number;
+  primary?: boolean;
 }

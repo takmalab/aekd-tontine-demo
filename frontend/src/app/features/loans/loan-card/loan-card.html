@@ -40,14 +40,17 @@
   </ul>
 
   <!-- Avaliste (decisions.md n° 52) -->
-  @if (l.guarantorFullName) {
+  <!-- U4 : sans objet sur un prêt rejeté, le bloc est masqué. -->
+  @if (l.guarantorFullName && l.status !== 'REJECTED') {
     <div [class]="'guarantor guarantor--' + (l.guarantorStatus ?? 'pending').toLowerCase()">
       <mat-icon>handshake</mat-icon>
       <span class="guarantor__text">
         <span class="guarantor__label">Avaliste</span>
         <strong>{{ asGuarantor() ? 'Vous' : l.guarantorFullName }}</strong>
         @if (l.guarantorStatus) {
-          <span class="guarantor__status">{{ guarantorLabels[l.guarantorStatus] }}</span>
+          <span class="guarantor__status">
+            {{ asGuarantor() && l.guarantorStatus === 'PENDING' ? 'En attente de votre accord' : guarantorLabels[l.guarantorStatus] }}
+          </span>
         }
       </span>
       @if (l.status === 'REQUESTED') {

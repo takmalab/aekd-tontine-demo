@@ -19,8 +19,10 @@ export type AuditAction =
   | 'CONTRIBUTION_DEACTIVATED'
   | 'CONTRIBUTION_DELETED'
   | 'CONTRIBUTION_PARTICIPANT_ADDED'
+  | 'CONTRIBUTION_REMINDER_SENT'
   | 'PAYMENT_DECLARED'
   | 'PAYMENT_VALIDATED'
+  | 'PAYMENT_RECORDED'
   | 'PAYMENT_REJECTED'
   | 'SANCTION_RULE_CREATED'
   | 'SANCTION_RULE_UPDATED'
@@ -100,8 +102,10 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   CONTRIBUTION_DEACTIVATED: 'Cotisation désactivée',
   CONTRIBUTION_DELETED: 'Cotisation supprimée',
   CONTRIBUTION_PARTICIPANT_ADDED: 'Participant ajouté',
+  CONTRIBUTION_REMINDER_SENT: 'Relance envoyée',
   PAYMENT_DECLARED: 'Paiement déclaré',
   PAYMENT_VALIDATED: 'Paiement validé',
+  PAYMENT_RECORDED: 'Paiement enregistré par le trésorier',
   PAYMENT_REJECTED: 'Paiement rejeté',
   SANCTION_RULE_CREATED: 'Règle de sanction créée',
   SANCTION_RULE_UPDATED: 'Règle de sanction modifiée',

@@ -1,5 +1,6 @@
 package cm.aekd.tontine.contribution;
 
+import cm.aekd.tontine.notification.ContributionReminderService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,9 +28,12 @@ import java.util.UUID;
 public class ContributionDefinitionController {
 
     private final ContributionDefinitionService service;
+    private final ContributionReminderService reminderService;
 
-    public ContributionDefinitionController(ContributionDefinitionService service) {
+    public ContributionDefinitionController(ContributionDefinitionService service,
+                                            ContributionReminderService reminderService) {
         this.service = service;
+        this.reminderService = reminderService;
     }
 
     @PostMapping
@@ -108,6 +112,15 @@ public class ContributionDefinitionController {
     @GetMapping("/{id}/periods")
     public List<ContributionPeriodResponse> listPeriods(@PathVariable UUID id) {
         return service.listPeriods(id);
+    }
+
+    /** Relance d’un participant qui n’a pas tout payé (test de bout en bout, U2). */
+    @PostMapping("/{id}/periods/{periodId}/remind")
+    @PreAuthorize("hasRole('TRESORIER')")
+    public ResponseEntity<Void> remind(@PathVariable UUID id, @PathVariable UUID periodId,
+                                       @Valid @RequestBody MemberRefRequest request) {
+        reminderService.remindNow(id, periodId, request.memberId());
+        return ResponseEntity.noContent().build();
     }
 
     /** Situation de paiement de chaque participant pour une période (lecture, visibilité §11). */

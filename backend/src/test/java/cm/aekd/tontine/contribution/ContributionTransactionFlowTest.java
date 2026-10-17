@@ -41,6 +41,9 @@ class ContributionTransactionFlowTest {
     private PaymentService paymentService;
 
     @Autowired
+    private ManualPaymentService manualPaymentService;
+
+    @Autowired
     private ContributionTransactionService transactionService;
 
     @Autowired
@@ -355,13 +358,51 @@ class ContributionTransactionFlowTest {
                         "REF-007", LocalDate.of(2026, 10, 5), null));
 
         loginAsMember(treasurer, RoleName.TRESORIER);
-        ContributionTransactionResponse rejected = transactionService.reject(first.id());
+        // Décision n° 66 : motif obligatoire, conservé et renvoyé au membre.
+        assertThatThrownBy(() -> transactionService.reject(first.id(), "  "))
+                .isInstanceOf(ResponseStatusException.class);
+        ContributionTransactionResponse rejected = transactionService.reject(first.id(), "Référence introuvable");
         assertThat(rejected.status()).isEqualTo(ContributionTransactionStatus.REJECTED);
+        assertThat(rejected.rejectionReason()).isEqualTo("Référence introuvable");
 
         loginAsMember(member, RoleName.MEMBRE);
         ContributionTransactionResponse second = paymentService.declare(period.contributionDefinitionId(),
                 new ContributionTransactionRequest(period.id(), new BigDecimal(50000), PaymentOperator.CASH,
                         "REF-008", LocalDate.of(2026, 10, 6), null));
         assertThat(second.status()).isEqualTo(ContributionTransactionStatus.PENDING);
+    }
+
+    @Test
+    void treasurerRecordsACashPaymentThatIsValidatedImmediately() {
+        Member member = createMember(RoleName.MEMBRE, "cash1");
+        Member outsider = createMember(RoleName.MEMBRE, "cash2");
+        Member treasurer = createMember(RoleName.TRESORIER, "tresocash");
+        ContributionPeriodResponse period = setupActiveDefinitionWithParticipant(member);
+
+        // Décision n° 65 : validé d'emblée, tracé « enregistré par », reste dû respecté.
+        loginAsMember(treasurer, RoleName.TRESORIER);
+        ContributionTransactionResponse recorded = manualPaymentService.record(period.contributionDefinitionId(),
+                new RecordPaymentRequest(member.getId(), period.id(), new BigDecimal(20000), PaymentOperator.CASH,
+                        null, LocalDate.of(2026, 10, 1), "Espèces à la séance"));
+        assertThat(recorded.status()).isEqualTo(ContributionTransactionStatus.VALIDATED);
+        assertThat(recorded.recordedByEmail()).isEqualTo(treasurer.getUser().getEmail());
+        assertThat(recorded.transactionReference()).isEqualTo("Enregistré par le trésorier");
+        assertThat(statusOf(period, member)).isEqualTo(ContributionPeriodStatus.PARTIAL);
+
+        assertThatThrownBy(() -> manualPaymentService.record(period.contributionDefinitionId(),
+                new RecordPaymentRequest(member.getId(), period.id(), new BigDecimal(40000), PaymentOperator.CASH,
+                        null, LocalDate.of(2026, 10, 1), null)))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("reste dû");
+        assertThatThrownBy(() -> manualPaymentService.record(period.contributionDefinitionId(),
+                new RecordPaymentRequest(outsider.getId(), period.id(), null, PaymentOperator.CASH,
+                        null, LocalDate.of(2026, 10, 1), null)))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("ne participe pas");
+
+        // Sans montant : le reste dû (30 000) est retenu et la cotisation devient payée.
+        manualPaymentService.record(period.contributionDefinitionId(), new RecordPaymentRequest(member.getId(),
+                period.id(), null, PaymentOperator.MTN_MOMO, "MP-1", LocalDate.of(2026, 10, 2), null));
+        assertThat(statusOf(period, member)).isEqualTo(ContributionPeriodStatus.PAID);
     }
 }

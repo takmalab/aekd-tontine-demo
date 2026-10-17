@@ -145,7 +145,13 @@
                 @if (lastRejected(row); as r) {
                   <p class="item__tx item__tx--rejected">
                     <mat-icon>block</mat-icon>
-                    <span>Paiement du {{ fromIsoDate(r.paymentDate) | date: 'd MMM' }} (réf. {{ r.transactionReference }}) rejeté : vous pouvez cotiser à nouveau.</span>
+                    <span>
+                      Paiement du {{ fromIsoDate(r.paymentDate) | date: 'd MMM' }} (réf. {{ r.transactionReference }}) rejeté
+                      @if (r.rejectionReason) {
+                        — motif : <strong>{{ r.rejectionReason }}</strong>
+                      }
+                      : vous pouvez cotiser à nouveau.
+                    </span>
                   </p>
                 }
               </div>
@@ -204,8 +210,14 @@
                     @if (t.validatedAt) {
                       · {{ t.status === 'VALIDATED' ? 'validé' : 'rejeté' }} le {{ t.validatedAt | date: 'd MMM yyyy' }}
                     }
+                    @if (t.recordedByEmail) {
+                      · enregistré par le trésorier
+                    }
                   </span>
                 </p>
+                @if (t.rejectionReason) {
+                  <p class="item__obs">Motif du rejet : <strong>{{ t.rejectionReason }}</strong></p>
+                }
                 @if (t.observation) {
                   <p class="item__obs">« {{ t.observation }} »</p>
                 }

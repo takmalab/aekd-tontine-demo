@@ -39,7 +39,7 @@ class TournamentCalendarTest {
 
     @Test
     void labelUsesFrenchMonthName() {
-        assertThat(TournamentCalendar.sessionLabel(LocalDate.of(2026, 11, 7))).isEqualTo("Séance de novembre 2026");
-        assertThat(TournamentCalendar.sessionLabel(LocalDate.of(2027, 2, 6))).isEqualTo("Séance de février 2027");
+        assertThat(TournamentCalendar.sessionLabel(LocalDate.of(2026, 11, 7))).isEqualTo("Séance du 7 novembre 2026");
+        assertThat(TournamentCalendar.sessionLabel(LocalDate.of(2027, 2, 6))).isEqualTo("Séance du 6 février 2027");
     }
 }

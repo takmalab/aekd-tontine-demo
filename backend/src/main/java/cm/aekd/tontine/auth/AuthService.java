@@ -21,9 +21,12 @@ public class AuthService {
 
     private final RefreshTokenService refreshTokenService;
     private final cm.aekd.tontine.settings.SystemSettingsService settings;
+    private final cm.aekd.tontine.member.MemberRepository memberRepository;
 
     public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService,
-                       RefreshTokenService refreshTokenService, cm.aekd.tontine.settings.SystemSettingsService settings) {
+                       RefreshTokenService refreshTokenService, cm.aekd.tontine.settings.SystemSettingsService settings,
+                       cm.aekd.tontine.member.MemberRepository memberRepository) {
+        this.memberRepository = memberRepository;
         this.settings = settings;
         this.refreshTokenService = refreshTokenService;
         this.userRepository = userRepository;
@@ -75,6 +78,7 @@ public class AuthService {
 
         String token = jwtService.generateToken(user.getEmail(), roles);
 
-        return new LoginResponse(token, user.getEmail(), roles, refreshTokenService.issue(user));
+        return new LoginResponse(token, user.getEmail(), roles, refreshTokenService.issue(user),
+                memberRepository.existsByUserId(user.getId()));
     }
 }

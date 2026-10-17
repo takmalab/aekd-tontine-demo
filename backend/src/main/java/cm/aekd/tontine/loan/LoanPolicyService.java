@@ -58,9 +58,23 @@ public class LoanPolicyService {
     public LoanPolicyResponse update(UUID id, LoanPolicyRequest request) {
         LoanPolicy policy = getOrThrow(id);
         if (loanRepository.existsByLoanPolicyId(id)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Cette politique a déjà été utilisée par au moins un prêt : elle ne peut plus être modifiée. "
-                            + "Désactivez-la et créez-en une nouvelle.");
+            // Décision n° 69 (test de bout en bout, T3) : comme pour une cotisation (n° 36), le nom et la
+            // description d'une politique déjà utilisée restent modifiables ; ses critères, non.
+            if (!sameCriteria(policy, request)) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Cette politique a déjà été utilisée par au moins un prêt : seuls son nom et sa description "
+                                + "peuvent encore être modifiés. Pour changer ses critères, désactivez-la et créez-en une nouvelle.");
+            }
+            if (request.name() == null || request.name().isBlank()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le nom de la politique est requis");
+            }
+            policy.update(request.name().trim(), request.description(), policy.getMinAmount(), policy.getMaxAmount(),
+                    policy.getMaxDurationMonths(), policy.getInterestRate(), policy.getMinSavingsRequired(),
+                    policy.getMinSeniorityMonths(), policy.getMaxActiveLoans());
+            policy = policyRepository.save(policy);
+            auditLogService.record(AuditAction.LOAN_POLICY_UPDATED, "LoanPolicy", policy.getId(),
+                    "Modification du nom ou de la description de la politique de prêt « " + policy.getName() + " »");
+            return LoanPolicyResponse.from(policy);
         }
         validateRequest(request);
 
@@ -76,6 +90,23 @@ public class LoanPolicyService {
                 "Modification de la politique de prêt « " + policy.getName() + " »");
 
         return LoanPolicyResponse.from(policy);
+    }
+
+    /** Critères inchangés (montants comparés en valeur, 5000 = 5000.00) ? */
+    private static boolean sameCriteria(LoanPolicy p, LoanPolicyRequest r) {
+        return sameAmount(p.getMinAmount(), r.minAmount()) && sameAmount(p.getMaxAmount(), r.maxAmount())
+                && java.util.Objects.equals(p.getMaxDurationMonths(), r.maxDurationMonths())
+                && sameAmount(p.getInterestRate(), r.interestRate())
+                && sameAmount(p.getMinSavingsRequired(), r.minSavingsRequired())
+                && java.util.Objects.equals(p.getMinSeniorityMonths(), r.minSeniorityMonths())
+                && java.util.Objects.equals(p.getMaxActiveLoans(), r.maxActiveLoans())
+                && p.isGuarantorRequired() == Boolean.TRUE.equals(r.guarantorRequired())
+                && p.getInterestPeriodMonths() == (r.interestPeriodMonths() == null ? 1 : r.interestPeriodMonths())
+                && java.util.Objects.equals(p.getMaxGuaranteesPerMember(), r.maxGuaranteesPerMember());
+    }
+
+    private static boolean sameAmount(BigDecimal a, BigDecimal b) {
+        return a == null || b == null ? a == b : a.compareTo(b) == 0;
     }
 
     public LoanPolicyResponse activate(UUID id) {

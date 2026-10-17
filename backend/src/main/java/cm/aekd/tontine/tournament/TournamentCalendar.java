@@ -34,8 +34,12 @@ public final class TournamentCalendar {
         return dateFor(startMonth.plusMonths(position), weekOfMonth, dayOfWeek);
     }
 
-    /** Libellé décidé le 2026-10-05 : « Séance de novembre 2026 ». */
+    /**
+     * Libellé avec le jour (décision n° 68, remplace celui du 2026-10-05) : « Séance du 21 octobre 2026 »,
+     * « Séance du 1er novembre 2026 ». Deux séances du même mois restent ainsi distinctes.
+     */
     public static String sessionLabel(LocalDate date) {
-        return "Séance de " + date.format(LABEL_MONTH);
+        String day = date.getDayOfMonth() == 1 ? "1er" : String.valueOf(date.getDayOfMonth());
+        return "Séance du " + day + " " + date.format(LABEL_MONTH);
     }
 }

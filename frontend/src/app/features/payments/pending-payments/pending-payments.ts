@@ -186,21 +186,24 @@ export class PendingPayments implements OnInit {
           }
         : {
             title: 'Rejeter ce paiement ?',
-            message: `${amount} de ${payment.memberFullName} pour « ${payment.contributionDefinitionName} » ne sera pas comptabilisé. Le membre pourra déclarer un nouveau paiement. Cette action est définitive.`,
+            message: `${amount} de ${payment.memberFullName} pour « ${payment.contributionDefinitionName} » ne sera pas comptabilisé. Le membre verra le motif et pourra déclarer un nouveau paiement. Cette action est définitive.`,
             confirmLabel: 'Rejeter',
             icon: 'block',
+            reasonLabel: 'Motif du rejet (visible par le membre)',
           };
 
     this.dialog
       .open(ConfirmDialog, { data, width: '460px', maxWidth: 'calc(100vw - 32px)' })
       .afterClosed()
-      .subscribe((confirmed) => {
+      .subscribe((confirmed?: true | string) => {
         if (!confirmed) {
           return;
         }
         this.busyId.set(payment.id);
         const call =
-          decision === 'validate' ? this.paymentService.validate(payment.id) : this.paymentService.reject(payment.id);
+          decision === 'validate'
+            ? this.paymentService.validate(payment.id)
+            : this.paymentService.reject(payment.id, String(confirmed));
         call.subscribe({
           next: () => {
             this.busyId.set(null);

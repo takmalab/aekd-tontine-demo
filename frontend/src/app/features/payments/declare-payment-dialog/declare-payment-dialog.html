@@ -1,7 +1,13 @@
 <div class="head">
   <span class="head__icon"><mat-icon>send_money</mat-icon></span>
   <div class="head__text">
-    <h2 mat-dialog-title class="head__title">{{ isComplement ? 'Compléter le paiement' : 'Cotiser' }}</h2>
+    <h2 mat-dialog-title class="head__title">
+      @if (data.member; as m) {
+        Enregistrer un paiement · {{ m.fullName }}
+      } @else {
+        {{ isComplement ? 'Compléter le paiement' : 'Cotiser' }}
+      }
+    </h2>
     <p class="head__subtitle">
       {{ data.definition.name }} · {{ data.period.sessionLabel }}
       @if (data.period.dueDate) {
@@ -16,7 +22,12 @@
     <p class="info">
       <mat-icon>info</mat-icon>
       <span>
-        Vous déclarez un paiement déjà effectué. Il ne sera pris en compte qu'après validation par le trésorier.
+        @if (data.member; as m) {
+          Vous enregistrez un paiement reçu de {{ m.fullName }} (ex. espèces remises à la séance). Il est validé
+          immédiatement, compté dans les fonds et inscrit au journal d'audit.
+        } @else {
+          Vous déclarez un paiement déjà effectué. Il ne sera pris en compte qu'après validation par le trésorier.
+        }
       </span>
     </p>
 
@@ -58,7 +69,7 @@
 
     <div class="row">
       <mat-form-field appearance="outline">
-        <mat-label>Référence de la transaction</mat-label>
+        <mat-label>{{ data.member ? 'Référence (facultative)' : 'Référence de la transaction' }}</mat-label>
         <input matInput formControlName="transactionReference" placeholder="Ex. : MP260925.1234.A12345" />
         @if (form.controls.transactionReference.hasError('required')) {
           <mat-error>La référence est requise</mat-error>
@@ -97,7 +108,7 @@
       @if (saving()) {
         <mat-spinner diameter="20" />
       } @else {
-        Cotiser
+        {{ data.member ? 'Enregistrer le paiement' : 'Cotiser' }}
       }
     </button>
   </mat-dialog-actions>

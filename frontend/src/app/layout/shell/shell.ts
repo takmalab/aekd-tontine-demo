@@ -160,14 +160,8 @@ export class Shell {
   readonly recent = signal<AppNotification[]>([]);
   readonly recentLoading = signal(false);
 
-  /** Le compte connecté a-t-il un profil membre ? (404 sinon, ex. administrateur). */
-  private readonly hasMemberProfile = toSignal(
-    this.memberService.mine().pipe(
-      map(() => true),
-      catchError(() => of(false)),
-    ),
-    { initialValue: this.authService.hasRole('MEMBRE') },
-  );
+  /** Le compte connecté a-t-il un profil membre ? Connu dès la connexion (T1 : plus d'appel refusé par page). */
+  private readonly hasMemberProfile = computed(() => this.authService.currentUser() !== null && this.authService.hasMemberProfile());
 
   /** Groupes du menu, réduits aux liens permis ; un groupe vide n'est pas affiché. */
   readonly navGroups = computed(() =>

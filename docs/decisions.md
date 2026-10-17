@@ -1367,9 +1367,10 @@ et la séance.
 À VALIDER
 ```
 
-* Les montants des prêts, de l'épargne et le détail des sanctions de chaque
-  membre deviennent visibles de tous les membres. À confirmer, notamment pour
-  l'épargne individuelle et les sanctions.
+* ~~Les montants des prêts, de l'épargne et le détail des sanctions de chaque
+  membre deviennent visibles de tous les membres.~~ **Confirmé le 2026-10-17**
+  par le propriétaire du projet (test de bout en bout, point M6) : par
+  **transparence**, tout le monde est informé (voir la décision n° 67).
 * Faut-il permettre à un membre de désactiver ces notifications ?
 
 ## Conséquence technique
@@ -2372,3 +2373,282 @@ Demandé et validé par le propriétaire du projet le 2026-10-16.
 * Fichiers justificatifs et photos devenus orphelins supprimés après
   validation ; audit `DATA_RESET`.
 * Interface : `features/settings/data-reset-page`, menu Paramètres.
+
+---
+
+# 64. Approbation d'un prêt qui ne respecte pas toutes les règles
+
+## Question
+
+Le test de bout en bout du 2026-10-17 (rapport `docs/rapport-test-bout-en-bout.pdf`,
+point M1) a montré que le trésorier peut approuver un prêt même si la
+vérification des règles de la politique signale une règle non respectée (durée
+maximale, nombre de prêts en cours, ancienneté…). Faut-il le bloquer ?
+
+## Statut
+
+```text
+DÉCIDÉ
+```
+
+## Décision
+
+Décidé par le propriétaire du projet le 2026-10-17 : **on conserve le
+fonctionnement actuel**.
+
+* La vérification des règles **informe** le membre et le trésorier ; elle ne
+  bloque pas l'approbation. Le bureau peut prendre des décisions qui vont
+  au-delà des règles de la politique.
+* Restent bloquants à l'approbation : l'accord de l'avaliste (décision n° 52)
+  et l'argent disponible pour prêter (décision n° 46).
+* Chaque approbation reste tracée au journal d'audit, avec les règles non
+  respectées visibles sur le prêt.
+
+## Conséquence technique
+
+Aucune : comportement actuel conservé.
+
+---
+
+# 65. Le trésorier enregistre le paiement d'un membre
+
+## Question
+
+Test de bout en bout du 2026-10-17 (point M2) : un membre qui remet des espèces
+au trésorier à la séance ne pouvait pas voir son paiement enregistré ; seul le
+membre pouvait déclarer son propre paiement.
+
+## Statut
+
+```text
+DÉCIDÉ
+```
+
+## Décision
+
+Validé par le propriétaire du projet le 2026-10-17.
+
+* Sur la page d'une cotisation, le **trésorier** (et les administrateurs) a un
+  bouton **« Enregistrer un paiement »** sur la ligne de chaque membre qui a
+  encore quelque chose à payer.
+* Le paiement est **validé immédiatement** (compté dans les fonds) et **tracé** :
+  « enregistré par » et « validé par » le trésorier, journal d'audit
+  (« Paiement enregistré par le trésorier »), notification au membre.
+* Mêmes règles que la déclaration du membre : participant pour cette séance,
+  montant au plus égal au reste dû (paiement partiel possible ; sans montant,
+  le reste dû est retenu). Espèces proposées par défaut, référence facultative.
+* Personne n'enregistre son propre paiement (décision n° 40).
+
+## Conséquence technique (réalisée le 2026-10-17)
+
+* `POST /api/contributions/{id}/payments/record` (TRESORIER, ADMIN par
+  hiérarchie) ; `RecordPaymentRequest` ; `ManualPaymentService.record`.
+* Migration V36 : `contribution_transaction.recorded_by` ;
+  `ContributionTransactionResponse.recordedByEmail` ; audit `PAYMENT_RECORDED`.
+* Interface : la fenêtre « Cotiser » a un mode « Enregistrer un paiement »
+  (page de détail d'une cotisation) ; « Mes paiements » indique « enregistré par
+  le trésorier ».
+
+---
+
+# 66. Motif obligatoire au rejet d'un paiement
+
+## Question
+
+Test de bout en bout du 2026-10-17 (point M5) : un paiement rejeté n'avait pas
+de motif ; le membre était seulement invité à contacter le trésorier.
+
+## Statut
+
+```text
+DÉCIDÉ
+```
+
+## Décision
+
+Validé par le propriétaire du projet le 2026-10-17.
+
+* Rejeter un paiement de cotisation exige un **motif** (500 caractères au
+  plus), saisi dans la fenêtre de confirmation.
+* Le motif est **montré au membre** : dans la notification de rejet et dans
+  « Mes cotisations » / « Mes paiements ». Il est aussi inscrit au journal
+  d'audit.
+
+## Points à valider
+
+```text
+À VALIDER
+```
+
+* Étendre le motif aux rejets des remboursements de prêt, des versements
+  d'épargne et des paiements de sanctions (aujourd'hui sans motif).
+
+## Conséquence technique (réalisée le 2026-10-17)
+
+* `PUT /api/contributions/payments/{id}/reject` attend `{ "reason": … }`
+  (`PaymentRejectionRequest`) ; migration V36 :
+  `contribution_transaction.rejection_reason`.
+* Interface : `ConfirmDialog` accepte un motif obligatoire (`reasonLabel`).
+
+---
+
+# 67. Échéance par défaut des séances générées et transparence
+
+## Question
+
+Test de bout en bout du 2026-10-17 (points M3 et M6) :
+
+* les cotisations des séances générées par un tournoi n'avaient pas
+  d'échéance : aucun retard, aucune sanction, aucun rappel possible ;
+* les membres doivent-ils voir les mouvements (paiements, prêts, sanctions)
+  des autres ?
+
+## Statut
+
+```text
+DÉCIDÉ
+```
+
+## Décision
+
+Validé par le propriétaire du projet le 2026-10-17.
+
+* **Échéance par défaut = date de la séance** pour les cotisations rattachées
+  aux séances générées par un tournoi. Elle reste modifiable sur la séance.
+* **Transparence** : tout le monde est informé des mouvements des autres
+  membres (décision n° 45 confirmée), y compris pour un paiement enregistré par
+  le trésorier.
+
+## Conséquence technique (réalisée le 2026-10-17)
+
+* `TournamentService.generateSession` passe la date de la séance comme échéance.
+* Les séances déjà générées avant ce changement gardent « Échéance non
+  définie » : la fixer à la main sur la séance si besoin.
+
+---
+
+# 68. Deuxième séance dans le même mois et libellé avec le jour
+
+## Question
+
+Test de bout en bout du 2026-10-17 (point M4) : deux séances « Séance de
+octobre 2026 » (1er et 21 octobre) existaient, impossibles à distinguer.
+
+## Statut
+
+```text
+DÉCIDÉ
+```
+
+## Décision
+
+Validé par le propriétaire du projet le 2026-10-17.
+
+* Créer (ou déplacer) une séance dans un mois qui en compte déjà une demande
+  une **confirmation** : l'écran rappelle la séance existante et propose
+  « Créer quand même ». Une séance exceptionnelle reste donc possible.
+* Les séances générées par un tournoi portent le **jour** dans leur libellé :
+  « Séance du 21 octobre 2026 », « Séance du 1er novembre 2026 »
+  (remplace « Séance de octobre 2026 », décision n° 43).
+* Un tournoi crée toujours la séance du passage, même si le mois en compte déjà
+  une : sinon le membre perdrait son tour.
+
+## Conséquence technique (réalisée le 2026-10-17)
+
+* `SessionRequest.confirmSameMonth` ; sans confirmation, réponse **428** avec
+  les séances déjà prévues ce mois-là ; `SessionRepository.findBySessionDateBetween…`.
+* `TournamentCalendar.sessionLabel` ; les séances déjà générées gardent leur
+  ancien libellé (modifiable sur la séance).
+
+---
+
+# 69. Corrections d'ergonomie du test de bout en bout (U1 à U6, T1 à T3)
+
+## Question
+
+Le test de bout en bout du 2026-10-17 a relevé des manques d'ergonomie et trois
+défauts techniques. Validé par le propriétaire du projet le 2026-10-17.
+
+## Statut
+
+```text
+DÉCIDÉ
+```
+
+## Décision
+
+* **U1 – Tableau de bord** : chaque tuile est cliquable et ouvre la page
+  correspondante, filtrée (ex. « Cotisations en retard » → Membres filtrés « en
+  retard » ; « Demandes de prêt à traiter » → Prêts, onglet « À traiter »).
+  Raccourcis : trésorier « Valider les paiements », « Traiter les prêts »,
+  « Membres en retard », « Nouvelle séance » (avec le nombre à traiter) ;
+  membre « Cotiser », « Demander un prêt », « Épargner ».
+* **U2 – Ligne d'un membre dans une cotisation** (bureau) : « Enregistrer un
+  paiement » (décision n° 65) et un menu « ⋮ » : **Relancer** (rappel envoyé au
+  membre avec le reste dû et l'échéance, tracé à l'audit), **Appliquer une
+  sanction** (page Sanctions de la cotisation, où le trésorier choisit la
+  règle), **Voir la fiche du membre**.
+* **U3 – Page d'une séance (membre)** : sous chaque cotisation, « Ma situation »
+  (statut, payé, reste à payer, montant en attente) et « Cotiser » / « Compléter ».
+* **U4 – Mes prêts** : l'emprunteur lit « En attente de l'accord de l'avaliste »
+  (l'avaliste lui-même lit « En attente de votre accord ») ; le bloc avaliste est
+  masqué sur un prêt rejeté.
+* **U5 – Vocabulaire** : singulier/pluriel accordés ; « cotisation » partout
+  (plus « contribution ») ; l'alerte rouge ou verte d'une tuile ne s'affiche
+  qu'au-dessus de 0.
+* **U6 – Tournois** : la raison du bouton « Nouveau tournoi » grisé est écrite
+  sous le bouton (lisible aussi sur téléphone).
+* **T1** : la réponse de connexion indique si le compte a un profil membre ;
+  l'interface ne demande plus `/api/members/mine` aux comptes qui n'en ont pas
+  (une erreur 403 évitée à chaque page).
+* **T2** : `GET /api/members/photos` donne la liste des membres qui ont une
+  photo ; seules celles-ci sont demandées (plus d'erreur 404 par membre sans photo).
+* **T3** : le **nom et la description** d'une politique de prêt déjà utilisée
+  restent modifiables (même principe que la décision n° 36 pour les
+  cotisations) ; ses critères restent verrouillés (désactiver et en créer une
+  nouvelle pour les changer). Le texte « 05% » a été corrigé en « 5 % » dans la
+  base locale ; en ligne, le corriger depuis l'écran « Politiques de prêt ».
+
+## Conséquence technique (réalisée le 2026-10-17)
+
+* `POST /api/contributions/{id}/periods/{periodId}/remind` (TRESORIER) ;
+  `ContributionReminderService.remindNow` ; audit `CONTRIBUTION_REMINDER_SENT`.
+* `LoginResponse.hasMemberProfile` ; `AuthService.hasMemberProfile()` (interface).
+* `MemberRepository.findIdsWithPhoto`, `GET /api/members/photos`.
+* `LoanPolicyService.update` : nom et description seuls si la politique a servi.
+* Pages Prêts (`?tab=`) et Membres (`?situation=`, `?member=`) ouvrables sur un
+  filtre ou une fiche.
+
+---
+
+# 70. Page de maintenance
+
+## Question
+
+Pendant la maintenance (décision n° 57), un membre qui tentait de se connecter
+voyait « Une erreur est survenue. Vérifiez que le serveur est démarré. »
+
+## Statut
+
+```text
+DÉCIDÉ
+```
+
+## Décision
+
+Demandé par le propriétaire du projet le 2026-10-17.
+
+* Un membre qui se connecte pendant la maintenance (mot de passe, code SMS ou
+  code e-mail), ou dont la session est coupée par la maintenance, arrive sur une
+  **page de maintenance** : logo, « Application en maintenance », message saisi
+  par le super administrateur, bouton **« Réessayer »** (retour à la connexion
+  dès que la maintenance est terminée).
+* Le **super administrateur** se connecte toujours normalement ; un lien discret
+  « Accès réservé au super administrateur » mène à la page de connexion.
+
+## Conséquence technique (réalisée le 2026-10-17)
+
+* Route publique `/maintenance` (`features/auth/maintenance`).
+* Page de connexion : une réponse 503 mène à `/maintenance` ; intercepteur
+  d'erreurs : 503 « maintenance » et renouvellement de session refusé (503)
+  mènent aussi à `/maintenance`.

@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
@@ -45,6 +45,8 @@ export class LoansAdmin implements OnInit {
   readonly loading = signal(true);
   readonly error = signal(false);
   readonly loans = signal<Loan[]>([]);
+  /** Paramètre ?tab= (ex. depuis une tuile du tableau de bord) : onglet ouvert au chargement. */
+  readonly tab = input<string>();
   readonly filter = signal<LoanFilter>('REQUESTED');
 
   readonly filters: { value: LoanFilter; label: string }[] = [
@@ -92,6 +94,10 @@ export class LoansAdmin implements OnInit {
   readonly exportFilters = computed(() => `Filtre : ${this.filters.find((f) => f.value === this.filter())?.label}`);
 
   ngOnInit(): void {
+    const tab = this.tab() as LoanFilter | undefined;
+    if (tab && this.filters.some((f) => f.value === tab)) {
+      this.filter.set(tab);
+    }
     this.load();
   }
 

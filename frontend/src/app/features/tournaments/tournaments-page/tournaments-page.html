@@ -16,6 +16,14 @@
     </span>
   </header>
 
+  <!-- U6 : la raison du bouton grisé, lisible aussi sur téléphone (pas seulement au survol). -->
+  @if (hasActive() && !loading()) {
+    <p class="active-hint" role="note">
+      <mat-icon>info</mat-icon>
+      Un tournoi est déjà en cours : arrêtez-le (menu ⋮ du tournoi) avant d'en créer un autre.
+    </p>
+  }
+
   @if (loading()) {
     <div class="state"><mat-spinner diameter="40" /></div>
   } @else if (error()) {

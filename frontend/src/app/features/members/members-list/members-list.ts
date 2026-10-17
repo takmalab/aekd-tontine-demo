@@ -1,6 +1,6 @@
 import { MemberPhotoService } from '../../../core/services/member-photo.service';
 import { DatePipe } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, input, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
@@ -212,6 +212,10 @@ export class MembersList implements OnInit {
   readonly currentSession = signal<SessionSummary | null>(null);
 
   readonly search = signal('');
+  /** ?situation= (ex. tuile du tableau de bord) : filtre de situation appliqué au chargement. */
+  readonly situation = input<string>();
+  /** ?member= (ex. ligne d'une cotisation) : fiche du membre ouverte au chargement. */
+  readonly member = input<string>();
   readonly statusFilter = signal<StatusFilterValue>('ALL');
   readonly situationFilter = signal<SituationFilterValue>('ALL');
   readonly sort = signal<SortValue>('name');
@@ -387,6 +391,7 @@ export class MembersList implements OnInit {
           }),
         );
         this.loading.set(false);
+        this.applyRouteParams();
       },
       error: () => {
         this.error.set(true);
@@ -476,6 +481,23 @@ export class MembersList implements OnInit {
 
   private scrollToTable(): void {
     document.getElementById('members-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  /** Filtre et fiche demandés par l'adresse (une seule fois, après le premier chargement). */
+  private routeParamsApplied = false;
+  private applyRouteParams(): void {
+    if (this.routeParamsApplied) {
+      return;
+    }
+    this.routeParamsApplied = true;
+    const situation = this.situation() as SituationFilterValue | undefined;
+    if (situation && ['UP_TO_DATE', 'LATE', 'WITH_LOAN', 'WITH_SANCTION'].includes(situation)) {
+      this.situationFilter.set(situation);
+    }
+    const row = this.rows().find((r) => r.member.id === this.member());
+    if (row) {
+      this.view(row);
+    }
   }
 
   view(row: MemberRow): void {

@@ -184,6 +184,30 @@ class LoanFlowTest {
     }
 
     @Test
+    void usedPolicyKeepsItsCriteriaButItsTextCanBeCorrected() {
+        Member admin = createMember(RoleName.ADMIN, "loanadmin9", LocalDate.now());
+        Member member = createMember(RoleName.MEMBRE, "loanmember9", LocalDate.of(2024, 1, 1));
+        TestSavings.seedValidated(depositRepository, member, new BigDecimal(500000));
+
+        loginAsMember(admin, RoleName.ADMIN);
+        LoanPolicyResponse policy = policyService.create(new LoanPolicyRequest("Politique 5%", "Taux de 05%.",
+                null, new BigDecimal(500000), 2, new BigDecimal(5), null, null, null));
+        loginAsMember(member, RoleName.MEMBRE);
+        loanService.request(new LoanRequest(new BigDecimal(100000), 2, "Motif"));
+
+        // Décision n° 69 : texte corrigeable, critères verrouillés une fois la politique utilisée.
+        loginAsMember(admin, RoleName.ADMIN);
+        LoanPolicyResponse renamed = policyService.update(policy.id(), new LoanPolicyRequest("Politique 5 %",
+                "Taux de 5 %.", null, new BigDecimal("500000.00"), 2, new BigDecimal("5.00"), null, null, null));
+        assertThat(renamed.description()).isEqualTo("Taux de 5 %.");
+        assertThat(renamed.name()).isEqualTo("Politique 5 %");
+        assertThatThrownBy(() -> policyService.update(policy.id(), new LoanPolicyRequest("Politique 5 %",
+                "Taux de 5 %.", null, new BigDecimal(500000), 3, new BigDecimal(5), null, null, null)))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("nom et sa description");
+    }
+
+    @Test
     void ruleEvaluationExplainsWhyRequestFailsButStillAllowsApproval() {
         Member admin = createMember(RoleName.ADMIN, "loanadmin4", LocalDate.now());
         Member treasurer = createMember(RoleName.TRESORIER, "loantreso4", LocalDate.now());

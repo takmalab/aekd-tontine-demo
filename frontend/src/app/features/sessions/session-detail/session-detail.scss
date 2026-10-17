@@ -687,3 +687,60 @@
 #cagnotte {
   scroll-margin-top: 80px;
 }
+
+/* ---------- U3 : situation du membre sous chaque cotisation ---------- */
+.contrib-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  background: #fff;
+  border-left: 4px solid var(--aekd-orange);
+
+  &--paid {
+    border-left-color: #2e7d32;
+  }
+
+  &--late {
+    border-left-color: var(--aekd-brown);
+    background: var(--aekd-brown-soft);
+  }
+
+  &--pending {
+    border-left-color: #8a8790;
+  }
+
+  &__text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    font-size: 13.5px;
+  }
+
+  &__label {
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--aekd-gray-muted);
+  }
+
+  &__amounts {
+    color: var(--aekd-gray-muted);
+  }
+
+  &__cta {
+    border-radius: 10px;
+  }
+}

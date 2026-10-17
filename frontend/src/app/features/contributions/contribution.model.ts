@@ -177,6 +177,21 @@ export interface ContributionTransaction {
   status: ContributionTransactionStatus;
   validatedByEmail: string | null;
   validatedAt: string | null;
+  /** Décision n° 65 : non nul quand le trésorier a enregistré le paiement pour le membre. */
+  recordedByEmail: string | null;
+  /** Décision n° 66 : motif d'un paiement rejeté, montré au membre. */
+  rejectionReason: string | null;
+}
+
+/** Miroir de RecordPaymentRequest (backend) : paiement enregistré par le trésorier (n° 65). */
+export interface RecordPaymentRequest {
+  memberId: string;
+  contributionPeriodId: string;
+  amount: number | null;
+  operator: PaymentOperator;
+  transactionReference: string | null;
+  paymentDate: string;
+  observation: string | null;
 }
 
 /** Miroir de PaymentProofResponse (backend). */

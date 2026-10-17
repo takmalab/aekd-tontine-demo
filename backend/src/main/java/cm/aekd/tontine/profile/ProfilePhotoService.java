@@ -17,6 +17,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
@@ -126,5 +127,10 @@ public class ProfilePhotoService {
     private User currentUser() {
         return currentUserProvider.currentUserId().flatMap(userRepository::findById)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Utilisateur non authentifié"));
+    }
+
+    @Transactional(readOnly = true)
+    public List<UUID> memberIdsWithPhoto() {
+        return memberRepository.findIdsWithPhoto();
     }
 }

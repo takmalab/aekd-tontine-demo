@@ -119,6 +119,31 @@ class SessionServiceTest {
     }
 
     @Test
+    void secondSessionInTheSameMonthNeedsConfirmation() {
+        sessionService.create(request("Séance de mars", LocalDate.of(2031, 3, 5), host.getId(),
+                List.of(beneficiaryA.getId())));
+        SessionRequest second = new SessionRequest("Séance exceptionnelle", LocalDate.of(2031, 3, 26),
+                "Douala", host.getId(), List.of(beneficiaryB.getId()), null, false);
+
+        // Décision n° 68 : 428 tant que l'utilisateur n'a pas confirmé, avec la séance déjà prévue.
+        assertThatThrownBy(() -> sessionService.create(second))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("Séance de mars")
+                .satisfies(e -> assertThat(((ResponseStatusException) e).getStatusCode().value()).isEqualTo(428));
+
+        SessionResponse confirmed = sessionService.create(new SessionRequest("Séance exceptionnelle",
+                LocalDate.of(2031, 3, 26), "Douala", host.getId(), List.of(beneficiaryB.getId()), null, true));
+        assertThat(confirmed.id()).isNotNull();
+
+        // Modifier une séance sans changer de mois ne redemande pas de confirmation pour elle-même.
+        SessionResponse april = sessionService.create(request("Séance d'avril", LocalDate.of(2031, 4, 2),
+                host.getId(), List.of(beneficiaryA.getId())));
+        assertThat(sessionService.update(april.id(), new SessionRequest("Séance d'avril", LocalDate.of(2031, 4, 9),
+                "Douala", host.getId(), List.of(beneficiaryA.getId()), null, false)).date())
+                .isEqualTo(LocalDate.of(2031, 4, 9));
+    }
+
+    @Test
     void duplicateBeneficiaryIdsAreStoredOnce() {
         SessionResponse response = sessionService.create(request("Séance doublons", LocalDate.of(2026, 11, 7),
                 host.getId(), List.of(beneficiaryA.getId(), beneficiaryA.getId())));

@@ -41,7 +41,10 @@ export class ProfilePage {
   readonly busy = signal(false);
 
   /** Profil membre (absent pour un administrateur qui ne cotise pas). */
-  readonly member = toSignal(inject(MemberService).mine().pipe(catchError(() => of(null))), { initialValue: null });
+  readonly member = toSignal(
+    inject(AuthService).hasMemberProfile() ? inject(MemberService).mine().pipe(catchError(() => of(null))) : of(null),
+    { initialValue: null },
+  );
 
   // ---------- Adresse e-mail (decisions.md n° 55) ----------
 

@@ -123,6 +123,96 @@
   }
 }
 
+/* ---------- Shortcuts (U1) ---------- */
+.shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 18px;
+}
+
+.shortcut {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  background: #fff;
+  color: var(--aekd-gray);
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+  box-shadow: var(--aekd-shadow);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+  mat-icon {
+    color: var(--aekd-orange);
+  }
+
+  &:hover,
+  &:focus-visible {
+    transform: translateY(-1px);
+    box-shadow: var(--aekd-shadow-lg);
+  }
+
+  &--primary {
+    border-color: var(--aekd-orange);
+    background: var(--aekd-orange);
+    color: #fff;
+
+    mat-icon {
+      color: #fff;
+    }
+  }
+
+  &__badge {
+    min-width: 22px;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: var(--aekd-brown);
+    color: #fff;
+    font-size: 12px;
+    text-align: center;
+  }
+}
+
+.stat-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 16px;
+
+  &:focus-visible {
+    outline: 3px solid var(--aekd-orange);
+    outline-offset: 2px;
+  }
+
+  .stat-card {
+    height: 100%;
+    cursor: pointer;
+  }
+}
+
+.stat-card__go {
+  margin-left: auto;
+  flex: none;
+  color: var(--aekd-gray-muted);
+  opacity: 0.6;
+}
+
+@media (max-width: 599.98px) {
+  .shortcut {
+    flex: 1 1 calc(50% - 10px);
+    justify-content: center;
+  }
+
+  .stat-card__go {
+    display: none;
+  }
+}
+
 /* ---------- Stat tiles ---------- */
 // Normal tile: white card, orange-tinted icon badge.
 // "ok" tile:   solid orange icon badge + orange accent (positive / validated).

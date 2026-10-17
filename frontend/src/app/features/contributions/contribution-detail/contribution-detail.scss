@@ -442,6 +442,19 @@
     gap: 5px;
   }
 
+  &__action {
+    flex: none;
+    border-radius: 10px;
+
+    @media (max-width: 599.98px) {
+      width: 100%;
+    }
+  }
+
+  @media (max-width: 599.98px) {
+    flex-wrap: wrap;
+  }
+
   &__top {
     display: flex;
     align-items: center;

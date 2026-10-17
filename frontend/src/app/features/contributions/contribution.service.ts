@@ -74,6 +74,11 @@ export class ContributionService {
     return this.http.post<ContributionPeriod>(`${this.baseUrl}/${id}/periods`, request);
   }
 
+  /** Relance d'un participant qui n'a pas tout payé (TRESORIER, ADMIN). */
+  remind(id: string, periodId: string, memberId: string): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/${id}/periods/${periodId}/remind`, { memberId });
+  }
+
   /** Situation de paiement de chaque participant pour une période (visibilité de la cotisation). */
   listParticipantStatuses(id: string, periodId: string): Observable<ParticipantPaymentStatus[]> {
     return this.http.get<ParticipantPaymentStatus[]>(

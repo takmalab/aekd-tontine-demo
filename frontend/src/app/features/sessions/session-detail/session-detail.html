@@ -262,6 +262,7 @@
 
           <div class="grid">
             @for (item of group.items; track item.period.id) {
+              <div class="contrib-wrap">
               <a
                 class="contrib"
                 [class.contrib--mandatory]="item.definition.mandatory"
@@ -324,6 +325,37 @@
                   <mat-icon class="contrib__chevron">chevron_right</mat-icon>
                 </span>
               </a>
+
+              <!-- U3 : situation du membre connecté et « Cotiser » directement depuis la séance. -->
+              @if (mySituation()[item.period.id]; as mine) {
+                @let status = myStatus(item);
+                <div [class]="'mine mine--' + (status ?? 'not_paid').toLowerCase()">
+                  <div class="mine__text">
+                    <span class="mine__label">Ma situation</span>
+                    <strong>{{ status ? periodStatusLabels[status] : '' }}</strong>
+                    @if (mine.dueAmount !== null) {
+                      <span class="mine__amounts">
+                        Payé {{ formatFcfa(mine.validatedAmount) }}
+                        @if (mine.remainingAmount) {
+                          · reste {{ formatFcfa(mine.remainingAmount) }}
+                        }
+                      </span>
+                    } @else if (mine.validatedAmount > 0) {
+                      <span class="mine__amounts">Versé {{ formatFcfa(mine.validatedAmount) }}</span>
+                    }
+                    @if (mine.pendingAmount > 0) {
+                      <span class="mine__amounts">{{ formatFcfa(mine.pendingAmount) }} en attente de validation</span>
+                    }
+                  </div>
+                  @if (canContribute(item)) {
+                    <button mat-flat-button type="button" class="mine__cta" (click)="contribute(item)">
+                      <mat-icon>send_money</mat-icon>
+                      {{ status === 'PARTIAL' ? 'Compléter' : 'Cotiser' }}
+                    </button>
+                  }
+                </div>
+              }
+              </div>
             }
           </div>
         }

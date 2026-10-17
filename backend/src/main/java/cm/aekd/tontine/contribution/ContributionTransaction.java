@@ -75,6 +75,15 @@ public class ContributionTransaction {
     @Column(name = "validated_at")
     private Instant validatedAt;
 
+    /** Décision n° 65 : trésorier ayant enregistré le paiement pour le membre ; null si déclaré par le membre. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "recorded_by")
+    private User recordedBy;
+
+    /** Décision n° 66 : motif communiqué au membre lors d'un rejet. */
+    @Column(name = "rejection_reason", length = 500)
+    private String rejectionReason;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -162,6 +171,22 @@ public class ContributionTransaction {
 
     public void setValidatedAt(Instant validatedAt) {
         this.validatedAt = validatedAt;
+    }
+
+    public User getRecordedBy() {
+        return recordedBy;
+    }
+
+    public void setRecordedBy(User recordedBy) {
+        this.recordedBy = recordedBy;
+    }
+
+    public String getRejectionReason() {
+        return rejectionReason;
+    }
+
+    public void setRejectionReason(String rejectionReason) {
+        this.rejectionReason = rejectionReason;
     }
 
     public Instant getCreatedAt() {

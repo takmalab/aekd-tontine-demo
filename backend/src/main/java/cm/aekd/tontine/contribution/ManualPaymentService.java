@@ -8,12 +8,15 @@ import cm.aekd.tontine.member.Member;
 import cm.aekd.tontine.notification.NotificationService;
 import cm.aekd.tontine.notification.NotificationType;
 import cm.aekd.tontine.member.MemberRepository;
+import cm.aekd.tontine.user.User;
+import cm.aekd.tontine.user.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -39,6 +42,7 @@ public class ManualPaymentService implements PaymentService {
     private final AuditLogService auditLogService;
     private final ContributionPeriodStatusService periodStatusService;
     private final NotificationService notificationService;
+    private final UserRepository userRepository;
 
     public ManualPaymentService(ContributionDefinitionRepository definitionRepository,
                                  ContributionPeriodRepository periodRepository,
@@ -48,7 +52,9 @@ public class ManualPaymentService implements PaymentService {
                                  CurrentUserProvider currentUserProvider,
                                  AuditLogService auditLogService,
                                  ContributionPeriodStatusService periodStatusService,
-                                 NotificationService notificationService) {
+                                 NotificationService notificationService,
+                                 UserRepository userRepository) {
+        this.userRepository = userRepository;
         this.notificationService = notificationService;
         this.definitionRepository = definitionRepository;
         this.periodRepository = periodRepository;
@@ -103,6 +109,60 @@ public class ManualPaymentService implements PaymentService {
                 member.getFullName() + " a déclaré " + DocumentFormat.fcfa(amount) + " pour \""
                         + definition.getName() + "\" (" + period.getSession().getLabel() + ").",
                 "/payments");
+
+        return ContributionTransactionResponse.from(transaction);
+    }
+
+    /**
+     * Décision n° 65 : le trésorier (ou un administrateur) enregistre le paiement d'un membre,
+     * par exemple des espèces remises à la séance. Le paiement est validé d'emblée et tracé
+     * (enregistré par, validé par). Mêmes règles que la déclaration (participant pour cette
+     * séance, reste dû) ; personne n'enregistre son propre paiement (décision n° 40).
+     */
+    public ContributionTransactionResponse record(UUID contributionDefinitionId, RecordPaymentRequest request) {
+        ContributionDefinition definition = definitionRepository.findById(contributionDefinitionId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Cotisation introuvable"));
+        ContributionPeriod period = periodRepository.findById(request.contributionPeriodId())
+                .filter(p -> p.getContributionDefinition().getId().equals(contributionDefinitionId))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Cette séance ne correspond pas à cette cotisation"));
+        Member member = memberRepository.findById(request.memberId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Membre introuvable"));
+
+        if (currentUserProvider.currentMemberId().map(member.getId()::equals).orElse(false)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Vous ne pouvez pas enregistrer votre propre paiement : il doit l'être par un autre membre du bureau");
+        }
+        if (!participantRepository.participatesIn(period, member.getId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    member.getFullName() + " ne participe pas à cette cotisation pour cette séance");
+        }
+        User recorder = currentUserProvider.currentUserId().flatMap(userRepository::findById)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Utilisateur introuvable"));
+
+        BigDecimal amount = resolveAmount(definition, period, member.getId(), request.amount());
+        String reference = request.transactionReference() == null || request.transactionReference().isBlank()
+                ? "Enregistré par le trésorier" : request.transactionReference().trim();
+
+        ContributionTransaction transaction = new ContributionTransaction(member, period, amount, request.operator(),
+                reference, request.paymentDate(), request.observation());
+        transaction.setStatus(ContributionTransactionStatus.VALIDATED);
+        transaction.setValidatedBy(recorder);
+        transaction.setValidatedAt(Instant.now());
+        transaction.setRecordedBy(recorder);
+        transaction = transactionRepository.save(transaction);
+
+        auditLogService.record(AuditAction.PAYMENT_RECORDED, "ContributionTransaction", transaction.getId(),
+                "Paiement de " + amount + " (" + request.operator() + ") enregistré pour " + member.getFullName()
+                        + " — \"" + definition.getName() + "\", " + period.getSession().getLabel());
+        notificationService.notifyMember(member, NotificationType.PAYMENT_VALIDATED, "Paiement enregistré",
+                "Le trésorier a enregistré votre paiement de " + DocumentFormat.fcfa(amount) + " pour \""
+                        + definition.getName() + "\" (" + period.getSession().getLabel() + ").",
+                "/my-contributions");
+        // Décision n° 45 confirmée (n° 67) : transparence envers tous les membres.
+        notificationService.notifyOtherMembers(member, definition, "Paiement de cotisation",
+                member.getFullName() + " a payé " + DocumentFormat.fcfa(amount) + " pour \"" + definition.getName()
+                        + "\" (" + period.getSession().getLabel() + ").");
 
         return ContributionTransactionResponse.from(transaction);
     }

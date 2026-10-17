@@ -7,12 +7,14 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { catchError, forkJoin, of } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
+import { DocumentService } from '../../../core/services/document.service';
 import { PageState } from '../../../shared/components/page-state/page-state';
 import { StatusBadge, StatusVariant } from '../../../shared/components/status-badge/status-badge';
 import { formatFcfa, fromIsoDate, toIsoDate } from '../../../shared/utils/format';
@@ -92,6 +94,7 @@ function filterOf(status: ContributionPeriodStatus): ParticipantFilter | null {
     LowerCasePipe,
     MatButtonModule,
     MatIconModule,
+    MatMenuModule,
     MatProgressSpinnerModule,
     MatFormFieldModule,
     MatSelectModule,
@@ -113,6 +116,7 @@ export class ContributionDetail implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly actions = inject(ContributionActions);
   private readonly router = inject(Router);
+  private readonly documents = inject(DocumentService);
 
   /** Paramètre de route `:id`. */
   readonly id = input.required<string>();
@@ -215,7 +219,7 @@ export class ContributionDetail implements OnInit {
       periods: this.contributionService.listPeriods(this.id()),
       sessions: this.sessionService.list().pipe(catchError(() => of([] as Session[]))),
       // Comptes sans profil membre (ex. administrateur) : pas de bouton « Cotiser ».
-      me: this.memberService.mine().pipe(catchError(() => of(null))),
+      me: this.authService.hasMemberProfile() ? this.memberService.mine().pipe(catchError(() => of(null))) : of(null),
     }).subscribe({
       next: ({ definition, periods, sessions, me }) => {
         const byId = new Map(sessions.map((s) => [s.id, s]));
@@ -359,4 +363,50 @@ export class ContributionDetail implements OnInit {
           );
       });
   }
+
+  /** Décision n° 65 : le trésorier enregistre un paiement reçu en main propre, validé d'emblée. */
+  recordPayment(row: ParticipantRow): void {
+    const definition = this.definition();
+    const option = this.selectedPeriod();
+    if (!definition || !option) {
+      return;
+    }
+    const data: DeclarePaymentData = {
+      definition,
+      period: option.period,
+      remaining: row.remainingAmount,
+      member: { id: row.memberId, fullName: row.memberFullName },
+    };
+    this.dialog
+      .open(DeclarePaymentDialog, { data, width: '600px', maxWidth: 'calc(100vw - 24px)', autoFocus: false })
+      .afterClosed()
+      .subscribe((transaction?: ContributionTransaction) => {
+        if (!transaction) {
+          return;
+        }
+        this.loadStatuses();
+        this.snackBar
+          .open(`Paiement de ${formatFcfa(transaction.amount)} enregistré pour ${row.memberFullName}`, 'Reçu PDF', {
+            duration: 8000,
+          })
+          .onAction()
+          .subscribe(() => this.documents.paymentReceipt(transaction.id));
+      });
+  }
+
+  /** U2 : rappel envoyé au membre (notification), tracé au journal d'audit. */
+  remind(row: ParticipantRow): void {
+    const option = this.selectedPeriod();
+    if (!option) {
+      return;
+    }
+    this.contributionService.remind(this.id(), option.period.id, row.memberId).subscribe({
+      next: () => this.snackBar.open(`Rappel envoyé à ${row.memberFullName}`, 'OK', { duration: 4000 }),
+      error: (err: HttpErrorResponse) =>
+        this.snackBar.open(err.error?.message || "Le rappel n'a pas pu être envoyé.", 'OK', { duration: 6000 }),
+    });
+  }
+
+  /** Mêmes règles que le membre : rien en attente et pas entièrement payé. */
+  readonly canDeclare = canDeclare;
 }

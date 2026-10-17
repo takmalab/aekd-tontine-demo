@@ -25,11 +25,13 @@ import java.util.UUID;
 public class ContributionPaymentController {
 
     private final PaymentService paymentService;
+    private final ManualPaymentService manualPaymentService;
     private final ContributionTransactionService transactionService;
 
-    public ContributionPaymentController(PaymentService paymentService,
+    public ContributionPaymentController(PaymentService paymentService, ManualPaymentService manualPaymentService,
                                           ContributionTransactionService transactionService) {
         this.paymentService = paymentService;
+        this.manualPaymentService = manualPaymentService;
         this.transactionService = transactionService;
     }
 
@@ -37,6 +39,14 @@ public class ContributionPaymentController {
     public ResponseEntity<ContributionTransactionResponse> declare(@PathVariable UUID id,
                                                                       @Valid @RequestBody ContributionTransactionRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(paymentService.declare(id, request));
+    }
+
+    /** Décision n° 65 : paiement d'un membre enregistré par le trésorier, validé d'emblée. */
+    @PostMapping("/{id}/payments/record")
+    @PreAuthorize("hasRole('TRESORIER')")
+    public ResponseEntity<ContributionTransactionResponse> record(@PathVariable UUID id,
+                                                                     @Valid @RequestBody RecordPaymentRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(manualPaymentService.record(id, request));
     }
 
     @GetMapping("/payments/pending")
@@ -58,7 +68,8 @@ public class ContributionPaymentController {
 
     @PutMapping("/payments/{id}/reject")
     @PreAuthorize("hasRole('TRESORIER')")
-    public ContributionTransactionResponse reject(@PathVariable UUID id) {
-        return transactionService.reject(id);
+    public ContributionTransactionResponse reject(@PathVariable UUID id,
+                                                  @Valid @RequestBody PaymentRejectionRequest request) {
+        return transactionService.reject(id, request.reason());
     }
 }

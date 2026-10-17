@@ -14,6 +14,9 @@ public interface SessionRepository extends JpaRepository<Session, UUID> {
 
     List<Session> findAllByOrderBySessionDateDesc();
 
+    /** Séances d'une période (ex. un mois), pour prévenir une 2e séance le même mois (décision n° 68). */
+    List<Session> findBySessionDateBetweenOrderBySessionDate(LocalDate from, LocalDate to);
+
     /** Séance la plus récente tenue au plus tard à la date donnée. */
     Optional<Session> findFirstBySessionDateLessThanEqualOrderBySessionDateDesc(LocalDate onOrBefore);
 

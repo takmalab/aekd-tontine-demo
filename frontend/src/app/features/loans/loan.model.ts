@@ -82,8 +82,9 @@ export const LOAN_RULE_LABELS: Record<string, string> = {
 /** Réponse de l'avaliste (decisions.md n° 52). */
 export type GuarantorStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED';
 
+/** Vu par l'emprunteur et le bureau ; l'avaliste lui-même lit « En attente de votre accord » (U4). */
 export const GUARANTOR_STATUS_LABELS: Record<GuarantorStatus, string> = {
-  PENDING: 'En attente de votre accord',
+  PENDING: "En attente de l'accord de l'avaliste",
   ACCEPTED: 'A accepté',
   DECLINED: 'A refusé',
 };

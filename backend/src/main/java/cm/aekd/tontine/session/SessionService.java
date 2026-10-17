@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -76,6 +77,7 @@ public class SessionService {
     }
 
     public SessionResponse create(SessionRequest request) {
+        checkSameMonth(request, null);
         Member host = getHostOrThrow(request.hostMemberId());
         List<Member> beneficiaries = getBeneficiariesOrThrow(request.beneficiaryMemberIds());
 
@@ -127,6 +129,7 @@ public class SessionService {
      */
     public SessionResponse update(UUID id, SessionRequest request) {
         Session session = getSessionOrThrow(id);
+        checkSameMonth(request, id);
         Member host = getHostOrThrow(request.hostMemberId());
         List<Member> beneficiaries = getBeneficiariesOrThrow(request.beneficiaryMemberIds());
 
@@ -329,6 +332,28 @@ public class SessionService {
     private Session getSessionOrThrow(UUID id) {
         return sessionRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Séance introuvable"));
+    }
+
+    /**
+     * Décision n° 68 : une 2e séance dans le même mois est possible (séance exceptionnelle),
+     * mais seulement après confirmation explicite. Sans elle : 428, avec les séances déjà prévues.
+     */
+    private void checkSameMonth(SessionRequest request, UUID excludedSessionId) {
+        if (request.confirmSameMonth() || request.date() == null) {
+            return;
+        }
+        YearMonth month = YearMonth.from(request.date());
+        List<Session> sameMonth = sessionRepository
+                .findBySessionDateBetweenOrderBySessionDate(month.atDay(1), month.atEndOfMonth()).stream()
+                .filter(s -> !s.getId().equals(excludedSessionId))
+                .toList();
+        if (!sameMonth.isEmpty()) {
+            String existing = sameMonth.stream()
+                    .map(s -> "« " + s.getLabel() + " » du " + s.getSessionDate().format(AUDIT_DATE))
+                    .collect(Collectors.joining(", "));
+            throw new ResponseStatusException(HttpStatus.PRECONDITION_REQUIRED,
+                    "Une séance existe déjà ce mois-ci : " + existing + ". Confirmez pour en créer une autre.");
+        }
     }
 
     private Member getHostOrThrow(UUID hostMemberId) {

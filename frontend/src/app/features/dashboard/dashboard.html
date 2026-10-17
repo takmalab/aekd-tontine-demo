@@ -33,25 +33,46 @@
       <img class="banner__logo" src="assets/logo-aekd-mark.png" alt="" aria-hidden="true" />
     </header>
 
+    @if (shortcuts().length) {
+      <nav class="shortcuts" aria-label="Raccourcis">
+        @for (s of shortcuts(); track s.label) {
+          <a
+            [class]="s.primary ? 'shortcut shortcut--primary' : 'shortcut'"
+            [routerLink]="s.link"
+            [queryParams]="s.query ?? null"
+          >
+            <mat-icon>{{ s.icon }}</mat-icon>
+            <span>{{ s.label }}</span>
+            @if (s.badge) {
+              <span class="shortcut__badge">{{ s.badge }}</span>
+            }
+          </a>
+        }
+      </nav>
+    }
+
     <div class="dashboard__grid">
       @for (tile of tiles(); track tile.label; let i = $index) {
-        <mat-card
-          class="stat-card"
-          appearance="outlined"
-          [class.stat-card--warn]="tile.tone === 'warn'"
-          [class.stat-card--ok]="tile.tone === 'ok'"
-          [style.animation-delay.ms]="i * 40"
-        >
-          <mat-card-content class="stat-card__body">
-            <span class="stat-card__icon">
-              <mat-icon>{{ tile.icon }}</mat-icon>
-            </span>
-            <div class="stat-card__text">
-              <div class="stat-card__value">{{ tile.value }}</div>
-              <div class="stat-card__label">{{ tile.label }}</div>
-            </div>
-          </mat-card-content>
-        </mat-card>
+        <a class="stat-link" [routerLink]="tile.link" [queryParams]="tile.query ?? null" [attr.aria-label]="tile.value + ' ' + tile.label">
+          <mat-card
+            class="stat-card"
+            appearance="outlined"
+            [class.stat-card--warn]="tile.tone === 'warn'"
+            [class.stat-card--ok]="tile.tone === 'ok'"
+            [style.animation-delay.ms]="i * 40"
+          >
+            <mat-card-content class="stat-card__body">
+              <span class="stat-card__icon">
+                <mat-icon>{{ tile.icon }}</mat-icon>
+              </span>
+              <div class="stat-card__text">
+                <div class="stat-card__value">{{ tile.value }}</div>
+                <div class="stat-card__label">{{ tile.label }}</div>
+              </div>
+              <mat-icon class="stat-card__go" aria-hidden="true">chevron_right</mat-icon>
+            </mat-card-content>
+          </mat-card>
+        </a>
       }
     </div>
   }

@@ -5,6 +5,7 @@ import { environment } from '../../../environments/environment';
 import {
   ContributionTransaction,
   ContributionTransactionRequest,
+  RecordPaymentRequest,
   PaymentProof,
 } from '../contributions/contribution.model';
 
@@ -58,9 +59,14 @@ export class PaymentService {
     return this.http.put<ContributionTransaction>(`${this.baseUrl}/payments/${id}/validate`, {});
   }
 
-  /** TRESORIER et ADMIN (décision n° 40). */
-  reject(id: string): Observable<ContributionTransaction> {
-    return this.http.put<ContributionTransaction>(`${this.baseUrl}/payments/${id}/reject`, {});
+  /** TRESORIER et ADMIN (décision n° 40) ; motif obligatoire, montré au membre (décision n° 66). */
+  reject(id: string, reason: string): Observable<ContributionTransaction> {
+    return this.http.put<ContributionTransaction>(`${this.baseUrl}/payments/${id}/reject`, { reason });
+  }
+
+  /** Paiement d'un membre enregistré par le trésorier, validé d'emblée (décision n° 65). */
+  record(contributionId: string, request: RecordPaymentRequest): Observable<ContributionTransaction> {
+    return this.http.post<ContributionTransaction>(`${this.baseUrl}/${contributionId}/payments/record`, request);
   }
 
   /** Ajoute ou remplace le justificatif d'un paiement encore en attente. */

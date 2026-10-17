@@ -141,7 +141,7 @@ class FundServiceTest {
                 new ContributionTransactionRequest(tontinePeriod3.id(), new BigDecimal(2000), PaymentOperator.CASH,
                         "REF-F3", LocalDate.of(2026, 10, 5), null));
         loginAsMember(treasurer, RoleName.TRESORIER);
-        transactionService.reject(rejected.id());
+        transactionService.reject(rejected.id(), "Motif de test");
 
         // Épargne individuelle : A verse 20 000 (validé)
         ContributionPeriodResponse savingsPeriod = setupActiveDefinition(treasurer, memberA,

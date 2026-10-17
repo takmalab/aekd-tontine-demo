@@ -127,7 +127,7 @@ class TournamentServiceTest {
         tournamentService.generateDueSessions(id, LocalDate.of(2026, 10, 8));
         TournamentResponse.Slot first = tournamentService.findById(id).slots().get(0);
         assertThat(first.generated()).isTrue();
-        assertThat(first.sessionLabel()).isEqualTo("Séance de novembre 2026");
+        assertThat(first.sessionLabel()).isEqualTo("Séance du 7 novembre 2026");
 
         SessionResponse session = sessionService.findById(first.sessionId());
         assertThat(session.date()).isEqualTo(LocalDate.of(2026, 11, 7));
@@ -138,6 +138,10 @@ class TournamentServiceTest {
         assertThat(periodRepository.findBySessionId(session.id()))
                 .extracting(p -> p.getContributionDefinition().getId())
                 .containsExactly(cotisation.getId());
+        // Décision n° 67 : échéance par défaut = date de la séance.
+        assertThat(periodRepository.findBySessionId(session.id()))
+                .extracting(p -> p.getDueDate())
+                .containsExactly(LocalDate.of(2026, 11, 7));
 
         // Nouveau passage le même jour : rien de plus.
         tournamentService.generateDueSessions(id, LocalDate.of(2026, 10, 8));
