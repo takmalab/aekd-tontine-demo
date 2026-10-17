@@ -18,10 +18,10 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
-      // Maintenance (decisions.md n° 57) : retour à la connexion, qui affiche le message.
+      // Maintenance (decisions.md n° 57 et 70) : session coupée, page de maintenance.
       if (error.status === 503 && error.error?.maintenance) {
         authService.clearSession();
-        router.navigate(['/login']);
+        router.navigate(['/maintenance'], { state: { message: error.error?.message } });
         return throwError(() => error);
       }
       // Les appels d'authentification gèrent eux-mêmes leurs erreurs (pas de boucle).
@@ -40,6 +40,10 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
           if (refreshError.status === 401 || refreshError.status === 403) {
             authService.clearSession();
             router.navigate(['/login']);
+          } else if (refreshError.status === 503) {
+            // Renouvellement refusé pendant la maintenance (décision n° 70).
+            authService.clearSession();
+            router.navigate(['/maintenance'], { state: { message: refreshError.error?.message } });
           }
           return throwError(() => refreshError);
         }),

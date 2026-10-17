@@ -118,6 +118,9 @@ export class Login {
       },
       error: (error: HttpErrorResponse) => {
         this.loading.set(false);
+        if (this.goToMaintenance(error)) {
+          return;
+        }
         if (error.status === 403) {
           this.router.navigate(['/pending'], { state: { email } });
           return;
@@ -144,6 +147,9 @@ export class Login {
       },
       error: (error: HttpErrorResponse) => {
         this.loading.set(false);
+        if (this.goToMaintenance(error)) {
+          return;
+        }
         if (error.status === 403) {
           this.router.navigate(['/pending'], { state: { email: email!.trim() } });
           return;
@@ -186,6 +192,9 @@ export class Login {
       },
       error: (error: HttpErrorResponse) => {
         this.loading.set(false);
+        if (this.goToMaintenance(error)) {
+          return;
+        }
         // Numéro d'un compte pas encore validé (decisions.md n° 54).
         if (error.status === 403) {
           this.router.navigate(['/pending']);
@@ -222,6 +231,9 @@ export class Login {
       },
       error: (error: HttpErrorResponse) => {
         this.loading.set(false);
+        if (this.goToMaintenance(error)) {
+          return;
+        }
         this.errorMessage.set(this.serverMessage(error));
         this.codeForm.reset();
         setTimeout(() => this.otpInput()?.focusFirstEmpty());
@@ -241,6 +253,18 @@ export class Login {
     this.otpStep.set('phone');
     this.errorMessage.set(null);
     this.stopResendTimer();
+  }
+
+  /**
+   * Décision n° 70 : pendant la maintenance, le serveur refuse la connexion (503) à tout compte
+   * autre que le super administrateur ; on affiche la page de maintenance plutôt qu'une erreur.
+   */
+  private goToMaintenance(error: HttpErrorResponse): boolean {
+    if (error.status !== 503) {
+      return false;
+    }
+    this.router.navigate(['/maintenance'], { state: { message: error.error?.message ?? this.maintenanceMessage() } });
+    return true;
   }
 
   /** Les messages OTP du serveur sont rédigés pour l'utilisateur (essais restants, délai...). */

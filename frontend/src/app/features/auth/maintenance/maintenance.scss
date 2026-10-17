@@ -1,0 +1,75 @@
+.maintenance__icon {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin: 4px auto 8px;
+  border-radius: 50%;
+  background: var(--aekd-orange-soft, rgba(232, 110, 9, 0.12));
+
+  mat-icon {
+    color: var(--aekd-orange);
+    font-size: 34px;
+    width: 34px;
+    height: 34px;
+  }
+}
+
+.maintenance__message {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border-left: 4px solid var(--aekd-orange);
+  background: var(--aekd-orange-soft, rgba(232, 110, 9, 0.12));
+  color: var(--aekd-gray);
+  font-size: 14.5px;
+  line-height: 1.45;
+
+  mat-icon {
+    flex: none;
+    color: var(--aekd-orange);
+  }
+}
+
+.maintenance__hint {
+  margin: 0 0 14px;
+  text-align: center;
+  color: var(--aekd-gray-muted);
+  font-size: 13.5px;
+}
+
+.maintenance__still {
+  margin: 0 0 12px;
+  text-align: center;
+  color: var(--aekd-brown-dark);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.maintenance__retry {
+  width: 100%;
+  min-height: 48px;
+  border-radius: 12px;
+
+  mat-spinner {
+    margin: 0 auto;
+    --mat-progress-spinner-active-indicator-color: #fff;
+  }
+}
+
+.maintenance__admin {
+  display: block;
+  margin-top: 16px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--aekd-gray-muted);
+  text-decoration: underline;
+}
+
+// Titre sur deux lignes au téléphone : interligne plus aéré.
+:host ::ng-deep .register-card__title {
+  line-height: 1.2;
+}
