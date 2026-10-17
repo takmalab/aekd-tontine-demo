@@ -2652,3 +2652,46 @@ Demandé par le propriétaire du projet le 2026-10-17.
 * Page de connexion : une réponse 503 mène à `/maintenance` ; intercepteur
   d'erreurs : 503 « maintenance » et renouvellement de session refusé (503)
   mènent aussi à `/maintenance`.
+
+---
+
+# 71. Visite guidée interactive (tutoriel dans l'application)
+
+## Question
+
+Comment montrer aux membres et au bureau comment utiliser l'application,
+surtout sur téléphone ?
+
+## Statut
+
+```text
+DÉCIDÉ
+```
+
+## Décision
+
+Demandé par le propriétaire du projet le 2026-10-17 : un **tutoriel interactif**
+(« interactive walkthrough ») dans l'application, pour les membres et pour le
+bureau.
+
+* À la **première connexion** de chaque compte, une visite guidée se lance :
+  chaque étape **met en avant un vrai élément de l'écran** (bouton, tuile, menu)
+  avec une bulle d'explication et « Suivant / Précédent / fermer ». La visite
+  change de page d'elle-même.
+* **Visite membre** (11 étapes) : raccourcis, tuiles, Cotiser, suivi des
+  paiements, relevé PDF, épargne, demande de prêt, notifications, menu, compte.
+* **Visite bureau** (11 étapes) : raccourcis, paiements à valider, séances,
+  cotisations (actions par membre), création d'une cotisation, sanctions,
+  prêts, fonds, membres.
+* Une fois terminée ou fermée, elle ne se relance plus seule ; elle reste
+  disponible dans le **menu du compte → « Visite guidée »** (deux entrées pour
+  un membre du bureau qui a aussi un profil membre).
+* Conçue d'abord pour le téléphone (cibles courtes, bulles de 340 px au plus).
+
+## Conséquence technique (réalisée le 2026-10-17)
+
+* Bibliothèque `driver.js` 1.3.1 (MIT) ; `core/services/tour.service.ts`
+  (étapes, navigation entre pages, attente des données, double appui ignoré).
+* Éléments repérés par des attributs `data-tour` ; « déjà vue » mémorisé sur
+  l'appareil (`localStorage`, par compte).
+* Thème AEKD dans `styles.scss` ; feuille `driver.css` ajoutée à `angular.json`.

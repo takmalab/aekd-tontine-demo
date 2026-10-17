@@ -34,7 +34,7 @@
     </header>
 
     @if (shortcuts().length) {
-      <nav class="shortcuts" aria-label="Raccourcis">
+      <nav class="shortcuts" aria-label="Raccourcis" data-tour="shortcuts">
         @for (s of shortcuts(); track s.label) {
           <a
             [class]="s.primary ? 'shortcut shortcut--primary' : 'shortcut'"
@@ -53,7 +53,7 @@
 
     <div class="dashboard__grid">
       @for (tile of tiles(); track tile.label; let i = $index) {
-        <a class="stat-link" [routerLink]="tile.link" [queryParams]="tile.query ?? null" [attr.aria-label]="tile.value + ' ' + tile.label">
+        <a class="stat-link" [attr.data-tour]="i === 0 ? 'tiles' : null" [routerLink]="tile.link" [queryParams]="tile.query ?? null" [attr.aria-label]="tile.value + ' ' + tile.label">
           <mat-card
             class="stat-card"
             appearance="outlined"

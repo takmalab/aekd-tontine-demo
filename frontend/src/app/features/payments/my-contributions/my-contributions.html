@@ -8,7 +8,7 @@
       </p>
     </div>
     @if (!loading() && !noMemberProfile()) {
-      <button mat-stroked-button type="button" [disabled]="documents.busy() !== null" (click)="documents.myStatement()">
+      <button mat-stroked-button type="button" data-tour="statement" [disabled]="documents.busy() !== null" (click)="documents.myStatement()">
         <mat-icon>picture_as_pdf</mat-icon>
         Mon relevé (PDF)
       </button>
@@ -60,7 +60,7 @@
               [attr.aria-selected]="tab() === 'contributions'" (click)="tab.set('contributions')">
         <mat-icon>receipt_long</mat-icon> Cotisations
       </button>
-      <button type="button" role="tab" class="tab" [class.tab--active]="tab() === 'history'"
+      <button type="button" role="tab" class="tab" data-tour="my-payments" [class.tab--active]="tab() === 'history'"
               [attr.aria-selected]="tab() === 'history'" (click)="tab.set('history')">
         <mat-icon>history</mat-icon> Mes paiements
         <span class="tab__count">{{ transactions().length }}</span>
@@ -158,7 +158,7 @@
 
               <div class="item__actions">
                 @if (canDeclare(row.status)) {
-                  <button mat-flat-button type="button" (click)="declare(row)">
+                  <button mat-flat-button type="button" data-tour="contribute" (click)="declare(row)">
                     <mat-icon>send_money</mat-icon>
                     {{ row.status === 'PARTIAL' ? 'Compléter le paiement' : 'Cotiser' }}
                   </button>

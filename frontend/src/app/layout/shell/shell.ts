@@ -12,6 +12,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { AuthService } from '../../core/services/auth.service';
+import { TourKind, TourService } from '../../core/services/tour.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { RoleName } from '../../core/models/auth.model';
 import { AppNotification, NOTIFICATION_STYLE } from '../../core/models/notification.model';
@@ -150,6 +151,7 @@ export class Shell {
   private readonly notifications = inject(NotificationService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly photoService = inject(ProfilePhotoService);
+  private readonly tour = inject(TourService);
 
   readonly photoUrl = this.photoService.photoUrl;
 
@@ -240,6 +242,9 @@ export class Shell {
 
     this.photoService.load().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
 
+    // Visite guidée proposée une seule fois, à la première connexion de ce compte.
+    this.tour.offerOnce();
+
     // Compteur de la cloche : toutes les 60 s, et dès que l'onglet redevient visible.
     merge(timer(0, 60_000), fromEvent(document, 'visibilitychange'))
       .pipe(
@@ -248,6 +253,28 @@ export class Shell {
       )
       .subscribe();
   }
+
+  /** Visite guidée relancée depuis le menu du compte. */
+  startTour(kind: TourKind): void {
+    this.onNavigate();
+    this.tour.start(kind);
+  }
+
+  /** Bureau : visite de gestion, et celle de l'espace membre s'il a aussi un profil membre. */
+  readonly tourKinds = computed<{ kind: TourKind; label: string }[]>(() => {
+    if (!this.authService.currentUser()) {
+      return [];
+    }
+    const staff = this.authService.hasAnyRole(['ADMIN', 'TRESORIER']);
+    const member = this.authService.hasMemberProfile();
+    if (staff && member) {
+      return [
+        { kind: 'staff', label: 'Visite guidée : gestion' },
+        { kind: 'member', label: 'Visite guidée : espace membre' },
+      ];
+    }
+    return [{ kind: staff ? 'staff' : 'member', label: 'Visite guidée' }];
+  });
 
   loadRecent(): void {
     this.recentLoading.set(this.recent().length === 0);

@@ -156,9 +156,9 @@
             </p>
           } @else {
             <div class="rules">
-              @for (rule of rules(); track rule.id) {
+              @for (rule of rules(); track rule.id; let first = $first) {
                 @let cand = candidates()[rule.id];
-                <article class="rule" [class.rule--inactive]="!rule.active">
+                <article class="rule" [attr.data-tour]="first ? 'sanction-rules' : null" [class.rule--inactive]="!rule.active">
                   <div class="rule__top">
                     <span [class]="'type type--' + rule.type.toLowerCase()">{{ typeLabels[rule.type] }}</span>
                     @if (!rule.active) {

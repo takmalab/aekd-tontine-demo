@@ -8,7 +8,7 @@
     </div>
 
     @if (canManage) {
-      <a mat-flat-button class="page__action" routerLink="/contributions/new">
+      <a mat-flat-button class="page__action" data-tour="new-contribution" routerLink="/contributions/new">
         <mat-icon>add</mat-icon>
         Nouvelle cotisation
       </a>
@@ -49,8 +49,9 @@
     }
 
     <div class="grid">
-      @for (row of visibleRows(); track row.definition.id) {
+      @for (row of visibleRows(); track row.definition.id; let first = $first) {
         <article
+          [attr.data-tour]="first ? 'contribution-cards' : null"
           class="contrib"
           [class.contrib--mandatory]="row.definition.mandatory"
           [class.contrib--draft]="row.definition.status === 'DRAFT'"

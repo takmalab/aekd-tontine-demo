@@ -268,3 +268,52 @@ img.avatar {
   object-fit: cover;
   background: #fff;
 }
+
+/* ---------- Visite guidée (driver.js) aux couleurs AEKD ---------- */
+.driver-popover.aekd-tour {
+  max-width: min(340px, calc(100vw - 24px));
+  padding: 18px 18px 14px;
+  border-radius: 16px;
+  font-family: Inter, system-ui, sans-serif;
+  color: var(--aekd-gray);
+  box-shadow: var(--aekd-shadow-lg);
+
+  .driver-popover-title {
+    font-family: Poppins, Inter, sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--aekd-gray);
+  }
+
+  .driver-popover-description {
+    margin-top: 6px;
+    font-size: 14.5px;
+    line-height: 1.5;
+    color: var(--aekd-gray-muted);
+  }
+
+  .driver-popover-progress-text {
+    font-size: 12.5px;
+    color: var(--aekd-gray-muted);
+  }
+
+  .driver-popover-footer button {
+    padding: 8px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--aekd-orange);
+    background: #fff;
+    color: var(--aekd-orange);
+    font-size: 14px;
+    font-weight: 600;
+    text-shadow: none;
+  }
+
+  .driver-popover-footer .driver-popover-next-btn {
+    background: var(--aekd-orange);
+    color: #fff;
+  }
+
+  .driver-popover-close-btn {
+    color: var(--aekd-gray-muted);
+  }
+}

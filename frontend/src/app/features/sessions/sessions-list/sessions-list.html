@@ -15,7 +15,7 @@
     </div>
 
     @if (canManage) {
-      <button mat-flat-button class="page__action" (click)="openCreateDialog()">
+      <button mat-flat-button class="page__action" data-tour="new-session" (click)="openCreateDialog()">
         <mat-icon>add</mat-icon>
         Nouvelle séance
       </button>

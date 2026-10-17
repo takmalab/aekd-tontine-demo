@@ -25,7 +25,7 @@
     <div class="funds">
       @for (a of o.accounts; track a.account) {
         @let style = accountStyles[a.account];
-        <section class="fund fund--{{ style.tone }}">
+        <section class="fund fund--{{ style.tone }}" data-tour="fund-account">
           <h2 class="fund__title"><mat-icon>{{ style.icon }}</mat-icon> {{ style.label }}</h2>
           <p class="fund__balance">{{ formatFcfa(a.balance) }}</p>
           <p class="fund__caption">{{ style.caption }}</p>

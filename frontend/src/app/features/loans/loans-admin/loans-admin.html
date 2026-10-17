@@ -34,7 +34,7 @@
       </span>
     </div>
 
-    <div class="filters" role="tablist" aria-label="Filtrer par statut">
+    <div class="filters" role="tablist" aria-label="Filtrer par statut" data-tour="loan-tabs">
       @for (f of filters; track f.value) {
         <button type="button" role="tab" class="filter" [class.filter--active]="filter() === f.value"
                 [attr.aria-selected]="filter() === f.value" (click)="filter.set(f.value)">
