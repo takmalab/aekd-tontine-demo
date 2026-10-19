@@ -4,11 +4,11 @@
 
   <mat-card class="register-card" appearance="outlined">
     <div class="register-card__header">
-      <img class="register-card__logo" src="assets/logo-aekd.png" alt="Amicale des Enfants Kamkop de Douala – AEKD" />
+      <img class="register-card__logo" [src]="theme.logoUrl()" [alt]="theme.fullName() + ' – ' + theme.shortName()" />
       <span class="maintenance__icon"><mat-icon>construction</mat-icon></span>
       <h1 class="register-card__title">Application en maintenance</h1>
       <p class="register-card__subtitle">
-        L'application AEKD Tontine est momentanément indisponible pendant une opération de maintenance.
+        L'application {{ theme.shortName() }} Tontine est momentanément indisponible pendant une opération de maintenance.
         Vos données sont en sécurité.
       </p>
     </div>

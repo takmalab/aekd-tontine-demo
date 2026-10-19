@@ -39,7 +39,7 @@
   }
 
   &:hover {
-    border-color: #f3c9a4;
+    border-color: color-mix(in srgb, var(--aekd-orange) 30%, #fff);
   }
 
   &:has(input:focus-visible) {
@@ -74,4 +74,9 @@
     grid-template-columns: 1fr;
     gap: 0;
   }
+}
+
+// Espace sous l'indice du montant (champ à hauteur variable).
+p.label {
+  margin-top: 16px;
 }

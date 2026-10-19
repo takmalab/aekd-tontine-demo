@@ -9,6 +9,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../../../core/services/auth.service';
+import { ThemeService } from '../../../core/services/theme.service';
 
 @Component({
   selector: 'app-register',
@@ -26,6 +27,8 @@ import { AuthService } from '../../../core/services/auth.service';
   styleUrl: './register.scss',
 })
 export class Register {
+  /** Nom, logo et slogan de l'association (thème, décision n° 72). */
+  protected readonly theme = inject(ThemeService);
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);

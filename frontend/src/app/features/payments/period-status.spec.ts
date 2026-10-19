@@ -24,6 +24,8 @@ const tx = (periodId: string, status: ContributionTransactionStatus, amount = 50
   status,
   validatedByEmail: null,
   validatedAt: null,
+  recordedByEmail: null,
+  rejectionReason: null,
 });
 
 const FIXED: AmountRule = { amountMode: 'FIXED', amount: 50000 };

@@ -24,7 +24,7 @@
     flex: none;
     height: 44px;
     border-radius: 12px;
-    box-shadow: 0 6px 16px rgba(232, 110, 9, 0.3);
+    box-shadow: 0 6px 16px color-mix(in srgb, var(--aekd-orange) 30%, transparent);
   }
 }
 
@@ -151,7 +151,7 @@
   }
 
   &__amount {
-    font-family: 'Poppins', sans-serif;
+    font-family: var(--aekd-font-heading);
     font-size: 24px;
     font-weight: 700;
     color: var(--aekd-gray);
@@ -164,7 +164,7 @@
 
   &__freq {
     margin-left: 4px;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--aekd-font-body);
     font-size: 13px;
     font-weight: 500;
     color: var(--aekd-gray-muted);

@@ -5,6 +5,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../../../core/services/auth.service';
+import { ThemeService } from '../../../core/services/theme.service';
 
 /**
  * Page de maintenance (docs/decisions.md n° 57 et 70) : un membre qui se connecte, ou dont la
@@ -19,6 +20,8 @@ import { AuthService } from '../../../core/services/auth.service';
   styleUrls: ['../register/register.scss', './maintenance.scss'],
 })
 export class Maintenance implements OnInit {
+  /** Nom, logo et slogan de l'association (thème, décision n° 72). */
+  protected readonly theme = inject(ThemeService);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
 

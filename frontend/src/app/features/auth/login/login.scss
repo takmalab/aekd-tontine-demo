@@ -20,7 +20,8 @@
   &__photo {
     position: absolute;
     inset: -2%;
-    background: url('/assets/login-community.jpg') center 35% / cover no-repeat;
+    // Photo du thème (décision n° 72), par défaut celle de l'AEKD.
+    background: var(--aekd-login-image, url('/assets/login-community.jpg')) center 35% / cover no-repeat;
     animation: ken-burns 28s ease-in-out infinite alternate;
     will-change: transform;
   }
@@ -29,8 +30,8 @@
     position: absolute;
     inset: 0;
     background:
-      linear-gradient(135deg, rgba(232, 110, 9, 0.38) 0%, rgba(171, 88, 58, 0.18) 45%, rgba(54, 53, 58, 0) 70%),
-      linear-gradient(180deg, rgba(54, 53, 58, 0.25) 0%, rgba(54, 53, 58, 0.35) 40%, rgba(42, 41, 45, 0.94) 100%);
+      linear-gradient(135deg, color-mix(in srgb, var(--aekd-orange) 38%, transparent) 0%, color-mix(in srgb, var(--aekd-brown) 18%, transparent) 45%, color-mix(in srgb, var(--aekd-gray) 0%, transparent) 70%),
+      linear-gradient(180deg, color-mix(in srgb, var(--aekd-gray) 25%, transparent) 0%, color-mix(in srgb, var(--aekd-gray) 35%, transparent) 40%, rgba(42, 41, 45, 0.94) 100%);
   }
 
   &__content {
@@ -67,7 +68,7 @@
   }
 
   &__brand-name {
-    font-family: 'Poppins', sans-serif;
+    font-family: var(--aekd-font-heading);
     font-weight: 700;
     font-size: 22px;
     letter-spacing: 0.12em;
@@ -93,7 +94,7 @@
 
   &__title {
     margin: 18px 0 12px;
-    font-family: 'Poppins', sans-serif;
+    font-family: var(--aekd-font-heading);
     font-size: clamp(30px, 3.4vw, 48px);
     line-height: 1.12;
     font-weight: 700;
@@ -102,7 +103,7 @@
 
     span {
       display: block;
-      color: var(--aekd-orange);
+      color: var(--aekd-orange-on-dark, var(--aekd-orange));
     }
   }
 
@@ -239,7 +240,7 @@
     }
 
     &:focus-visible {
-      outline: 3px solid rgba(232, 110, 9, 0.3);
+      outline: 3px solid color-mix(in srgb, var(--aekd-orange) 30%, transparent);
       outline-offset: 2px;
     }
 
@@ -247,7 +248,7 @@
       border-color: transparent;
       background: #fff;
       color: var(--aekd-gray);
-      box-shadow: 0 4px 14px rgba(54, 53, 58, 0.12);
+      box-shadow: 0 4px 14px color-mix(in srgb, var(--aekd-gray) 12%, transparent);
     }
   }
 
@@ -276,7 +277,7 @@
     margin: 0 auto 14px;
     border-radius: 28px;
     background: linear-gradient(145deg, var(--aekd-orange-soft), #fff);
-    box-shadow: inset 0 0 0 1px rgba(232, 110, 9, 0.12);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--aekd-orange) 12%, transparent);
   }
 
   &__art-icon {
@@ -409,14 +410,14 @@
     border-radius: 12px;
     font-size: 15px;
     --mat-button-filled-container-shape: 12px;
-    box-shadow: 0 8px 20px rgba(232, 110, 9, 0.32);
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--aekd-orange) 32%, transparent);
     transition:
       transform 0.15s ease,
       box-shadow 0.15s ease;
 
     &:not([disabled]):hover {
       transform: translateY(-1px);
-      box-shadow: 0 12px 26px rgba(232, 110, 9, 0.4);
+      box-shadow: 0 12px 26px color-mix(in srgb, var(--aekd-orange) 40%, transparent);
     }
 
     mat-spinner {

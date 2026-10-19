@@ -18,6 +18,7 @@ import { RoleName } from '../../core/models/auth.model';
 import { AppNotification, NOTIFICATION_STYLE } from '../../core/models/notification.model';
 import { MemberService } from '../../features/members/member.service';
 import { ProfilePhotoService } from '../../core/services/profile-photo.service';
+import { ThemeService } from '../../core/services/theme.service';
 
 interface NavItem {
   label: string;
@@ -94,6 +95,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: 'Politiques de prêt', path: '/loan-policies', icon: 'policy' },
       { label: 'Paramètres système', path: '/settings/system', icon: 'tune', roles: ['SUPER_ADMIN'] },
+      { label: 'Apparence', path: '/settings/theme', icon: 'palette', roles: ['SUPER_ADMIN'] },
       { label: 'Paramètres SMS', path: '/settings/sms', icon: 'sms', roles: ['SUPER_ADMIN'] },
       { label: 'Paramètres e-mail', path: '/settings/email', icon: 'mail', roles: ['SUPER_ADMIN'] },
       { label: 'Notifications e-mail et SMS', path: '/settings/notifications', icon: 'campaign', roles: ['SUPER_ADMIN'] },
@@ -144,6 +146,8 @@ const COMPACT_QUERY = '(max-width: 1023.98px)';
   styleUrl: './shell.scss',
 })
 export class Shell {
+  /** Nom, logo et slogan de l'association (thème, décision n° 72). */
+  protected readonly theme = inject(ThemeService);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly breakpointObserver = inject(BreakpointObserver);

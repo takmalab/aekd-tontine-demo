@@ -9,7 +9,9 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { RouterLink } from '@angular/router';
 import { environment } from '../../../../environments/environment';
+import { ThemeService } from '../../../core/services/theme.service';
 
 /** Miroir de SystemSettingsService.SettingsResponse (docs/decisions.md n° 57). */
 interface SystemSettingsResponse {
@@ -53,6 +55,7 @@ interface SystemSettingsResponse {
     MatInputModule,
     MatProgressSpinnerModule,
     MatSlideToggleModule,
+    RouterLink,
   ],
   templateUrl: './system-settings-page.html',
   styleUrls: ['../sms-settings-page/sms-settings-page.scss', './system-settings-page.scss'],
@@ -61,12 +64,12 @@ export class SystemSettingsPage implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly fb = inject(FormBuilder);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly themeService = inject(ThemeService);
   private readonly url = `${environment.apiUrl}/settings/system`;
 
   readonly loading = signal(true);
   readonly loadError = signal(false);
   readonly saving = signal(false);
-  readonly logoBusy = signal(false);
   readonly data = signal<SystemSettingsResponse | null>(null);
 
   private readonly optionalInt = (min: number, max: number) => [Validators.min(min), Validators.max(max), Validators.pattern(/^\d*$/)];
@@ -132,6 +135,8 @@ export class SystemSettingsPage implements OnInit {
         next: (data) => {
           this.saving.set(false);
           this.apply(data);
+          // Nom et sigle affichés partout dans l'application (thème, décision n° 72).
+          this.themeService.refresh();
           this.snackBar.open('Paramètres enregistrés', 'OK', { duration: 4000 });
         },
         error: (error: HttpErrorResponse) => {
@@ -141,41 +146,6 @@ export class SystemSettingsPage implements OnInit {
           });
         },
       });
-  }
-
-  uploadLogo(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    input.value = '';
-    if (!file) {
-      return;
-    }
-    const body = new FormData();
-    body.append('file', file);
-    this.logoBusy.set(true);
-    this.http.post<SystemSettingsResponse>(`${this.url}/logo`, body).subscribe({
-      next: (data) => {
-        this.logoBusy.set(false);
-        this.apply(data);
-        this.snackBar.open('Logo des documents mis à jour', 'OK', { duration: 4000 });
-      },
-      error: (error: HttpErrorResponse) => {
-        this.logoBusy.set(false);
-        this.snackBar.open(error.error?.message || "Le logo n'a pas pu être enregistré.", 'OK', { duration: 6000 });
-      },
-    });
-  }
-
-  removeLogo(): void {
-    this.logoBusy.set(true);
-    this.http.delete<SystemSettingsResponse>(`${this.url}/logo`).subscribe({
-      next: (data) => {
-        this.logoBusy.set(false);
-        this.apply(data);
-        this.snackBar.open('Logo par défaut rétabli', 'OK', { duration: 4000 });
-      },
-      error: () => this.logoBusy.set(false),
-    });
   }
 
   private apply(data: SystemSettingsResponse): void {

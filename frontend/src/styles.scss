@@ -60,8 +60,9 @@ html {
         theme-type: light,
       ),
       typography: (
-        plain-family: ('Inter', 'Roboto', sans-serif),
-        brand-family: ('Poppins', 'Inter', sans-serif),
+        // Polices du thème (décision n° 72) : variables réglées à l'exécution par ThemeService.
+        plain-family: var(--aekd-font-body),
+        brand-family: var(--aekd-font-heading),
         bold-weight: 700,
         medium-weight: 600,
         regular-weight: 400,
@@ -161,8 +162,13 @@ html {
   --aekd-warning: var(--aekd-orange);
   --aekd-warning-soft: var(--aekd-orange-soft);
   --aekd-radius: 14px;
-  --aekd-shadow: 0 1px 2px rgba(54, 53, 58, 0.06), 0 4px 16px rgba(54, 53, 58, 0.06);
-  --aekd-shadow-lg: 0 12px 40px rgba(54, 53, 58, 0.16);
+  --aekd-shadow: 0 1px 2px color-mix(in srgb, var(--aekd-gray) 6%, transparent),
+    0 4px 16px color-mix(in srgb, var(--aekd-gray) 6%, transparent);
+  --aekd-shadow-lg: 0 12px 40px color-mix(in srgb, var(--aekd-gray) 16%, transparent);
+  // Thème (décision n° 72) : valeurs AEKD, remplacées à l'exécution par ThemeService.
+  --aekd-on-orange: #ffffff;
+  --aekd-font-heading: 'Poppins', 'Inter', sans-serif;
+  --aekd-font-body: 'Inter', 'Roboto', sans-serif;
 }
 
 // Classes communes aux pages (état, statuts, puces, listes de cartes) : rendues
@@ -225,7 +231,7 @@ body {
 h1,
 h2,
 h3 {
-  font-family: 'Poppins', 'Inter', sans-serif;
+  font-family: var(--aekd-font-heading);
   color: var(--aekd-gray);
 }
 
@@ -274,12 +280,12 @@ img.avatar {
   max-width: min(340px, calc(100vw - 24px));
   padding: 18px 18px 14px;
   border-radius: 16px;
-  font-family: Inter, system-ui, sans-serif;
+  font-family: var(--aekd-font-body);
   color: var(--aekd-gray);
   box-shadow: var(--aekd-shadow-lg);
 
   .driver-popover-title {
-    font-family: Poppins, Inter, sans-serif;
+    font-family: var(--aekd-font-heading);
     font-size: 17px;
     font-weight: 700;
     color: var(--aekd-gray);

@@ -68,7 +68,7 @@
   }
 
   &__title {
-    font-family: 'Poppins', sans-serif;
+    font-family: var(--aekd-font-heading);
     font-weight: 700;
     font-size: 18px;
     letter-spacing: 0.06em;
@@ -77,7 +77,7 @@
   &__subtitle {
     font-size: 12px;
     font-weight: 500;
-    color: var(--aekd-orange);
+    color: var(--aekd-orange-on-dark, var(--aekd-orange));
     letter-spacing: 0.08em;
     text-transform: uppercase;
   }
@@ -410,7 +410,7 @@
       background: var(--aekd-orange);
       color: #fff;
       font-weight: 600;
-      box-shadow: 0 6px 16px rgba(232, 110, 9, 0.35);
+      box-shadow: 0 6px 16px color-mix(in srgb, var(--aekd-orange) 35%, transparent);
 
       .nav__icon {
         color: #fff;
@@ -449,7 +449,7 @@
 
   &__footer-role {
     font-size: 12px;
-    color: var(--aekd-orange);
+    color: var(--aekd-orange-on-dark, var(--aekd-orange));
   }
 
   &__logout {

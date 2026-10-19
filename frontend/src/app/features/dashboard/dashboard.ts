@@ -15,6 +15,7 @@ import {
   SessionSummary,
   StatTile,
 } from './dashboard.model';
+import { ThemeService } from '../../core/services/theme.service';
 
 /** « 1 paiement », « 2 paiements », « 0 paiement » : singulier jusqu'à 1 (U5). */
 function plural(count: number, singular: string, pluralForm: string): string {
@@ -32,6 +33,8 @@ function plural(count: number, singular: string, pluralForm: string): string {
   styleUrl: './dashboard.scss',
 })
 export class Dashboard implements OnInit {
+  /** Nom, logo et slogan de l'association (thème, décision n° 72). */
+  protected readonly theme = inject(ThemeService);
   private readonly dashboardService = inject(DashboardService);
   private readonly authService = inject(AuthService);
 

@@ -6,13 +6,13 @@
 
     <div class="hero__content">
       <div class="hero__brand">
-        <span class="hero__logo"><img src="assets/logo-aekd-mark.png" alt="Logo AEKD" /></span>
-        <span class="hero__brand-name">AEKD</span>
+        <span class="hero__logo"><img [src]="theme.markUrl()" [alt]="'Logo ' + theme.shortName()" /></span>
+        <span class="hero__brand-name">{{ theme.shortName() }}</span>
       </div>
 
       <div class="hero__text">
-        <span class="hero__eyebrow">Amicale des Enfants Kamkop de Douala</span>
-        <h1 class="hero__title">La solidarité, <span>en toute transparence.</span></h1>
+        <span class="hero__eyebrow">{{ theme.fullName() }}</span>
+        <h1 class="hero__title">{{ theme.sloganParts().start }} <span>{{ theme.sloganParts().end }}</span></h1>
         <p class="hero__lead">
           Séances, cotisations, épargne et prêts, réunis dans un seul espace.
         </p>
@@ -30,7 +30,7 @@
   <!-- Form side -->
   <section class="panel aekd-pattern-masques-fade">
     <div class="panel__inner">
-      <img class="panel__logo" src="assets/logo-aekd.png" alt="Amicale des Enfants Kamkop de Douala – AEKD" />
+      <img class="panel__logo" [src]="theme.logoUrl()" [alt]="theme.fullName() + ' – ' + theme.shortName()" />
 
       <h2 class="panel__title">Bienvenue</h2>
       <p class="panel__subtitle">Connectez-vous à votre espace tontine.</p>

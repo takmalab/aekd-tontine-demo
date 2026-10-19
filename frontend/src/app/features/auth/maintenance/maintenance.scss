@@ -5,7 +5,7 @@
   height: 64px;
   margin: 4px auto 8px;
   border-radius: 50%;
-  background: var(--aekd-orange-soft, rgba(232, 110, 9, 0.12));
+  background: var(--aekd-orange-soft, color-mix(in srgb, var(--aekd-orange) 12%, transparent));
 
   mat-icon {
     color: var(--aekd-orange);
@@ -23,7 +23,7 @@
   padding: 12px 14px;
   border-radius: 12px;
   border-left: 4px solid var(--aekd-orange);
-  background: var(--aekd-orange-soft, rgba(232, 110, 9, 0.12));
+  background: var(--aekd-orange-soft, color-mix(in srgb, var(--aekd-orange) 12%, transparent));
   color: var(--aekd-gray);
   font-size: 14.5px;
   line-height: 1.45;

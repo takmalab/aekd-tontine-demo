@@ -150,6 +150,13 @@ export const routes: Routes = [
           import('./features/settings/system-settings-page/system-settings-page').then((m) => m.SystemSettingsPage),
       },
       {
+        path: 'settings/theme',
+        canActivate: [roleGuard],
+        data: { roles: ['SUPER_ADMIN'] },
+        loadComponent: () =>
+          import('./features/settings/theme-settings-page/theme-settings-page').then((m) => m.ThemeSettingsPage),
+      },
+      {
         path: 'settings/notifications',
         canActivate: [roleGuard],
         data: { roles: ['SUPER_ADMIN'] },

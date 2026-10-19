@@ -14,7 +14,7 @@
 
   &:focus-within {
     border-color: var(--aekd-orange);
-    box-shadow: 0 0 0 4px rgba(232, 110, 9, 0.15);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--aekd-orange) 15%, transparent);
   }
 
   &--invalid {

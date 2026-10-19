@@ -2695,3 +2695,77 @@ bureau.
 * Éléments repérés par des attributs `data-tour` ; « déjà vue » mémorisé sur
   l'appareil (`localStorage`, par compte).
 * Thème AEKD dans `styles.scss` ; feuille `driver.css` ajoutée à `angular.json`.
+
+---
+
+# 72. Thème de l'application (apparence modifiable)
+
+## Question
+
+Comment permettre à une autre association d'utiliser l'application à ses
+couleurs, avec son logo et son nom, sans modifier le code ?
+
+## Statut
+
+```text
+DÉCIDÉ
+```
+
+## Décision
+
+Demandé par le propriétaire du projet le 2026-10-19. Nouvelle page
+**Paramètres → « Apparence »**, réservée au **super administrateur** (comme les
+autres paramètres système).
+
+* **Couleurs** : principale, secondaire et sombre. Les nuances claires et foncées
+  sont calculées automatiquement ; la couleur du texte posé dessus (blanc ou
+  sombre) est choisie pour rester lisible, et une couleur trop claire est
+  signalée (avertissement, pas de blocage). Six **thèmes prêts** (AEKD, Forêt,
+  Océan, Royal, Bordeaux, Terre) s'appliquent en un clic puis s'ajustent. Les
+  couleurs de statut (payé, en retard, erreur…) ne changent pas.
+* **Polices** des titres et du texte, choisies dans une liste de 13 polices
+  Google.
+* **Motif de fond** : motifs africains AEKD (masques et symboles), symboles
+  seulement, ou aucun.
+* **Logo** : le logo téléversé (déjà prévu pour les PDF, décision n° 57) sert
+  désormais **partout** : en-tête, connexion, inscription, maintenance, tableau
+  de bord, onglet du navigateur, **icônes de l'application installée** (générées
+  par le serveur sur fond blanc) et PDF.
+* **Nom et sigle** de l'association (paramètres système) remplacent « AEKD » et
+  « Amicale des Enfants Kamkop de Douala » écrits en dur dans les écrans, le
+  titre de l'onglet, la visite guidée et le **manifeste** de l'application
+  installée.
+* **Page de connexion** : slogan (la fin, après la première virgule, est mise
+  en valeur) et photo de fond.
+* **PDF** : couleurs du thème (polices inchangées : Helvetica).
+* **Aperçu en direct** : toute l'application prend le thème pendant le réglage ;
+  quitter la page sans enregistrer rétablit le thème enregistré. Bouton
+  « Thème AEKD » pour revenir aux valeurs d'origine (le logo et la photo se
+  rétablissent à part).
+* Chaque modification est inscrite au journal d'audit (`THEME_UPDATED`).
+
+Une installation reste **dédiée à une seule association** : une autre
+association a sa propre installation (service et base), à ses couleurs. Ce n'est
+pas la gestion de plusieurs tontines dans une même application (hors périmètre
+du MVP, CLAUDE.md §3).
+
+Limite connue : sur un téléphone où l'application est **déjà installée**, l'icône
+et le nom peuvent ne changer qu'après réinstallation (selon le téléphone).
+
+## Conséquence technique (réalisée le 2026-10-19)
+
+* Migration **V37** : colonnes du thème dans `system_settings` (null = valeur
+  AEKD) et photo de connexion.
+* `ThemeService` / `ThemeController` : `PUT /api/settings/theme`,
+  `POST|DELETE /api/settings/theme/login-image` (super administrateur) ;
+  lecture publique `GET /api/public/theme`, `/logo`, `/login-image`,
+  `/icons/{taille}` et `/manifest.webmanifest`.
+* `AekdPdf` : couleurs de marque réglées par le thème.
+* Frontend : `core/services/theme.service.ts` applique à l'exécution les
+  variables CSS (`--aekd-*`) et les jetons Material (`--mat-sys-*`) calculés par
+  `shared/utils/theme-colors.ts` ; la typographie Material et les styles passent
+  par `--aekd-font-heading` / `--aekd-font-body` ; polices, rgba et teintes de
+  marque écrits en dur remplacés par des variables. Le thème est mémorisé sur
+  l'appareil et appliqué par `index.html` avant le démarrage (pas de flash des
+  couleurs AEKD).
+* Tests : `ThemeServiceTest` (6 cas, dont les droits), `theme-colors.spec.ts`.

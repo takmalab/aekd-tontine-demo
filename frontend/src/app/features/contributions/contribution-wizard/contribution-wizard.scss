@@ -271,7 +271,7 @@
   }
 
   &:hover {
-    border-color: #f3c9a4;
+    border-color: color-mix(in srgb, var(--aekd-orange) 30%, #fff);
   }
 
   &:has(input:focus-visible) {
@@ -501,7 +501,7 @@
 
   .activate {
     min-width: 220px;
-    box-shadow: 0 8px 20px rgba(232, 110, 9, 0.35);
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--aekd-orange) 35%, transparent);
 
     mat-spinner {
       margin: 0 auto;

@@ -29,7 +29,7 @@
 
     &--late {
       background: var(--aekd-brown-soft);
-      border-color: #ecd1c6;
+      border-color: color-mix(in srgb, var(--aekd-brown) 22%, #fff);
 
       .summary__value {
         color: var(--aekd-brown);
@@ -50,7 +50,7 @@
   }
 
   &__value {
-    font-family: 'Poppins', sans-serif;
+    font-family: var(--aekd-font-heading);
     font-size: 26px;
     font-weight: 700;
     line-height: 1.1;
@@ -135,7 +135,7 @@
   }
 
   &__date {
-    font-family: 'Inter', sans-serif;
+    font-family: var(--aekd-font-body);
     font-size: 13px;
     font-weight: 500;
     color: var(--aekd-gray-muted);

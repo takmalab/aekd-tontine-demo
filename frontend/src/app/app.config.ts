@@ -3,7 +3,9 @@ import { registerLocaleData } from '@angular/common';
 import localeFr from '@angular/common/locales/fr';
 import {
   ApplicationConfig,
+  inject,
   LOCALE_ID,
+  provideAppInitializer,
   provideBrowserGlobalErrorListeners,
   isDevMode,
 } from '@angular/core';
@@ -15,6 +17,7 @@ import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { errorInterceptor } from './core/interceptors/error.interceptor';
 import { FrDateAdapter } from './shared/utils/fr-date-adapter';
 import { provideServiceWorker } from '@angular/service-worker';
+import { ThemeService } from './core/services/theme.service';
 
 registerLocaleData(localeFr);
 
@@ -28,6 +31,8 @@ export const appConfig: ApplicationConfig = {
     { provide: DateAdapter, useClass: FrDateAdapter },
     provideHttpClient(withInterceptors([authInterceptor, errorInterceptor])),
     provideAnimationsAsync(),
+    // Thème de l'association (décision n° 72) : mémorisé appliqué tout de suite, puis celui du serveur.
+    provideAppInitializer(() => inject(ThemeService).init()),
     provideServiceWorker('ngsw-worker.js', {
       enabled: !isDevMode(),
       registrationStrategy: 'registerWhenStable:30000',

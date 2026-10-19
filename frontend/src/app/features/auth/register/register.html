@@ -7,7 +7,7 @@
       <a routerLink="/login" class="register-card__back" aria-label="Retour à la connexion">
         <mat-icon>arrow_back</mat-icon>
       </a>
-      <img class="register-card__logo" src="assets/logo-aekd.png" alt="Amicale des Enfants Kamkop de Douala – AEKD" />
+      <img class="register-card__logo" [src]="theme.logoUrl()" [alt]="theme.fullName() + ' – ' + theme.shortName()" />
       <h1 class="register-card__title">Créer un compte</h1>
       <p class="register-card__subtitle">
         Votre compte devra être validé par un administrateur avant de pouvoir vous connecter.

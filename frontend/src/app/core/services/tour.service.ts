@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { driver, type Driver, type DriveStep } from 'driver.js';
 import { AuthService } from './auth.service';
+import { ThemeService } from './theme.service';
 
 /** Une étape : la page où elle se joue, l'élément mis en avant (facultatif) et l'explication. */
 interface TourStep {
@@ -18,7 +19,7 @@ export type TourKind = 'member' | 'staff';
 const MEMBER_TOUR: TourStep[] = [
   {
     route: '/dashboard',
-    title: 'Bienvenue dans AEKD Tontine 👋',
+    title: 'Bienvenue dans {app} 👋',
     text: 'Cette visite vous montre en une minute comment utiliser l\'application. Vous pouvez la quitter à tout moment et la relancer depuis le menu de votre compte.',
   },
   {
@@ -162,6 +163,7 @@ const TOURS: Record<TourKind, TourStep[]> = { member: MEMBER_TOUR, staff: STAFF_
 export class TourService {
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
+  private readonly theme = inject(ThemeService);
   private active: Driver | null = null;
 
   /** Visite adaptée au compte : gestion pour le bureau, espace membre sinon. */
@@ -254,7 +256,7 @@ export class TourService {
     return {
       // Absent de la page (ex. le bouton du menu n'existe qu'au téléphone) : driver.js centre la bulle.
       element: step.target ? `[data-tour="${step.target}"]` : undefined,
-      popover: { title: step.title, description: step.text, side: step.side ?? 'bottom', align: 'center' },
+      popover: { title: step.title.replace('{app}', `${this.theme.shortName()} Tontine`), description: step.text, side: step.side ?? 'bottom', align: 'center' },
     };
   }
 

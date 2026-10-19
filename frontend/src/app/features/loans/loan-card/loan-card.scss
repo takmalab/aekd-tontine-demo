@@ -65,14 +65,14 @@
   }
 
   &__amount {
-    font-family: 'Poppins', sans-serif;
+    font-family: var(--aekd-font-heading);
     font-size: 22px;
     font-weight: 700;
     color: var(--aekd-gray);
   }
 
   &__duration {
-    font-family: 'Inter', sans-serif;
+    font-family: var(--aekd-font-body);
     font-size: 14px;
     font-weight: 500;
     color: var(--aekd-gray-muted);
@@ -232,7 +232,7 @@
   }
 
   &__value {
-    font-family: 'Poppins', sans-serif;
+    font-family: var(--aekd-font-heading);
     font-size: 15px;
     font-weight: 700;
     color: var(--aekd-gray);

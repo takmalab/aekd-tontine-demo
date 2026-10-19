@@ -1,0 +1,171 @@
+<section class="page">
+  <header class="page__header">
+    <h1 class="page__title">Apparence</h1>
+    <p class="page__subtitle">
+      Couleurs, polices, logo et page de connexion de l'association. Toute l'application s'affiche en aperçu pendant
+      vos réglages ; rien n'est appliqué aux autres utilisateurs avant l'enregistrement.
+    </p>
+  </header>
+
+  <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+    <div class="layout">
+      <!-- Thèmes prêts et couleurs -->
+      <section class="card">
+        <h2 class="card__title"><mat-icon>palette</mat-icon> Couleurs</h2>
+        <p class="card__text">Choisissez un thème prêt, puis ajustez les trois couleurs si besoin. Les nuances claires et foncées sont calculées automatiquement.</p>
+
+        <div class="presets" role="group" aria-label="Thèmes prêts">
+          @for (p of presets; track p.name) {
+            <button type="button" class="preset" (click)="applyPreset(p)"
+                    [class.preset--active]="draft().primaryColor === p.primary && draft().secondaryColor === p.secondary && draft().darkColor === p.dark">
+              <span class="preset__dots">
+                <span [style.background]="p.primary"></span>
+                <span [style.background]="p.secondary"></span>
+                <span [style.background]="p.dark"></span>
+              </span>
+              {{ p.name }}
+            </button>
+          }
+        </div>
+
+        @for (c of [
+          { control: 'primaryColor', label: 'Couleur principale', hint: 'Boutons, liens actifs, menu sélectionné' },
+          { control: 'secondaryColor', label: 'Couleur secondaire', hint: 'Accents, liens, alertes douces' },
+          { control: 'darkColor', label: 'Couleur sombre', hint: 'Barre du haut, menu, titres' }
+        ]; track c.control) {
+          <div class="color">
+            <input type="color" class="color__swatch" [formControlName]="c.control" [attr.aria-label]="c.label" />
+            <mat-form-field appearance="outline" class="color__field" subscriptSizing="dynamic">
+              <mat-label>{{ c.label }}</mat-label>
+              <input matInput [formControlName]="c.control" maxlength="7" />
+              <mat-hint>{{ c.hint }}</mat-hint>
+              <mat-error>Format attendu : #RRGGBB</mat-error>
+            </mat-form-field>
+          </div>
+        }
+
+        @if (lightColors().length) {
+          <p class="warning" role="status">
+            <mat-icon>contrast</mat-icon>
+            Couleur {{ lightColors().join(', ') }} très claire : le texte blanc posé dessus et le texte de cette couleur
+            sur fond blanc seront peu lisibles.
+          </p>
+        }
+      </section>
+
+      <!-- Polices et motif -->
+      <section class="card">
+        <h2 class="card__title"><mat-icon>text_fields</mat-icon> Polices et motif</h2>
+        <p class="card__text">Polices Google, chargées automatiquement sur les appareils des membres.</p>
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>Police des titres</mat-label>
+          <mat-select formControlName="headingFont">
+            @for (f of themeService.saved().fonts; track f) {
+              <mat-option [value]="f"><span [style.font-family]="fontFamily(f)">{{ f }}</span></mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>Police du texte</mat-label>
+          <mat-select formControlName="bodyFont">
+            @for (f of themeService.saved().fonts; track f) {
+              <mat-option [value]="f"><span [style.font-family]="fontFamily(f)">{{ f }}</span></mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <p class="group-label">Motif de fond</p>
+        <div class="patterns" role="radiogroup" aria-label="Motif de fond">
+          @for (p of patterns; track p.value) {
+            <label class="pattern" [class.pattern--selected]="form.controls.pattern.value === p.value">
+              <input type="radio" formControlName="pattern" [value]="p.value" />
+              <span class="pattern__tile pattern__tile--{{ p.value.toLowerCase() }}"></span>
+              <span class="pattern__label">{{ p.label }}</span>
+              <span class="pattern__hint">{{ p.hint }}</span>
+            </label>
+          }
+        </div>
+      </section>
+
+      <!-- Logo -->
+      <section class="card">
+        <h2 class="card__title"><mat-icon>image</mat-icon> Logo</h2>
+        <p class="card__text">
+          Affiché partout : en-tête, page de connexion, tableau de bord, onglet du navigateur, icône de l'application
+          installée et documents PDF.
+        </p>
+        <div class="image-row">
+          <img class="image-row__logo" [src]="themeService.logoUrl()" alt="Logo actuel" />
+          <span class="image-row__actions">
+            <input #logoFile type="file" accept="image/png,image/jpeg" hidden (change)="uploadLogo($event)" />
+            <button mat-stroked-button type="button" (click)="logoFile.click()" [disabled]="logoBusy()">
+              <mat-icon>upload</mat-icon> Changer
+            </button>
+            @if (themeService.saved().customLogo) {
+              <button mat-button type="button" (click)="removeLogo()" [disabled]="logoBusy()">Logo AEKD</button>
+            }
+          </span>
+        </div>
+        <p class="card__hint">
+          PNG ou JPEG, 1 Mo au plus, de préférence carré sur fond transparent ou blanc. Les téléphones où l'application est
+          déjà installée peuvent garder l'ancienne icône jusqu'à sa réinstallation.
+        </p>
+        <p class="card__hint">
+          Le nom et le sigle de l'association se règlent dans les
+          <a routerLink="/settings/system">paramètres système</a>.
+        </p>
+      </section>
+
+      <!-- Page de connexion -->
+      <section class="card">
+        <h2 class="card__title"><mat-icon>login</mat-icon> Page de connexion</h2>
+        <div class="login-preview" [style.background-image]="'url(' + themeService.loginImageUrl() + ')'">
+          <div class="login-preview__overlay"></div>
+          <div class="login-preview__content">
+            <span class="login-preview__brand">
+              <img [src]="themeService.markUrl()" alt="" />
+              {{ draft().associationShortName }}
+            </span>
+            <span class="login-preview__slogan">
+              {{ themeService.sloganParts().start }} <em>{{ themeService.sloganParts().end }}</em>
+            </span>
+          </div>
+        </div>
+        <mat-form-field appearance="outline" class="full" subscriptSizing="dynamic">
+          <mat-label>Slogan</mat-label>
+          <input matInput formControlName="slogan" maxlength="150" />
+          <mat-hint>La partie après la première virgule est mise en valeur.</mat-hint>
+        </mat-form-field>
+        <div class="image-row">
+          <span class="card__hint">Photo : {{ themeService.saved().customLoginImage ? 'personnalisée' : 'photo AEKD par défaut' }}</span>
+          <span class="image-row__actions">
+            <input #photoFile type="file" accept="image/png,image/jpeg,image/webp" hidden (change)="uploadPhoto($event)" />
+            <button mat-stroked-button type="button" (click)="photoFile.click()" [disabled]="photoBusy()">
+              <mat-icon>add_photo_alternate</mat-icon> Changer
+            </button>
+            @if (themeService.saved().customLoginImage) {
+              <button mat-button type="button" (click)="removePhoto()" [disabled]="photoBusy()">Par défaut</button>
+            }
+          </span>
+        </div>
+        <p class="card__hint">PNG, JPEG ou WebP, 3 Mo au plus, de préférence en paysage.</p>
+      </section>
+    </div>
+
+    <div class="save-bar">
+      <button mat-button type="button" (click)="restoreAekd()">
+        <mat-icon>restart_alt</mat-icon> Thème AEKD
+      </button>
+      @if (dirty()) {
+        <button mat-stroked-button type="button" (click)="cancel()">Annuler</button>
+      }
+      <button mat-flat-button type="submit" [disabled]="saving() || !dirty() || form.invalid">
+        @if (saving()) {
+          <mat-spinner diameter="20" />
+        } @else {
+          Enregistrer
+        }
+      </button>
+    </div>
+  </form>
+</section>

@@ -5,7 +5,7 @@
   height: 56px;
   margin: 4px auto 8px;
   border-radius: 50%;
-  background: var(--aekd-orange-soft, rgba(232, 110, 9, 0.12));
+  background: var(--aekd-orange-soft, color-mix(in srgb, var(--aekd-orange) 12%, transparent));
 
   mat-icon {
     color: var(--aekd-orange);

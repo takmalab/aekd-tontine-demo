@@ -10,6 +10,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../../../core/services/auth.service';
 import { OtpInput } from '../../../shared/components/otp-input/otp-input';
+import { ThemeService } from '../../../core/services/theme.service';
 
 /**
  * Compte inscrit, pas encore validé (docs/decisions.md n° 54) : on y arrive après
@@ -34,6 +35,8 @@ import { OtpInput } from '../../../shared/components/otp-input/otp-input';
   styleUrls: ['../register/register.scss', './pending.scss'],
 })
 export class Pending {
+  /** Nom, logo et slogan de l'association (thème, décision n° 72). */
+  protected readonly theme = inject(ThemeService);
   private readonly authService = inject(AuthService);
   private readonly fb = inject(FormBuilder);
 

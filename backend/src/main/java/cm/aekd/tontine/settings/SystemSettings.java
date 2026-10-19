@@ -70,6 +70,34 @@ public class SystemSettings {
     @Column(name = "maintenance_message", length = 500)
     private String maintenanceMessage;
 
+    // Thème (decisions.md n° 72) : null = valeur par défaut (thème AEKD).
+    @Column(name = "theme_primary_color", length = 7)
+    private String themePrimaryColor;
+
+    @Column(name = "theme_secondary_color", length = 7)
+    private String themeSecondaryColor;
+
+    @Column(name = "theme_dark_color", length = 7)
+    private String themeDarkColor;
+
+    @Column(name = "theme_heading_font", length = 40)
+    private String themeHeadingFont;
+
+    @Column(name = "theme_body_font", length = 40)
+    private String themeBodyFont;
+
+    @Column(name = "theme_pattern", length = 20)
+    private String themePattern;
+
+    @Column(name = "login_slogan", length = 150)
+    private String loginSlogan;
+
+    @Column(name = "login_image_storage_key", length = 500)
+    private String loginImageStorageKey;
+
+    @Column(name = "login_image_content_type", length = 100)
+    private String loginImageContentType;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "updated_by")
     private User updatedBy;
@@ -137,6 +165,66 @@ public class SystemSettings {
     public void setLogo(String storageKey, String contentType) {
         this.logoStorageKey = storageKey;
         this.logoContentType = storageKey == null ? null : contentType;
+    }
+
+    public String getThemePrimaryColor() {
+        return themePrimaryColor;
+    }
+
+    public String getThemeSecondaryColor() {
+        return themeSecondaryColor;
+    }
+
+    public String getThemeDarkColor() {
+        return themeDarkColor;
+    }
+
+    public void setThemeColors(String primary, String secondary, String dark) {
+        this.themePrimaryColor = primary;
+        this.themeSecondaryColor = secondary;
+        this.themeDarkColor = dark;
+    }
+
+    public String getThemeHeadingFont() {
+        return themeHeadingFont;
+    }
+
+    public String getThemeBodyFont() {
+        return themeBodyFont;
+    }
+
+    public void setThemeFonts(String heading, String body) {
+        this.themeHeadingFont = heading;
+        this.themeBodyFont = body;
+    }
+
+    public String getThemePattern() {
+        return themePattern;
+    }
+
+    public void setThemePattern(String themePattern) {
+        this.themePattern = themePattern;
+    }
+
+    public String getLoginSlogan() {
+        return loginSlogan;
+    }
+
+    public void setLoginSlogan(String loginSlogan) {
+        this.loginSlogan = loginSlogan;
+    }
+
+    public String getLoginImageStorageKey() {
+        return loginImageStorageKey;
+    }
+
+    public String getLoginImageContentType() {
+        return loginImageContentType;
+    }
+
+    public void setLoginImage(String storageKey, String contentType) {
+        this.loginImageStorageKey = storageKey;
+        this.loginImageContentType = storageKey == null ? null : contentType;
     }
 
     public Integer getSessionDays() {

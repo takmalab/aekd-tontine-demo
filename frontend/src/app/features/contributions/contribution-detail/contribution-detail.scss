@@ -63,8 +63,8 @@
   border-radius: 20px;
   color: #fff;
   background:
-    radial-gradient(circle at 100% 0%, rgba(232, 110, 9, 0.5) 0%, rgba(232, 110, 9, 0) 45%),
-    radial-gradient(circle at 75% 130%, rgba(171, 88, 58, 0.55) 0%, rgba(171, 88, 58, 0) 50%),
+    radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--aekd-orange) 50%, transparent) 0%, color-mix(in srgb, var(--aekd-orange) 0%, transparent) 45%),
+    radial-gradient(circle at 75% 130%, color-mix(in srgb, var(--aekd-brown) 55%, transparent) 0%, color-mix(in srgb, var(--aekd-brown) 0%, transparent) 50%),
     var(--aekd-gray);
   box-shadow: var(--aekd-shadow-lg);
 
@@ -87,7 +87,7 @@
   }
 
   &__amount {
-    font-family: 'Poppins', sans-serif;
+    font-family: var(--aekd-font-heading);
     font-size: 30px;
     font-weight: 700;
     color: var(--aekd-orange);
@@ -95,7 +95,7 @@
 
   &__freq {
     margin-left: 4px;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--aekd-font-body);
     font-size: 14px;
     font-weight: 500;
     color: rgba(255, 255, 255, 0.7);
@@ -166,7 +166,7 @@
   min-width: 160px;
   border-radius: 12px;
   font-size: 15px;
-  box-shadow: 0 8px 20px rgba(232, 110, 9, 0.4);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--aekd-orange) 40%, transparent);
 }
 
 .badge {

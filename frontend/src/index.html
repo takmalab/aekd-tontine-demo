@@ -18,7 +18,15 @@
       href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined"
       rel="stylesheet"
     />
-    <link rel="manifest" href="manifest.webmanifest" />
+    <!-- Manifeste aux couleurs, au nom et au logo de l'association (décision n° 72). -->
+    <link rel="manifest" href="/api/public/manifest.webmanifest" />
+    <!-- Thème mémorisé sur l'appareil, appliqué avant l'affichage : pas de flash des couleurs AEKD. -->
+    <script>
+      try {
+        var aekdTheme = JSON.parse(localStorage.getItem('aekd_theme_vars') || 'null');
+        if (aekdTheme) for (var k in aekdTheme) document.documentElement.style.setProperty(k, aekdTheme[k]);
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <app-root></app-root>

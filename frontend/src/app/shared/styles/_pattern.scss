@@ -13,6 +13,7 @@
 //   --aekd-pattern-color   (défaut : var(--aekd-brown))
 //   --aekd-pattern-opacity (défaut : 0.06)
 //   --aekd-pattern-size    (largeur d'une tuile, défaut : 720px)
+//   --aekd-motif-<nom>, --aekd-pattern-display : choix du motif par le thème (ThemeService)
 
 /// @param $pattern masques | symboles
 /// @param $fade    estompe le motif au centre, pour laisser le contenu lisible
@@ -31,8 +32,11 @@
     pointer-events: none;
     background-color: var(--aekd-pattern-color, var(--aekd-brown));
     opacity: var(--aekd-pattern-opacity, 0.06);
+    // Thème (décision n° 72) : motif masqué (« aucun ») ou remplacé, via ThemeService.
+    display: var(--aekd-pattern-display, block);
 
-    $tile: url('/assets/patterns/aekd-#{$pattern}.svg') 0 0 / var(--aekd-pattern-size, 720px) auto repeat;
+    $tile: var(--aekd-motif-#{$pattern}, url('/assets/patterns/aekd-#{$pattern}.svg')) 0 0 / var(--aekd-pattern-size, 720px)
+      auto repeat;
     @if $fade {
       $vignette: radial-gradient(ellipse at center, transparent 0 30%, #000 80%);
       -webkit-mask: $tile, $vignette;

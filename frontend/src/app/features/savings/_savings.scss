@@ -52,7 +52,7 @@
     }
 
     &__value {
-      font-family: 'Poppins', sans-serif;
+      font-family: var(--aekd-font-heading);
       font-size: 22px;
       font-weight: 700;
       line-height: 1.15;
@@ -66,7 +66,7 @@
 
     &--hero {
       background:
-        radial-gradient(circle at 100% 0%, rgba(232, 110, 9, 0.45) 0%, rgba(232, 110, 9, 0) 55%),
+        radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--aekd-orange) 45%, transparent) 0%, color-mix(in srgb, var(--aekd-orange) 0%, transparent) 55%),
         var(--aekd-gray);
       border-color: var(--aekd-gray);
 
@@ -76,7 +76,7 @@
       }
 
       .kpi__label mat-icon {
-        color: #ffb877;
+        color: color-mix(in srgb, var(--aekd-orange) 60%, #fff);
       }
 
       .kpi__value {
@@ -197,7 +197,7 @@
     }
 
     &__amount {
-      font-family: 'Poppins', sans-serif;
+      font-family: var(--aekd-font-heading);
       font-size: 17px;
       font-weight: 700;
       color: var(--aekd-gray);

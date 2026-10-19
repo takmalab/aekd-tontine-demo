@@ -52,6 +52,22 @@ public final class AekdPdf {
         branding = value;
     }
 
+    /**
+     * Couleurs du thème (format #RRGGBB) ; null = couleur AEKD. La teinte claire
+     * est la principale mélangée à 90 % de blanc.
+     */
+    public static void applyColors(String primary, String secondary, String dark) {
+        ORANGE = primary == null ? DEFAULT_ORANGE : Color.decode(primary);
+        BROWN = secondary == null ? DEFAULT_BROWN : Color.decode(secondary);
+        GRAY = dark == null ? DEFAULT_GRAY : Color.decode(dark);
+        SOFT_ORANGE = primary == null ? DEFAULT_SOFT_ORANGE : new Color(
+                tint(ORANGE.getRed()), tint(ORANGE.getGreen()), tint(ORANGE.getBlue()));
+    }
+
+    private static int tint(int channel) {
+        return (int) Math.round(channel * 0.1 + 255 * 0.9);
+    }
+
     public static String associationName() {
         return branding.name();
     }
@@ -60,13 +76,20 @@ public final class AekdPdf {
         return branding.shortName();
     }
 
-    public static final Color ORANGE = new Color(0xE8, 0x6E, 0x09);
-    public static final Color BROWN = new Color(0xAB, 0x58, 0x3A);
-    public static final Color GRAY = new Color(0x36, 0x35, 0x3A);
+    // Couleurs de marque, réglées par le thème (decisions.md n° 72) : ORANGE = couleur
+    // principale, BROWN = secondaire, GRAY = sombre, SOFT_ORANGE = teinte claire de la
+    // principale. Par défaut, celles de l'AEKD. Lues à chaque document.
+    private static final Color DEFAULT_ORANGE = new Color(0xE8, 0x6E, 0x09);
+    private static final Color DEFAULT_BROWN = new Color(0xAB, 0x58, 0x3A);
+    private static final Color DEFAULT_GRAY = new Color(0x36, 0x35, 0x3A);
+    private static final Color DEFAULT_SOFT_ORANGE = new Color(0xFD, 0xEF, 0xE3);
+    public static volatile Color ORANGE = DEFAULT_ORANGE;
+    public static volatile Color BROWN = DEFAULT_BROWN;
+    public static volatile Color GRAY = DEFAULT_GRAY;
+    public static volatile Color SOFT_ORANGE = DEFAULT_SOFT_ORANGE;
     public static final Color MUTED = new Color(0x6B, 0x6A, 0x70);
     public static final Color LINE = new Color(0xE3, 0xD9, 0xD1);
     public static final Color ZEBRA = new Color(0xF8, 0xF4, 0xF1);
-    public static final Color SOFT_ORANGE = new Color(0xFD, 0xEF, 0xE3);
     public static final Color GREEN = new Color(0x15, 0x80, 0x3D);
     public static final Color RED = new Color(0xB9, 0x1C, 0x1C);
     public static final Color BLUE = new Color(0x1D, 0x4E, 0xD8);

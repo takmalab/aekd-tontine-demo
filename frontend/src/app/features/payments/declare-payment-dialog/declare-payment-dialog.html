@@ -31,7 +31,8 @@
       </span>
     </p>
 
-    <mat-form-field appearance="outline" class="full">
+    <!-- Indice sur deux lignes au téléphone : le champ grandit au lieu de déborder sur la suite. -->
+    <mat-form-field appearance="outline" class="full" subscriptSizing="dynamic">
       <mat-label>Montant</mat-label>
       <input matInput type="number" inputmode="numeric" min="1" step="1" formControlName="amount" />
       <span matTextSuffix>FCFA</span>

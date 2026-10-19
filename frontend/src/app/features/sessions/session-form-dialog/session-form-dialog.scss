@@ -96,7 +96,7 @@ mat-form-field.full + mat-form-field.full {
 .contribs {
   margin: 8px 0 12px;
   padding-top: 14px;
-  border-top: 1px solid rgba(54, 53, 58, 0.1);
+  border-top: 1px solid color-mix(in srgb, var(--aekd-gray) 10%, transparent);
 
   &__head {
     display: flex;
@@ -168,7 +168,7 @@ mat-form-field.full + mat-form-field.full {
 
 .contrib {
   padding: 6px 12px 8px 4px;
-  border: 1px solid rgba(54, 53, 58, 0.12);
+  border: 1px solid color-mix(in srgb, var(--aekd-gray) 12%, transparent);
   border-radius: 12px;
   transition: border-color 0.15s ease, background-color 0.15s ease;
 
@@ -214,7 +214,7 @@ mat-form-field.full + mat-form-field.full {
 .chip {
   padding: 1px 8px;
   border-radius: 999px;
-  background: rgba(54, 53, 58, 0.07);
+  background: color-mix(in srgb, var(--aekd-gray) 7%, transparent);
   color: var(--aekd-gray-dark);
   font-size: 12px;
   line-height: 20px;

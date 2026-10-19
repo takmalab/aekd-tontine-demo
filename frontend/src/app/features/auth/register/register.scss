@@ -158,7 +158,7 @@
     border-radius: 12px;
     font-size: 15px;
     --mat-button-filled-container-shape: 12px;
-    box-shadow: 0 8px 20px rgba(232, 110, 9, 0.3);
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--aekd-orange) 30%, transparent);
 
     mat-spinner {
       margin: 0 auto;

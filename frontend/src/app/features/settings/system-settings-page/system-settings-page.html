@@ -28,7 +28,7 @@
         <!-- Association -->
         <section class="card">
           <h2 class="card__title"><mat-icon>apartment</mat-icon> Association</h2>
-          <p class="card__text">Nom, sigle et coordonnées affichés sur les documents PDF (reçus, relevés, rapports).</p>
+          <p class="card__text">Nom, sigle et coordonnées affichés dans l'application et sur les documents PDF (reçus, relevés, rapports).</p>
           <mat-form-field appearance="outline" class="full">
             <mat-label>Nom de l'association</mat-label>
             <input matInput formControlName="associationName" />
@@ -60,20 +60,12 @@
 
           <div class="logo">
             <span class="logo__label">
-              <mat-icon>image</mat-icon>
-              Logo des documents : <strong>{{ d.settings.customLogo ? 'personnalisé' : 'logo AEKD par défaut' }}</strong>
+              <mat-icon>palette</mat-icon>
+              Logo : <strong>{{ d.settings.customLogo ? 'personnalisé' : 'logo AEKD par défaut' }}</strong>
             </span>
-            <input #logoFile type="file" accept="image/png,image/jpeg" hidden (change)="uploadLogo($event)" />
-            <span class="logo__actions">
-              <button mat-stroked-button type="button" (click)="logoFile.click()" [disabled]="logoBusy()">
-                <mat-icon>upload</mat-icon> Changer
-              </button>
-              @if (d.settings.customLogo) {
-                <button mat-button type="button" (click)="removeLogo()" [disabled]="logoBusy()">Par défaut</button>
-              }
-            </span>
+            <a mat-stroked-button routerLink="/settings/theme"><mat-icon>palette</mat-icon> Apparence</a>
           </div>
-          <p class="card__hint">PNG ou JPEG, 1 Mo au plus, de préférence carré.</p>
+          <p class="card__hint">Le logo, les couleurs, les polices et la page de connexion se règlent dans « Apparence ».</p>
         </section>
 
         <!-- Sécurité -->

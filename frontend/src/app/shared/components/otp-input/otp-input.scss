@@ -27,7 +27,7 @@
   &:focus {
     border-color: var(--aekd-orange);
     background: #fff;
-    box-shadow: 0 0 0 4px rgba(232, 110, 9, 0.15);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--aekd-orange) 15%, transparent);
   }
 
   &--filled {

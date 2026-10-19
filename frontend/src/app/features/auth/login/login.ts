@@ -11,6 +11,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { OtpInput } from '../../../shared/components/otp-input/otp-input';
 import { PhoneInput } from '../../../shared/components/phone-input/phone-input';
 import { formatPhone } from '../../../shared/utils/countries';
+import { ThemeService } from '../../../core/services/theme.service';
 
 type LoginMethod = 'email' | 'phone';
 type OtpStep = 'phone' | 'code';
@@ -34,6 +35,8 @@ type OtpChannel = 'sms' | 'email';
   styleUrl: './login.scss',
 })
 export class Login {
+  /** Nom, logo et slogan de l'association (thème, décision n° 72). */
+  protected readonly theme = inject(ThemeService);
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);

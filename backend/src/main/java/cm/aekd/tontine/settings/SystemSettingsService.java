@@ -64,12 +64,19 @@ public class SystemSettingsService {
         this.userRepository = userRepository;
     }
 
-    /** Valeurs en vigueur (réglage, sinon configuration du serveur). */
+    /**
+     * Valeurs en vigueur (réglage, sinon configuration du serveur). Les champs du thème
+     * (decisions.md n° 72) sont bruts : null = valeur par défaut, résolue par ThemeService.
+     * {@code version} change à chaque modification (date de mise à jour en millisecondes).
+     */
     public record Snapshot(String associationName, String associationShortName, String associationAddress,
                            String associationPhone, String associationEmail, boolean customLogo,
                            Integer sessionDays, Integer otpTtlMinutes, Integer otpMaxAttempts,
                            Integer otpResendSeconds, Integer otpMaxPerHour,
-                           boolean maintenanceEnabled, String maintenanceMessage) {
+                           boolean maintenanceEnabled, String maintenanceMessage,
+                           String themePrimaryColor, String themeSecondaryColor, String themeDarkColor,
+                           String themeHeadingFont, String themeBodyFont, String themePattern,
+                           String loginSlogan, boolean customLoginImage, long version) {
     }
 
     // ---------------------------------------------------------------- valeurs en vigueur
@@ -175,7 +182,7 @@ public class SystemSettingsService {
         return get();
     }
 
-    /** Logo des PDF : PNG ou JPEG, 1 Mo au plus. */
+    /** Logo de l'association (interface, icônes de l'application, PDF) : PNG ou JPEG, 1 Mo au plus. */
     public SettingsResponse uploadLogo(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Aucune image fournie");
@@ -198,7 +205,7 @@ public class SystemSettingsService {
         settings.setLogo(stored.storageKey(), type);
         deleteQuietly(previous);
         auditLogService.record(AuditAction.SYSTEM_SETTINGS_UPDATED, "SystemSettings", SystemSettings.AUDIT_ENTITY_ID,
-                "Nouveau logo pour les documents PDF");
+                "Nouveau logo de l'association");
         repository.flush();
         reload();
         return get();
@@ -212,7 +219,7 @@ public class SystemSettingsService {
             repository.flush();
             deleteQuietly(previous);
             auditLogService.record(AuditAction.SYSTEM_SETTINGS_UPDATED, "SystemSettings", SystemSettings.AUDIT_ENTITY_ID,
-                    "Logo des PDF remis par défaut");
+                    "Logo de l'association remis par défaut");
         }
         reload();
         return get();
@@ -230,17 +237,24 @@ public class SystemSettingsService {
         SystemSettings s = repository.findById(SystemSettings.SINGLETON_ID).orElse(null);
         if (s == null) {
             Snapshot fallback = new Snapshot(AekdPdf.DEFAULT_ASSOCIATION_NAME, AekdPdf.DEFAULT_ASSOCIATION_SHORT,
-                    null, null, null, false, null, null, null, null, null, false, null);
+                    null, null, null, false, null, null, null, null, null, false, null,
+                    null, null, null, null, null, null, null, false, 0L);
             snapshot = fallback;
             return fallback;
         }
         Snapshot fresh = new Snapshot(s.getAssociationName(), s.getAssociationShortName(), s.getAssociationAddress(),
                 s.getAssociationPhone(), s.getAssociationEmail(), s.getLogoStorageKey() != null, s.getSessionDays(),
                 s.getOtpTtlMinutes(), s.getOtpMaxAttempts(), s.getOtpResendSeconds(), s.getOtpMaxPerHour(),
-                s.isMaintenanceEnabled(), s.getMaintenanceMessage());
+                s.isMaintenanceEnabled(), s.getMaintenanceMessage(),
+                s.getThemePrimaryColor(), s.getThemeSecondaryColor(), s.getThemeDarkColor(),
+                s.getThemeHeadingFont(), s.getThemeBodyFont(), s.getThemePattern(),
+                s.getLoginSlogan(), s.getLoginImageStorageKey() != null,
+                s.getUpdatedAt() != null ? s.getUpdatedAt().toEpochMilli() : 0L);
         snapshot = fresh;
         AekdPdf.applyBranding(new AekdPdf.Branding(fresh.associationName(), fresh.associationShortName(),
                 contactLine(fresh), logoBytes(s)));
+        // Couleurs du thème sur les PDF (decisions.md n° 72) ; null = couleurs AEKD.
+        AekdPdf.applyColors(fresh.themePrimaryColor(), fresh.themeSecondaryColor(), fresh.themeDarkColor());
         return fresh;
     }
 

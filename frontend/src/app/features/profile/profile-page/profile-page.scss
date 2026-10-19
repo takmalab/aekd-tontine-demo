@@ -155,7 +155,7 @@
   }
 
   &--warn {
-    background: rgba(232, 110, 9, 0.12);
+    background: color-mix(in srgb, var(--aekd-orange) 12%, transparent);
     color: var(--aekd-orange);
   }
 }

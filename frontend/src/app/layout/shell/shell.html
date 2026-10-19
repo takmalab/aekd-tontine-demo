@@ -15,10 +15,10 @@
 
     <a routerLink="/dashboard" class="topbar__brand" (click)="onNavigate()">
       <span class="topbar__logo">
-        <img src="assets/logo-aekd-mark.png" alt="Logo AEKD" />
+        <img [src]="theme.markUrl()" [alt]="'Logo ' + theme.shortName()" />
       </span>
       <span class="topbar__brand-text">
-        <span class="topbar__title">AEKD</span>
+        <span class="topbar__title">{{ theme.shortName() }}</span>
         <span class="topbar__subtitle">Tontine</span>
       </span>
     </a>

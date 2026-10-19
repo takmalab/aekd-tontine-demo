@@ -636,7 +636,7 @@ $tones: (
   }
 
   &__value {
-    font-family: 'Poppins', sans-serif;
+    font-family: var(--aekd-font-heading);
     font-size: 26px;
     font-weight: 700;
     fill: var(--aekd-gray);
@@ -752,7 +752,7 @@ $tones: (
   }
 
   &__value {
-    font-family: 'Poppins', sans-serif;
+    font-family: var(--aekd-font-heading);
     font-size: 15px;
     font-weight: 700;
     color: var(--tone-dark);
